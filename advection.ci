@@ -1,0 +1,74 @@
+mainmodule Main{
+
+	readonly CProxy_Main mainProxy;
+        readonly int block_height;
+        readonly int block_width;
+
+        readonly int array_height;
+        readonly int array_width;
+
+        readonly int num_chare_rows;
+        readonly int num_chare_cols;
+
+	readonly int nframe;
+	readonly double xmin;
+        readonly double xmax;
+        readonly double ymin;
+        readonly double ymax;
+
+	readonly double xctr;
+        readonly double yctr;
+        readonly double radius;
+        
+        readonly int nx;
+        readonly int ny;
+
+        readonly double dx;
+        readonly double dy;
+        readonly double v;
+
+        readonly double ap;
+        readonly double an;
+        readonly double tmax;
+        readonly double dt;
+        readonly double cfl;
+
+        mainchare Main{
+            entry Main(CkArgMsg *m);
+        };
+        extern module Advection;
+};
+
+module Advection{
+        array [QuadIndex] Advection{
+            entry Advection();
+            entry Advection(bool, bool, bool);
+            entry void refine();
+            entry void inform_nbr_of_refinement();
+            entry void receiveGhosts(int iter, int dir, int width, double u[width]);
+            entry void begin_iteration();
+
+            entry void doStep(){
+                atomic "begin iteration"{
+                    begin_iteration();
+                }
+                
+                for(imsg = 0; imsg < 4; imsg++) {
+                    // "iterations keep track of messages accross steps"
+                    when 
+                        receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
+                    atomic "process ghosts" {
+                        process(dir, width, u);
+                    }
+                }
+                atomic "doWork" {
+                    compute_and_iterate();
+                }
+            };
+        
+            //for LiveViz
+            entry void requestNextFrame(liveVizRequestMsg *m);
+            entry void setReal();
+            entry void setDummy();
+        };
+};

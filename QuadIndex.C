@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstring>
+#include "math.h"
 #include "charm++.h"
 #include "QuadIndex.h"
 
@@ -42,7 +43,7 @@ QuadIndex::QuadIndex(int x, int y, int depth){
     bitVector = 0; 
     nbits = 2*depth;
     int quad;
-    int range = power(2, depth);
+    int range = pow(2.0, (float)depth);
     int r1 = 0, r2 = range-1, c1 = 0, c2 = range -1;
     
     int index = 0;
@@ -59,8 +60,8 @@ QuadIndex::QuadIndex(int x, int y, int depth){
         bitVector = bitVector | bit<<(bits_per_int - 1 - (index+1));
         index += 2;
          
-         r2 = r2 - power(2, depth-i-1);
-         c2 = c2 - power(2, depth-i-1);
+         r2 = r2 - pow(2.0, (float)depth-i-1);
+         c2 = c2 - pow(2.0, (float)depth-i-1);
          
          x =  x%(r2+1);
          y =  y%(r2+1);
@@ -69,7 +70,7 @@ QuadIndex::QuadIndex(int x, int y, int depth){
 
 void QuadIndex::getCoordinates(int &x, int &y) const{
     int depth = nbits/2;
-    int r1 = 0, r2 = power(2, depth)-1, c1 = 0, c2 = power(2, depth)-1;
+    int r1 = 0, r2 = pow(2.0, (float)depth)-1, c1 = 0, c2 = pow(2.0, (float)depth)-1;
     for(int i=0; i<nbits; i+=2){
         int bit0 = (bitVector & (1<<(bits_per_int - 1 - i)))>0?1:0;
         int bit1 = (bitVector & (1<<(bits_per_int - 1 - (i+1))))>0?1:0;
@@ -117,7 +118,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int x, y;
         getCoordinates(x, y);
         int depth = nbits/2;
-        int range = power(2, depth);
+        int range = pow(2.0, (float)depth);
         int yc = (y==0)?(range-1):y-1;
         int xc = x;
         return *new QuadIndex(xc, yc, depth);
@@ -126,7 +127,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int x, y;
         getCoordinates(x, y);
         int depth = nbits/2;
-        int range = power(2, depth);
+        int range = pow(2.0, (float)depth);
         int yc = (y+1)%range;
         int xc = x;
         return *new QuadIndex(xc, yc, depth);
@@ -135,7 +136,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int x, y;
         getCoordinates(x, y);
         int depth = nbits/2;
-        int range = power(2, depth);
+        int range = pow(2.0, (float)depth);
         int yc = y;
         int xc = (x==0)?(range-1):x-1;
         ckout << xc << ", " << yc << endl;
@@ -145,7 +146,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
        int x, y;
         getCoordinates(x, y);
         int depth = nbits/2;
-        int range = power(2, depth);
+        int range = pow(2.0, (float)depth);
         int yc = y;
         int xc = (x+1)%range;
         return *new QuadIndex(xc, yc, depth);

@@ -8,11 +8,9 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
-#include "QuadIndex.h"
-#include "Advection.h"
 #include "Main.h"
 
-//#include <algorithm>
+#include <algorithm>
 
 CProxy_Main mainProxy;
 
@@ -93,7 +91,7 @@ Main:: Main(CkArgMsg* m){
      //ckout << "an: " <<an << endl;
 
      /*****End Initialization **********/
-              
+     ckout << "Size of QuadIndex: " << sizeof(QuadIndex) << endl;
      CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
                                                         CkNumPes(), nx, ny);
      CkCallback *cb = new CkCallback(CkCallback::ckExit);
@@ -106,6 +104,8 @@ Main:: Main(CkArgMsg* m){
      int depth = (int)(log(num_chares)/log(4));
       
      QuadIndex qindex = *new QuadIndex("");
+     ckout << sizeof(qindex.nbits) << endl;
+     ckout << sizeof(qindex.bitVector)<<endl;
      qtree[qindex].insert(false, false, false);
     
      queue<QuadIndex> q;

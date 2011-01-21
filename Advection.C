@@ -8,33 +8,36 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
+#include "Constants.h"
 #include "Main.h"
 //#include <algorithm>
+extern CProxy_Main mainProxy;
 
-CProxy_Main mainProxy;
+extern int array_height;
+extern int array_width;
 
-int array_height;
-int array_width;
+extern int num_chare_rows;
+extern int num_chare_cols;
 
-int num_chare_rows;
-int num_chare_cols;
-
-int block_height;
-int block_width;
+extern int block_height;
+extern int block_width;
 
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
 
 
-CkArrayID a;
+extern CkArrayID a;
 
-int nframe;
-double xmin, xmax, ymin, ymax;
-double xctr, yctr, radius;
-int nx, ny;
-double dx, dy, v;
-double ap, an;
-double tmax, t, dt, cfl;
+extern int nframe;
+extern double xmin, xmax, ymin, ymax;
+extern double xctr, yctr, radius;
+extern int nx, ny;
+extern double dx, dy, v;
+extern double ap, an;
+extern double tmax, t, dt, cfl;
+
+
+#define index(i,j)  ((j)*(block_width+2) + i)
 
 
 void Advection::mem_allocate(double* &p, int size){
@@ -119,6 +122,7 @@ void Advection::advection(){
     __sdag_init();
     usesAtSync = CmiTrue;
     //ckout << "In Advection: " << endl;
+    myt = t;
     mem_allocate_all();
     iterations=0;
 
@@ -137,13 +141,14 @@ void Advection::advection(){
     //ckout << endl;
 
     double rsq;
+    
     //ckout << "In Adfvection2" << endl;
     for(int i=0; i<block_height+2; i++){
         for(int j=0; j<block_width+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[i]-yctr);
             if(rsq <= radius*radius)
-                u[i][j] = 2;
-            else u[i][j] = 1;
+                u[index(i,j)] = 2;
+            else u[index(i,j)] = 1;
         }
     }
     //ckout << "In Advection 3: " <<u[1][1]<< endl;
@@ -161,10 +166,42 @@ void Advection::pup(PUP::er &p){
     CBase_Advection::pup(p);
    __sdag_pup(p);
 
-    //p | u;
-    //p | u2;
-    //p | u3;
-    p | imsg;
+    p|isdummy;
+    p|hasRealChildren;
+    p|hasDummyChildren;
+    for(int i=0; i<DIMENSIONS; i++)
+      p|nbr[i];
+    p|parent;
+    p|xc;
+    p|yc;
+    p|imsg;
+
+    if(p.isUnpacking())
+        mem_allocate_all();
+    
+    for(int i=0; i<(block_width+2)*(block_height+2); i++){
+        p|u[i];
+        p|u2[i];
+        p|u3[i];
+    }
+
+    for (int i=0; i<block_width+2; i++){
+        p|x[i];
+    }
+
+    for (int i=0; i<block_height+2; i++){
+        p|y[i];
+    }
+    for (int i=0; i<block_height+2; i++){
+        p|left_edge[i];
+        p|right_edge[i];
+    }
+
+    p|iterations;
+    p|up;
+    p|un;
+    p|myt;
+    p|mydt;
 }
     
 Advection::~Advection(){
@@ -182,22 +219,21 @@ Advection::~Advection(){
 void Advection::begin_iteration(void) {
     //ckout << "String: " << thisIndex.getIndexString() << endl;
 
-    //ckout << "u[1][1]: " << u[1][1] << endl;
     for(int i=1; i<=block_width; i++)
-        for(int j=1; j<=block_height; j++){
-            u2[i][j] = u[i][j];
-        }
+        for(int j=1; j<=block_height; j++)
+            u2[index(i,j)] = u[index(i,j)];
 
     for(int i=1; i<=block_width; i++)
         for(int j=1; j<=block_height; j++)
-            u3[i][j]=u[i][j];
+            u3[index(i,j)] = u[index(i,j)];
 
     iterations++;
 
-    for(int i=0; i<block_height; i++){
-        left_edge[i] = u[1][i+1];
-        right_edge[i] = u[block_width][i+1];
+    for(int j=1; j<=block_height; j++){
+        left_edge[j-1] = u[index(1,j)];
+        right_edge[j-1] = u[index(block_width,j)];
     }
+        ///*
     //ckout << "Left Neighbor of " << thisIndex.getIndexString() << " is " << nbr[LEFT].getIndexString() << endl;
     //send my left edge
     thisProxy(nbr[LEFT]).receiveGhosts(iterations, RIGHT, block_height, left_edge);
@@ -209,34 +245,39 @@ void Advection::begin_iteration(void) {
 
     //ckout << "Top Neighbor of " << thisIndex.getIndexString() << " is " << nbr[UP].getIndexString() << endl;
     //send my top edge
-    thisProxy(nbr[UP]).receiveGhosts(iterations, DOWN, block_width, &u[1][1]);
+    thisProxy(nbr[UP]).receiveGhosts(iterations, DOWN, block_width, &u[index(1,1)]);
 
     //ckout << "Bottom Neighbor of " << thisIndex.getIndexString() << " is " << nbr[DOWN].getIndexString() << endl;
     //send my bottom edge
-    thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[block_height][1]);
+    thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[index(1, block_height)]);
 
 }
-    
-void Advection::process(int dir, int size, double gh[]){
+
+void Advection::process(int iter, int dir, int size, double gh[]){
+//printf("[%d] process %d %d\n", thisIndex, iter, dir);
     switch(dir){
         case LEFT:
             for(int i=0; i<size; i++)
-                u[0][i+1] = gh[i];
+                u[index(0,i+1)] = gh[i];
+                //u[i+1][0] = gh[i];
         break;
 
         case RIGHT:
             for(int i=0; i<size; i++)
-                u[block_width+1][i+1] = gh[i];
+                u[index(block_width+1,i+1)] = gh[i];
+                //u[i+1][block_width+1]=gh[i];
         break;
 
         case UP:
             for(int i=0; i<size; i++)
-                u[i+1][block_height+1] = gh[i];
+                u[index(i+1,0)] = gh[i];
+                //u[block_height+1][i+1]=gh[i];
             break;
 
          case DOWN:
             for(int i=0; i<size; i++)
-                u[i+1][0] = gh[i];
+                u[index(i+1,block_height+1)] = gh[i];
+                //u[0][i+1]=gh[i];
             break;
         default:
             CkAbort("ERROR\n");
@@ -244,77 +285,76 @@ void Advection::process(int dir, int size, double gh[]){
 }
     
 void Advection::compute_and_iterate(){
-    ckout << iterations << endl;
-    ckout << "In compute and iterate" << endl;
-    for(int i=1; i<=block_height; i++){
-        for(int j=1; j<=block_width; j++){
-            up = (u[i+1][j] - u[i][j])/dx;
-            un = (u[i][j]-u[i-1][j])/dx;
+    //ckout << "dt: " << dt << " ap:" << ap << " an:" << an << endl;
+    //ckout << iterations << endl;
+    for(int i=1; i<=block_width; i++){
+        for(int j=1; j<=block_height; j++){
+            up = (u[index(i+1,j)] - u[index(i,j)])/dx;
+            un = (u[index(i,j)]-u[index(i-1,j)])/dx;
 
-            u2[i][j] = u[i][j] - dt* (ap*un + an*up);
+            u2[index(i,j)] = u[index(i,j)] - dt* (ap*un + an*up);
             
-    //        ckout << u2[i][j] << endl;
+            //ckout << u2[index(i,j)] << endl;
         }
     }
 
-    for(int i=1; i<=block_height; i++)
-        for(int j=1; j<=block_width ;j++){
-            up = (u[i][j+1] - u[i][j])/dy;
-            un = (u[i][j] - u[i][j-1])/dy;
+    for(int i=1; i<=block_width; i++)
+        for(int j=1; j<=block_height; j++){
+            up = (u[index(i,j+1)] - u[index(i,j)])/dy;
+            un = (u[index(i,j)] - u[index(i,j-1)])/dy;
 
-           u3[i][j] = u[i][j] - dt*(ap*un + an*up);
+            u3[index(i,j)] = u[index(i,j)] - dt*(ap*un + an*up);
+
+            //ckout << "u3:" << u3[index(i,j)] << endl;
         }
 
-    for(int i=1; i<=block_height; i++)
-        for(int j=1; j<=block_width; j++)
-            u[i][j] = 0.5*(u2[i][j] + u3[i][j]);
+#if 1 
+    for(int j=1; j<=block_height; j++)
+        for(int i=1; i<=block_width; i++)
+           u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
+#endif
     
+#if 0
     for(int i=1; i<=block_height; i++){
         for(int j=1; j<=block_width; j++)
-            ckout << u[i][j] << "\t";
+            ckout << u[index(j,i)] << "\t";
             ckout << endl;
     }
     ckout << endl;
+#endif
+//printf("[%d] t: %f %f\n", thisIndex, myt, tmax);
     iterate();
 }
-
 void Advection::iterate() {
-         t = t+dt;
-         if(t < tmax){
-             dt = min(dx,dy)/v * cfl;
-             if ((t + dt) >= tmax )
-                 dt = tmax - t;
+         myt = myt+mydt;
+         if(myt < tmax){
+             mydt = min(dx,dy)/v * cfl;
+             if ((myt + mydt) >= tmax )
+                 mydt = tmax - myt;
              doStep();    
-             ckout << "Doing another iteration" << endl;
          }
-         else
+         else {
+             CkPrintf("Contribute\n");
              contribute();
+         }
 }
-    
-void Advection::requestNextFrame(liveVizRequestMsg *m){
-    ckout << "In request New Frame: ********************************" << endl;
 
-    int sy = xc*block_width;
-    int sx = yc*block_height;
+void Advection::requestNextFrame(liveVizRequestMsg *m){
+
+    int sy = yc;//thisIndex%num_chare_cols;
+    int sx = xc;//thisIndex/num_chare_rows;
     int w= block_width, h = block_height;
 
     unsigned char *intensity = new unsigned char[3*w*h];
-    if(isdummy || hasRealChildren){
-        liveVizDeposit(m, 0, 0, 0, 0, intensity, this);
-        delete [] intensity;
-        return;
-    }
-
-    for(int i=0; i<h; i++){
-        for(int j=0; j<w; j++){
+    for(int j=0; j<h; j++){
+       for(int i=0; i<w; i++){
            // ckout << u[i+1][j+1] << endl;
-            intensity[3*(i*w+j)+ 0] = 255;// red component
-            intensity[3*(i*w+j)+ 1] = 255 - (u[i+1][j+1]-1)*255;// BLUE component
-            intensity[3*(i*w+j)+ 2] = 255 - (u[i+1][j+1]-1)*255;// green component
+            intensity[3*(i+j*w)+ 0] = 255;// red component
+            intensity[3*(i+j*w)+ 1] = 255 - (u[index(i+1,j+1)]-1)*255;// BLUE component
+            intensity[3*(i+j*w)+ 2] = 255 - (u[index(i+1,j+1)]-1)*255;// green component
         }
     }
-    liveVizDeposit(m, sx,sy, w,h, intensity, this);
+    liveVizDeposit(m, sy*w,sx*h, w,h, intensity, this);
     delete[] intensity;
 }
-
 #include "Advection.def.h"

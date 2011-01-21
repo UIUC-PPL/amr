@@ -1,13 +1,6 @@
 
 const int bits_per_int = 8*sizeof(int);
 
-inline int power(int base, int exp){
-    int _ret = 1;
-    for(int i=1; i<=exp; i++)
-        _ret *= base;
-    return _ret;
-}
-
 inline bool liesin(int x, int st, int end){
     if (x<=end && x>=st)
         return true;
@@ -54,6 +47,11 @@ public:
     
     unsigned int getBitVector() const{ return bitVector;}
     unsigned int getNbits() const{ return nbits;}
+
+    void pup(PUP::er &p){
+        p|nbits;
+        p|bitVector;
+    }
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {
@@ -70,8 +68,8 @@ public:
     }
     
     CkArrayIndexQuadIndex &operator=(const CkArrayIndexQuadIndex &that)  {
-                nInts = that.nInts;
-                memcpy(idx, that.idx, sizeof(int)*2);
-                return *this;
-        }
+        nInts = that.nInts;
+        memcpy(idx, that.idx, sizeof(int)*2);
+        return *this;
+    }
 };

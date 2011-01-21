@@ -58,7 +58,7 @@ module Advection{
                     when 
                         receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
                     atomic "process ghosts" {
-                        process(dir, width, u);
+                        process(iter, dir, width, u);
                     }
                 }
                 atomic "doWork" {

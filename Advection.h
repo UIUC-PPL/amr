@@ -28,7 +28,7 @@ Advection_SDAG_CODE
         
         double up;
         double un;
-
+        double myt, mydt;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
         
@@ -47,7 +47,7 @@ Advection_SDAG_CODE
         ~Advection();
 
         void begin_iteration();
-        void process(int, int, double*);
+        void process(int, int, int, double*);
         void compute_and_iterate();
         void iterate();
         void requestNextFrame(liveVizRequestMsg*);

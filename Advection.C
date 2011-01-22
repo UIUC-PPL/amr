@@ -220,34 +220,35 @@ void Advection::advection(){
 
     for(int i=0; i<block_width+2; i++){
         x[i] = xmin + double(xc*block_width+i)*dx - 0.5*dx;
-       // ckout << x[i] << endl;
+        ckout << x[i] << endl;
     }
     //ckout << endl;
 
     for(int i=0; i<block_height+2; i++){
         y[i] = ymin + double(yc*block_height+i)*dy - 0.5*dy;
-        //ckout << y[i] << endl;
+        ckout << y[i] << endl;
     }
     //ckout << endl;
 
     double rsq;
     
     //ckout << "In Adfvection2" << endl;
+    ckout << xctr << ", " << yctr << endl;
     for(int i=0; i<block_height+2; i++){
         for(int j=0; j<block_width+2; j++){
-            rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[i]-yctr);
+            rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
             if(rsq <= radius*radius)
                 u[index(i,j)] = 2;
             else u[index(i,j)] = 1;
         }
     }
     //ckout << "In Advection 3: " <<u[1][1]<< endl;
-    /*for(int i=0; i<block_height; i++){
+    for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
-            ckout << u[i][j] << "\t";
+            ckout << u[index(j+1,i+1)] << "\t";
         ckout << endl;
     }
-    ckout << endl;*/
+    ckout << endl;
 }
 
     //added for array migration - see how 2D arrays can be packed
@@ -380,6 +381,14 @@ void Advection::begin_iteration(void) {
     thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[index(1, block_height)]);
 
 }
+template<class T>
+void print_Array(T* array, int size, int row_size){
+    for(int i=0; i<size; i++){
+        if(i%row_size==0)
+            ckout << endl;
+        ckout << array[i] << '\t';
+    }
+}
 
 void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
@@ -436,11 +445,9 @@ void Advection::compute_and_iterate(){
             //ckout << "u3:" << u3[index(i,j)] << endl;
         }
 
-#if 1 
     for(int j=1; j<=block_height; j++)
         for(int i=1; i<=block_width; i++)
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
-#endif
     
 #if 1
     for(int i=1; i<=block_height; i++){
@@ -449,6 +456,8 @@ void Advection::compute_and_iterate(){
             ckout << endl;
     }
     ckout << endl;
+    ckout << "After First Iteration" << endl;
+    cin.get();cin.get();
 #endif
     iterate();
 }

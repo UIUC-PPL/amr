@@ -131,5 +131,6 @@ Main:: Main(CkArgMsg* m){
         ckout << "Calling doStep for " << qindex.getIndexString() << endl;
         qtree[qindex].doStep();
     }*/
+    qtree[qindex].doStep();
 }
 #include "Main.def.h"

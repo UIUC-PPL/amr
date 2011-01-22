@@ -8,7 +8,7 @@ inline bool liesin(int x, int st, int end){
 }
 
 enum DIR {UP=0, DOWN=1, LEFT=2, RIGHT=3};
-
+static int SENDER_DIR[NUM_NEIGHBORS] = {1,0,3,2};
 class QuadIndex{
 public:
     int nbits;

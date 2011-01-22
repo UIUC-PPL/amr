@@ -1,3 +1,4 @@
+#include "Constants.h"
 #include "QuadIndex.h"
 #include "Advection.decl.h"
 
@@ -8,6 +9,12 @@ Advection_SDAG_CODE
         bool isdummy;
         bool hasRealChildren;
         bool hasDummyChildren;
+        
+        bool nbr_isdummy[NUM_NEIGHBORS];
+        bool nbr_hasRealChildren[NUM_NEIGHBORS];
+        bool nbr_hasDummyChildren[NUM_NEIGHBORS];
+
+        bool child_hasDummyChildren[NUM_CHILDREN];
 
         QuadIndex nbr[4], parent;
         int xc, yc;
@@ -23,6 +30,10 @@ Advection_SDAG_CODE
 
         double *left_edge;
         double *right_edge;
+        
+        /* Required In Case of Dummy Nodes */
+        double *top_edge;
+        double *bottom_edge;
 
         int iterations;
         
@@ -31,6 +42,8 @@ Advection_SDAG_CODE
         double myt, mydt;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
+        ~Advection();
+        void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
         Advection(bool, bool, bool);
         Advection(){advection();}
@@ -38,13 +51,18 @@ Advection_SDAG_CODE
         
         void advection();// common function for initialization
         void refine();
-        void inform_nbr_of_refinement();
+        void derefine();
+        void inform_nbr_of_refinement(int);
+        void inform_nbr_hasDummyChildren(int inbr);
+        void destroyChildren();
+        void inform_nbr_hasNoChildren(int inbr);
 
-        void setDummy(){ isdummy = true;}
-        void setReal(){ isdummy = false;}
-        
+        void setDummy();
+        void setReal();
+        void manage_memory_RealToDummy();
+        void manage_memory_DummyToReal();
+
         void pup(PUP::er &p);
-        ~Advection();
 
         void begin_iteration();
         void process(int, int, int, double*);

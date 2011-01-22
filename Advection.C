@@ -8,7 +8,6 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
-#include "Constants.h"
 #include "Main.h"
 //#include <algorithm>
 extern CProxy_Main mainProxy;
@@ -44,16 +43,24 @@ void Advection::mem_allocate(double* &p, int size){
     p = new double[size];
 }
 
-void Advection::mem_allocate_all(){
-    mem_allocate(u, (block_width+2)*(block_height+2));
-    mem_allocate(u2, (block_width+2)*(block_height+2));
-    mem_allocate(u3, (block_width+2)*(block_height+2));
 
-    mem_allocate(x, block_width+2);
-    mem_allocate(y, block_height+2);
+void Advection::mem_allocate_all(){
 
     mem_allocate(left_edge, block_height);
     mem_allocate(right_edge, block_height);
+
+    if(!isdummy){
+        mem_allocate(u, (block_width+2)*(block_height+2));
+        mem_allocate(u2, (block_width+2)*(block_height+2));
+        mem_allocate(u3, (block_width+2)*(block_height+2));
+
+        mem_allocate(x, block_width+2);
+        mem_allocate(y, block_height+2);
+    }
+    else{
+        mem_allocate(top_edge, block_width);
+        mem_allocate(bottom_edge, block_width);
+    }
 }
 
 Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
@@ -79,8 +86,8 @@ void Advection::refine(){
         hasDummyChildren = false;
         hasRealChildren = true;
 
-        for(int i=0; i<4; i++){
-            thisProxy(thisIndex.getChild(i)).setReal();ckout << "Setting " << thisIndex.getChild("00").getIndexString() << " as real" << endl;
+        for(int i=0; i<NUM_CHILDREN; i++){
+            thisProxy(thisIndex.getChild(i)).setReal();
         }
     }
     else if(!hasRealChildren){
@@ -94,30 +101,113 @@ void Advection::refine(){
         thisProxy.doneInserting();
     }
     
-    for(int i=0; i<4; i++){
+    for(int i=0; i<NUM_NEIGHBORS; i++){
         if(thisIndex!=nbr[i])
-            thisProxy(nbr[i]).inform_nbr_of_refinement();
+            thisProxy(nbr[i]).inform_nbr_of_refinement(SENDER_DIR[i]);
     }
 }
 
-void Advection::inform_nbr_of_refinement(){
-    ckout << "inform_nbr called for " << thisIndex.getIndexString() << endl; 
+void Advection::inform_nbr_of_refinement(int inbr){
+    ckout << "inform_nbr called for " << thisIndex.getIndexString() << endl;
+    /*Update Neighbor Infomration*/
+    nbr_isdummy[inbr]=false;
+    nbr_hasRealChildren[inbr]=true;
+    nbr_hasDummyChildren[inbr]=false;
+
+    /* Take Action To Maintain Mesh Structure*/
     if(isdummy){
-        //ask the parent to refine itself
+        /*Two things need to be done here:
+         * 1. Ask the parent to refine itself so that myself and my siblings become real.
+         * 2. Create my dummy children to be available for communication with the neighbor who has decided to refine itself
+         */
         thisProxy(parent).refine();
     }    
     if(!hasDummyChildren && !hasRealChildren){
         hasDummyChildren = true;
         hasRealChildren = false;
+    }
 
-        //create dummy children  
-        for(int i=0; i<4; i++){
-            thisProxy(thisIndex.getChild(i)).insert(true, false, false);ckout << "Creating dummy child: " << thisIndex.getChild("00").getIndexString() << endl;
-        }
+    //create dummy children  
+    for(int i=0; i<4; i++){
+        thisProxy(thisIndex.getChild(i)).insert(true, false, false);      
         thisProxy.doneInserting();
+        /* Inform Neighbors that I now have Dummy Children*/
+        for(int i=0; i<NUM_NEIGHBORS; i++){
+            thisProxy(nbr[i]).inform_nbr_hasDummyChildren(SENDER_DIR[i]);
+        }
     }
 }
-    
+ 
+void Advection::derefine(){
+    /* If Any of My Children Have Dummy Children then I cannot derefine
+     * because that means the dummy grandchildren are serving some of their
+     * real neighbors and hence cannot be removed*/
+    for(int i=0; i<NUM_CHILDREN; i++)
+        if(child_hasDummyChildren[i]==true){
+            ckout << "Cannot derefine MySelf" << endl;
+            return;
+        }
+    /* Now I can Derefine MySelf */
+
+    /* Check If Any of My Neighbors have Real Children Then I have to make 
+     * my children Dummy */
+    int i=0;
+    for(i=0; i<NUM_NEIGHBORS; i++){
+        if(nbr_hasRealChildren[i]){
+            /* Make my Children Dummy*/
+            for(int j=0; j<NUM_CHILDREN;j++)
+                thisProxy(thisIndex.getChild(j)).setDummy();
+            /* Inform Neighbors that I now have Dummy  Children*/
+            for(int j=0; j<NUM_NEIGHBORS; j++)
+                thisProxy(nbr[j]).inform_nbr_hasDummyChildren(SENDER_DIR[j]);
+            return;
+        }
+    }
+    if (i==NUM_NEIGHBORS){
+        /* i.e. when none of the neighbors have real children
+         * In that case, delete the children
+         */
+        destroyChildren();
+        /* Inform Neighbors of What You Did to Your Children*/
+        for(int j=0; j<NUM_NEIGHBORS; j++)
+            thisProxy(nbr[j]).inform_nbr_hasNoChildren(SENDER_DIR[j]);
+    }
+}
+
+void Advection::destroyChildren(){
+    for(int j=0; j<NUM_CHILDREN; j++){
+        // free the Memory Held by the Children
+        thisProxy(thisIndex.getChild(j)).free_memory();
+        //destoy the array element
+        thisProxy(thisIndex.getChild(j)).ckDestroy();
+    }
+}
+
+void Advection::inform_nbr_hasNoChildren(int inbr){
+    nbr_hasDummyChildren[inbr]=false;
+    nbr_hasRealChildren[inbr]==false; 
+    int i;
+    for(i=0; i<NUM_NEIGHBORS; i++){
+        if(nbr_hasDummyChildren[i])
+            break;
+    }
+    if(i==NUM_NEIGHBORS)
+        destroyChildren();
+}
+
+void Advection::inform_nbr_hasDummyChildren(int inbr){
+    nbr_hasDummyChildren[inbr]=true;
+    /* Check if all the neighbors have dummy children
+     * And if That is the case destroy all Children */
+    int i;
+    for(i=0; i<NUM_NEIGHBORS; i++){
+        if(nbr_hasDummyChildren[i])
+            break;
+    }
+    if(i==NUM_NEIGHBORS)
+        destroyChildren();
+}
+
 void Advection::advection(){
     __sdag_init();
     usesAtSync = CmiTrue;
@@ -169,7 +259,7 @@ void Advection::pup(PUP::er &p){
     p|isdummy;
     p|hasRealChildren;
     p|hasDummyChildren;
-    for(int i=0; i<DIMENSIONS; i++)
+    for(int i=0; i<NUM_NEIGHBORS; i++)
       p|nbr[i];
     p|parent;
     p|xc;
@@ -214,6 +304,44 @@ Advection::~Advection(){
     delete [] y;
     delete [] left_edge;
     delete [] right_edge;
+
+    delete [] top_edge;
+    delete [] right_edge;
+}
+
+void Advection::setReal(){
+    isdummy = false;
+    manage_memory_DummyToReal();
+}
+
+void Advection::setDummy(){
+    isdummy = true;
+    manage_memory_RealToDummy();
+}
+
+void Advection::manage_memory_RealToDummy(){
+    delete [] u;
+    delete [] u2;
+    delete [] u3;
+    
+    delete [] x;
+    delete [] y;
+
+    mem_allocate(top_edge, block_width+2);
+    mem_allocate(bottom_edge, block_width+2);
+}
+
+
+void Advection::manage_memory_DummyToReal(){
+    delete [] top_edge;
+    delete [] bottom_edge;
+    
+    mem_allocate(u, (block_height+2)*(block_width+2));
+    mem_allocate(u2, (block_height+2)*(block_width+2));
+    mem_allocate(u3, (block_height+2)*(block_width+2));
+
+    mem_allocate(x, block_width+2);
+    mem_allocate(y, block_height+2);
 }
 
 void Advection::begin_iteration(void) {
@@ -314,7 +442,7 @@ void Advection::compute_and_iterate(){
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
 #endif
     
-#if 0
+#if 1
     for(int i=1; i<=block_height; i++){
         for(int j=1; j<=block_width; j++)
             ckout << u[index(j,i)] << "\t";
@@ -322,7 +450,6 @@ void Advection::compute_and_iterate(){
     }
     ckout << endl;
 #endif
-//printf("[%d] t: %f %f\n", thisIndex, myt, tmax);
     iterate();
 }
 void Advection::iterate() {
@@ -340,6 +467,9 @@ void Advection::iterate() {
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){
+    if (isdummy || hasRealChildren){
+        liveVizDeposit(m,0,0,0,0,NULL, this);
+    }
 
     int sy = yc;//thisIndex%num_chare_cols;
     int sx = xc;//thisIndex/num_chare_rows;

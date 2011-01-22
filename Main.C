@@ -91,7 +91,6 @@ Main:: Main(CkArgMsg* m){
      //ckout << "an: " <<an << endl;
 
      /*****End Initialization **********/
-     ckout << "Size of QuadIndex: " << sizeof(QuadIndex) << endl;
      CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
                                                         CkNumPes(), nx, ny);
      CkCallback *cb = new CkCallback(CkCallback::ckExit);
@@ -104,8 +103,6 @@ Main:: Main(CkArgMsg* m){
      int depth = (int)(log(num_chares)/log(4));
       
      QuadIndex qindex = *new QuadIndex("");
-     ckout << sizeof(qindex.nbits) << endl;
-     ckout << sizeof(qindex.bitVector)<<endl;
      qtree[qindex].insert(false, false, false);
     
      queue<QuadIndex> q;
@@ -127,11 +124,12 @@ Main:: Main(CkArgMsg* m){
     liveVizConfig cfg(liveVizConfig::pix_color, true);
     liveVizInit(cfg, a, c);
       
-    int size = q.size();
+    /*int size = q.size();
+    ckout << "Size of Queue " << size << endl;
     for(int i=0; i<size; i++){
         qindex = q.front(); q.pop();
         ckout << "Calling doStep for " << qindex.getIndexString() << endl;
         qtree[qindex].doStep();
-    }
+    }*/
 }
 #include "Main.def.h"

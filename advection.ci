@@ -44,7 +44,10 @@ module Advection{
             entry Advection();
             entry Advection(bool, bool, bool);
             entry void refine();
-            entry void inform_nbr_of_refinement();
+            entry void inform_nbr_of_refinement(int);
+            entry void inform_nbr_hasDummyChildren(int);
+            entry void inform_nbr_hasNoChildren(int);
+
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);
             entry void begin_iteration();
 
@@ -70,5 +73,7 @@ module Advection{
             entry void requestNextFrame(liveVizRequestMsg *m);
             entry void setReal();
             entry void setDummy();
+
+            entry void free_memory();
         };
 };

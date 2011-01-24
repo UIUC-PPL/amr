@@ -35,7 +35,9 @@ mainmodule Main{
 
         mainchare Main{
             entry Main(CkArgMsg *m);
+            entry void printTreeInformation(CkVec<QuadIndex>);
         };
+
         extern module Advection;
 };
 
@@ -47,6 +49,8 @@ module Advection{
             entry void inform_nbr_of_refinement(int);
             entry void inform_nbr_hasDummyChildren(int);
             entry void inform_nbr_hasNoChildren(int);
+            entry void inform_child_hasDummyChildren(int);
+            entry void printState();
 
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);
             entry void begin_iteration();

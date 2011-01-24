@@ -56,12 +56,16 @@ Advection_SDAG_CODE
         void inform_nbr_hasDummyChildren(int inbr);
         void destroyChildren();
         void inform_nbr_hasNoChildren(int inbr);
+        void inform_child_hasDummyChildren(int cindx){
+            child_hasDummyChildren[cindx] = true;
+        }
 
         void setDummy();
         void setReal();
         void manage_memory_RealToDummy();
         void manage_memory_DummyToReal();
-
+        
+        void printState();
         void pup(PUP::er &p);
 
         void begin_iteration();

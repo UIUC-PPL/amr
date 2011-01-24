@@ -49,18 +49,18 @@ void Advection::mem_allocate_all(){
     mem_allocate(left_edge, block_height);
     mem_allocate(right_edge, block_height);
 
-    if(!isdummy){
+    //if(!isdummy){
         mem_allocate(u, (block_width+2)*(block_height+2));
         mem_allocate(u2, (block_width+2)*(block_height+2));
         mem_allocate(u3, (block_width+2)*(block_height+2));
 
         mem_allocate(x, block_width+2);
         mem_allocate(y, block_height+2);
-    }
-    else{
+    //}
+   // else{
         mem_allocate(top_edge, block_width);
         mem_allocate(bottom_edge, block_width);
-    }
+    //}
 }
 
 Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
@@ -72,16 +72,14 @@ Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
     for(int dir=UP; dir<=RIGHT; ++dir)
         nbr[dir] = thisIndex.getNeighbor(dir);
     if(thisIndex.nbits!=0)
-    parent = thisIndex.getParent();
+        parent = thisIndex.getParent();
 
-    ckout << "Constructor for " << thisIndex.getIndexString() << " called" << endl;
     advection();
 }
     
     
 void Advection::refine(){	
     // should always be called on a node not having Real Chilren
-    ckout << "refine caled for " << thisIndex.getIndexString() << endl;
     if(hasDummyChildren){               
         hasDummyChildren = false;
         hasRealChildren = true;
@@ -96,24 +94,24 @@ void Advection::refine(){
         hasRealChildren = true;
 
         for(int i=0; i<4; i++){
-            thisProxy(thisIndex.getChild(i)).insert(false, false, false); ckout << "Creating real child: " << thisIndex.getChild("00").getIndexString() << endl; 
+            thisProxy(thisIndex.getChild(i)).insert(false, false, false); 
         }
         thisProxy.doneInserting();
     }
     
     for(int i=0; i<NUM_NEIGHBORS; i++){
-        if(thisIndex!=nbr[i])
-            thisProxy(nbr[i]).inform_nbr_of_refinement(SENDER_DIR[i]);
+        //if(thisIndex!=nbr[i])
+        thisProxy(nbr[i]).inform_nbr_of_refinement(SENDER_DIR[i]);
     }
 }
 
 void Advection::inform_nbr_of_refinement(int inbr){
-    ckout << "inform_nbr called for " << thisIndex.getIndexString() << endl;
     /*Update Neighbor Infomration*/
+    //ckout << inbr << " has refined" << endl;
     nbr_isdummy[inbr]=false;
     nbr_hasRealChildren[inbr]=true;
     nbr_hasDummyChildren[inbr]=false;
-
+    
     /* Take Action To Maintain Mesh Structure*/
     if(isdummy){
         /*Two things need to be done here:
@@ -122,20 +120,24 @@ void Advection::inform_nbr_of_refinement(int inbr){
          */
         thisProxy(parent).refine();
     }    
-    if(!hasDummyChildren && !hasRealChildren){
-        hasDummyChildren = true;
+    else if(!hasDummyChildren && !hasRealChildren){
+        hasDummyChildren = true;/* Will Now create dummy children*/
         hasRealChildren = false;
     }
+    else if(hasRealChildren || hasDummyChildren)
+        return;
 
     //create dummy children  
-    for(int i=0; i<4; i++){
+    for(int i=0; i<4; i++)
         thisProxy(thisIndex.getChild(i)).insert(true, false, false);      
-        thisProxy.doneInserting();
-        /* Inform Neighbors that I now have Dummy Children*/
-        for(int i=0; i<NUM_NEIGHBORS; i++){
-            thisProxy(nbr[i]).inform_nbr_hasDummyChildren(SENDER_DIR[i]);
-        }
+
+    thisProxy.doneInserting();
+    /* Inform Neighbors that I now have Dummy Children*/
+    for(int i=0; i<NUM_NEIGHBORS; i++){
+        thisProxy(nbr[i]).inform_nbr_hasDummyChildren(SENDER_DIR[i]);
     }
+    /* Inform Parent Also that I now have Dummy Children */
+    thisProxy(parent).inform_child_hasDummyChildren(thisIndex.getChildNum());
 }
  
 void Advection::derefine(){
@@ -184,15 +186,28 @@ void Advection::destroyChildren(){
 }
 
 void Advection::inform_nbr_hasNoChildren(int inbr){
+    /* This entry method will be called when the neighbor has derefined 
+     * and has destroyed his children, the neighbor can derefine in such a 
+     * manneronly if I had no Real Children. That means I can have Dummy Children.
+     * Now I should check that if I have Dummy Children and there are no neighbors 
+     * with Real Children, then I should also destry my dummy children*/
+     
     nbr_hasDummyChildren[inbr]=false;
-    nbr_hasRealChildren[inbr]==false; 
+    nbr_hasRealChildren[inbr]=false; 
     int i;
-    for(i=0; i<NUM_NEIGHBORS; i++){
-        if(nbr_hasDummyChildren[i])
-            break;
+    if(hasDummyChildren){/* do not destroy if it has real children
+                          * because may be those children have been created
+                          * as a result of refinement that occured simultaneously with
+                          * neighbors derefinement */
+        for(i=0; i<NUM_NEIGHBORS; i++){
+            if(nbr_hasRealChildren[i]==true)
+                /* If any of the other neighbors has real children
+                 * then donot destroy your dummy children*/                                            
+                break;
+        }
+        if(i==NUM_NEIGHBORS)
+            destroyChildren();
     }
-    if(i==NUM_NEIGHBORS)
-        destroyChildren();
 }
 
 void Advection::inform_nbr_hasDummyChildren(int inbr){
@@ -200,12 +215,36 @@ void Advection::inform_nbr_hasDummyChildren(int inbr){
     /* Check if all the neighbors have dummy children
      * And if That is the case destroy all Children */
     int i;
-    for(i=0; i<NUM_NEIGHBORS; i++){
-        if(nbr_hasDummyChildren[i])
-            break;
+    if(hasDummyChildren){/* If I have Dummy Children then I can destroy them 
+                          * if none of my neighbors has real children */  
+        for(i=0; i<NUM_NEIGHBORS; i++){
+            if(nbr_hasRealChildren[i]==true)
+                break;
+        }
+        if(i==NUM_NEIGHBORS)
+            destroyChildren();
     }
-    if(i==NUM_NEIGHBORS)
-        destroyChildren();
+}
+
+void Advection::printState(){
+    QuadIndex qindex = thisIndex;
+    ckout << "Printing Status of Node " << qindex.getIndexString() << endl;
+    ckout << "isdummy: " << isdummy << endl;
+    ckout << "hasRealChildren: " << hasRealChildren << endl;
+    ckout << "hasDummyChldren: " << hasDummyChildren << endl;
+    ckout << "nbr_isdummy: ";
+    for(int j=0; j<NUM_NEIGHBORS; j++)
+        ckout << nbr_isdummy[j] << ", ";
+    ckout << endl << "nbr_hasRealChildren: ";
+    for(int j=0; j<NUM_NEIGHBORS; j++)
+        ckout << nbr_hasRealChildren[j] << ", ";
+    ckout << endl << "nbr_hasDummyChildren: ";
+    for(int j=0; j<NUM_NEIGHBORS; j++)
+        ckout << nbr_hasDummyChildren[j] << ", ";
+    ckout << endl << "child_hasDummyChildren: ";
+    for(int j=0; j<NUM_CHILDREN; j++)
+        ckout << child_hasDummyChildren[j] << ", ";
+    ckout << endl;
 }
 
 void Advection::advection(){
@@ -220,20 +259,20 @@ void Advection::advection(){
 
     for(int i=0; i<block_width+2; i++){
         x[i] = xmin + double(xc*block_width+i)*dx - 0.5*dx;
-        ckout << x[i] << endl;
+        //ckout << x[i] << endl;
     }
     //ckout << endl;
 
     for(int i=0; i<block_height+2; i++){
         y[i] = ymin + double(yc*block_height+i)*dy - 0.5*dy;
-        ckout << y[i] << endl;
+       // ckout << y[i] << endl;
     }
     //ckout << endl;
 
     double rsq;
     
     //ckout << "In Adfvection2" << endl;
-    ckout << xctr << ", " << yctr << endl;
+    //ckout << xctr << ", " << yctr << endl;
     for(int i=0; i<block_height+2; i++){
         for(int j=0; j<block_width+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -243,12 +282,14 @@ void Advection::advection(){
         }
     }
     //ckout << "In Advection 3: " <<u[1][1]<< endl;
+#if 0
     for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
             ckout << u[index(j+1,i+1)] << "\t";
         ckout << endl;
     }
     ckout << endl;
+#endif
 }
 
     //added for array migration - see how 2D arrays can be packed
@@ -449,7 +490,7 @@ void Advection::compute_and_iterate(){
         for(int i=1; i<=block_width; i++)
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
     
-#if 1
+#if 0
     for(int i=1; i<=block_height; i++){
         for(int j=1; j<=block_width; j++)
             ckout << u[index(j,i)] << "\t";

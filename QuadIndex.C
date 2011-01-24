@@ -2,6 +2,7 @@
 #include <cstring>
 #include "math.h"
 #include "charm++.h"
+#include "Constants.h"
 #include "QuadIndex.h"
 
 using namespace std;
@@ -113,7 +114,6 @@ char* QuadIndex::getIndexString() const{
     
     
 QuadIndex QuadIndex::getNeighbor(int dir) const{
-    ckout << "getNeighbor called: " << dir << endl;
     if(dir==UP){
         int x, y;
         getCoordinates(x, y);
@@ -139,7 +139,6 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int range = std::pow(2.0, (double)depth);
         int yc = y;
         int xc = (x==0)?(range-1):x-1;
-        ckout << xc << ", " << yc << endl;
         return *new QuadIndex(xc, yc, depth);
     }
     else if(dir==RIGHT){
@@ -189,4 +188,14 @@ QuadIndex QuadIndex::getChild(int idx) const{
             CkAbort("Error in getChild()");
             break;
     }
+}
+
+int QuadIndex::getChildNum() const{
+    if (nbits==0){//When I am the root
+        ckout << "CAUTION: getChildNum() called on Root of tree" << endl;
+        return 0;
+    }
+    int bit0 = ((bitVector & 1<<(bits_per_int-nbits))>0)?1:0;
+    int bit1 = ((bitVector & 1<<(bits_per_int-nbits+1))>0)?1:0;
+    return 2*bit1+bit0;
 }

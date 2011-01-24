@@ -1,5 +1,6 @@
 #include "Advection.h"
 #include "Main.decl.h"
+#include <vector>
 
 class Main:public CBase_Main{
 
@@ -11,5 +12,6 @@ class Main:public CBase_Main{
         double io_outnum, io_tnext, io_tout; 
 
         Main(CkArgMsg* m);
+        void printTreeInformation(CkVec<QuadIndex>);
         
 };

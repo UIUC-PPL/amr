@@ -9,6 +9,7 @@ inline bool liesin(int x, int st, int end){
 
 enum DIR {UP=0, DOWN=1, LEFT=2, RIGHT=3};
 static int SENDER_DIR[NUM_NEIGHBORS] = {1,0,3,2};
+
 class QuadIndex{
 public:
     int nbits;
@@ -44,6 +45,7 @@ public:
     QuadIndex getChild(const char*)const;
 
     QuadIndex getChild(int) const;
+    int getChildNum() const;
     
     unsigned int getBitVector() const{ return bitVector;}
     unsigned int getNbits() const{ return nbits;}

@@ -7,7 +7,15 @@
 
 using namespace std;
 
-    //constructor
+/*constructor
+__________
+|    |    |
+|_01_|_00_|        
+|    |    |
+|_10_|_11_|
+
+This is how quadrants are defined
+*/
 QuadIndex::QuadIndex(const char* index){
     nbits = strlen(index);
     //cout << "nbits: " << nbits << endl;
@@ -45,7 +53,7 @@ QuadIndex::QuadIndex(int x, int y, int depth){
     nbits = 2*depth;
     int quad;
     int range = std::pow(2.0, (double)depth);
-    int r1 = 0, r2 = range-1, c1 = 0, c2 = range -1;
+    int r1 = 0, r2 = range-1, c1 = 0, c2 = range-1;
     
     int index = 0;
     for(int i=0; i<depth; i++){

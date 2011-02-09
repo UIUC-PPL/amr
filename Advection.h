@@ -52,6 +52,8 @@ Advection_SDAG_CODE
         void advection();// common function for initialization
         void refine();
         void derefine();
+        bool checkForRefinement();
+        bool checkForDerefinement();
         void inform_nbr_of_refinement(int);
         void inform_nbr_hasDummyChildren(int inbr);
         void destroyChildren();
@@ -59,7 +61,7 @@ Advection_SDAG_CODE
         void inform_child_hasDummyChildren(int cindx){
             child_hasDummyChildren[cindx] = true;
         }
-
+        
         void setDummy();
         void setReal();
         void manage_memory_RealToDummy();

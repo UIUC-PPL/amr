@@ -108,7 +108,7 @@ Main:: Main(CkArgMsg* m){
      queue<QuadIndex> q;
      q.push("");
        
-     /*for(int i=0; i<depth; i++){
+     for(int i=0; i<depth; i++){
         int size = q.size();
         for(int j=0; j<size; j++){
             qindex = q.front(); q.pop();
@@ -117,8 +117,8 @@ Main:: Main(CkArgMsg* m){
             for(int dir=0; dir<4; dir++)
                 q.push(qindex.getChild(dir));
         }
-    }*/
-    CkVec<QuadIndex> v = *new CkVec<QuadIndex>();
+    }
+    /*CkVec<QuadIndex> v = *new CkVec<QuadIndex>();
     qtree[qindex].refine();
     v.push_back(qindex);
     v.push_back(qindex.getChild("00")); v.push_back(qindex.getChild("01"));
@@ -127,21 +127,21 @@ Main:: Main(CkArgMsg* m){
     qindex = qindex.getChild("00");
     qtree[qindex].refine();
     v.push_back(qindex.getChild("00")); v.push_back(qindex.getChild("01"));
-    v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));
+    v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));*/
     
-    thisProxy.printTreeInformation(v);
+    //thisProxy.printTreeInformation(v);
     //setup - liveViz
     CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
     liveVizConfig cfg(liveVizConfig::pix_color, true);
     liveVizInit(cfg, a, c);
       
-    /*int size = q.size();
+    int size = q.size();
     ckout << "Size of Queue " << size << endl;
     for(int i=0; i<size; i++){
         qindex = q.front(); q.pop();
         ckout << "Calling doStep for " << qindex.getIndexString() << endl;
         qtree[qindex].doStep();
-    }*/
+    }
     /*qtree[qindex].doStep();*/
 }
 

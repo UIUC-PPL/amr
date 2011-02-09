@@ -80,6 +80,11 @@ Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
     
 void Advection::refine(){	
     // should always be called on a node not having Real Chilren
+    //ckout << "Refine called on " << thisIndex.getIndexString() << endl;
+
+    if(hasRealChildren)//somehow if it has already (refined due to some other call) then do nothing
+        return;
+
     if(hasDummyChildren){               
         hasDummyChildren = false;
         hasRealChildren = true;
@@ -282,7 +287,7 @@ void Advection::advection(){
         }
     }
     //ckout << "In Advection 3: " <<u[1][1]<< endl;
-#if 0
+#if 1
     for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
             ckout << u[index(j+1,i+1)] << "\t";
@@ -490,18 +495,41 @@ void Advection::compute_and_iterate(){
         for(int i=1; i<=block_width; i++)
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
     
-#if 0
+    //Check Whether it is the time for Refinement
+    /*if(checkForRefinement()){
+        refine();
+        return;
+    }
+    else if(checkForDerefinement()){
+        derefine();
+        return;
+    }*/
+    
+
+#if 1
     for(int i=1; i<=block_height; i++){
         for(int j=1; j<=block_width; j++)
             ckout << u[index(j,i)] << "\t";
             ckout << endl;
     }
     ckout << endl;
-    ckout << "After First Iteration" << endl;
-    cin.get();cin.get();
+    ckout << "After Iteration " << iterations <<  " on " << thisIndex.getIndexString() << endl;
 #endif
     iterate();
 }
+
+bool Advection::checkForRefinement(){
+    if(rand()%10==0)
+        return true;
+    return false;
+}
+
+bool Advection::checkForDerefinement(){
+    if(rand()%10==0)
+        return true;
+    return false;
+}
+
 void Advection::iterate() {
          myt = myt+mydt;
          if(myt < tmax){

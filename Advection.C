@@ -46,21 +46,19 @@ void Advection::mem_allocate(double* &p, int size){
 
 void Advection::mem_allocate_all(){
 
+    mem_allocate(u, (block_width+2)*(block_height+2));
+    mem_allocate(u2, (block_width+2)*(block_height+2));
+    mem_allocate(u3, (block_width+2)*(block_height+2));
+
+    mem_allocate(x, block_width+2);
+    mem_allocate(y, block_height+2);
+
     mem_allocate(left_edge, block_height);
     mem_allocate(right_edge, block_height);
 
-    //if(!isdummy){
-        mem_allocate(u, (block_width+2)*(block_height+2));
-        mem_allocate(u2, (block_width+2)*(block_height+2));
-        mem_allocate(u3, (block_width+2)*(block_height+2));
-
-        mem_allocate(x, block_width+2);
-        mem_allocate(y, block_height+2);
-    //}
-   // else{
-        mem_allocate(top_edge, block_width);
-        mem_allocate(bottom_edge, block_width);
-    //}
+    mem_allocate(top_edge, block_width);
+    mem_allocate(bottom_edge, block_width);
+    
 }
 
 Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
@@ -351,41 +349,6 @@ Advection::~Advection(){
     delete [] right_edge;
 }
 
-void Advection::setReal(){
-    isdummy = false;
-    manage_memory_DummyToReal();
-}
-
-void Advection::setDummy(){
-    isdummy = true;
-    manage_memory_RealToDummy();
-}
-
-void Advection::manage_memory_RealToDummy(){
-    delete [] u;
-    delete [] u2;
-    delete [] u3;
-    
-    delete [] x;
-    delete [] y;
-
-    mem_allocate(top_edge, block_width+2);
-    mem_allocate(bottom_edge, block_width+2);
-}
-
-
-void Advection::manage_memory_DummyToReal(){
-    delete [] top_edge;
-    delete [] bottom_edge;
-    
-    mem_allocate(u, (block_height+2)*(block_width+2));
-    mem_allocate(u2, (block_height+2)*(block_width+2));
-    mem_allocate(u3, (block_height+2)*(block_width+2));
-
-    mem_allocate(x, block_width+2);
-    mem_allocate(y, block_height+2);
-}
-
 void Advection::begin_iteration(void) {
     //ckout << "String: " << thisIndex.getIndexString() << endl;
 
@@ -403,10 +366,20 @@ void Advection::begin_iteration(void) {
         left_edge[j-1] = u[index(1,j)];
         right_edge[j-1] = u[index(block_width,j)];
     }
-        ///*
+    ///*
+    /* If neighbor exists and is not refined just send the data
+       If neighbor does not exit, extrapolate the data and send to the correposnding neighbor of the parent
+       If neighbor exists and is refined then do nothing, wait for the data from the neighbors children to arrive, 
+            iterpolate the data and send the data */
+
     //ckout << "Left Neighbor of " << thisIndex.getIndexString() << " is " << nbr[LEFT].getIndexString() << endl;
     //send my left edge
-    thisProxy(nbr[LEFT]).receiveGhosts(iterations, RIGHT, block_height, left_edge);
+    if(nbr_exists[LEFT] && !nbr_isRefined[LEFT])
+        thisProxy(nbr[LEFT]).receiveGhosts(iterations, RIGHT, block_height, left_edge);
+    else if(!nbr_exists[LEFT]){
+        //extrapolate the data
+        QuadIndex receiver = thisIndex.getParent().getNeighbor(LEFT);
+    }
 
     //ckout << "Right Neighbor of " << thisIndex.getIndexString() << " is " << nbr[RIGHT].getIndexString() << endl;
     //send my right edge

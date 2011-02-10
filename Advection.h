@@ -6,15 +6,11 @@ class Advection: public CBase_Advection{
 Advection_SDAG_CODE
     public:
         //tree information
-        bool isdummy;
-        bool hasRealChildren;
-        bool hasDummyChildren;
+        bool exits;
+        bool isRefined;
         
-        bool nbr_isdummy[NUM_NEIGHBORS];
-        bool nbr_hasRealChildren[NUM_NEIGHBORS];
-        bool nbr_hasDummyChildren[NUM_NEIGHBORS];
-
-        bool child_hasDummyChildren[NUM_CHILDREN];
+        bool nbr_exists[NUM_NEIGHBORS];
+        bool nbr_isRefined[NUM_NEIGHBORS];
 
         QuadIndex nbr[4], parent;
         int xc, yc;

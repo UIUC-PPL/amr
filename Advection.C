@@ -35,9 +35,7 @@ extern double dx, dy, v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
 
-
 #define index(i,j)  ((j)*(block_width+2) + i)
-
 
 void Advection::mem_allocate(double* &p, int size){
     p = new double[size];
@@ -61,187 +59,39 @@ void Advection::mem_allocate_all(){
     
 }
 
-Advection::Advection(bool isdummy, bool hasRealChildren, bool hasDummyChildren){
+Advection::Advection(bool exists, bool isRefined){
+
     CBase_Advection();
-    this->isdummy = isdummy;
-    this->hasRealChildren = hasRealChildren;
-    this->hasDummyChildren = hasDummyChildren;
+    this->exists = true;
+    this->isRefined = isRefined;
     
     for(int dir=UP; dir<=RIGHT; ++dir)
         nbr[dir] = thisIndex.getNeighbor(dir);
     if(thisIndex.nbits!=0)
         parent = thisIndex.getParent();
+    
+    /*Lets set the nieghbors status if this is the root node */
+    if(thisIndex.nbits==0)
+        for(int i=0; i<NUM_NEIGHBORS; i++){
+            nbr_exists[i]=true;
+            nbr_isRefined[i]=false;
+        }
 
+    hasReceived = *new set<int>();
     advection();
 }
     
-    
-void Advection::refine(){	
-    // should always be called on a node not having Real Chilren
-    if(hasDummyChildren){               
-        hasDummyChildren = false;
-        hasRealChildren = true;
-
-        for(int i=0; i<NUM_CHILDREN; i++){
-            thisProxy(thisIndex.getChild(i)).setReal();
-        }
-    }
-    else if(!hasRealChildren){
-        // Create new real chilren
-        hasDummyChildren = false;
-        hasRealChildren = true;
-
-        for(int i=0; i<4; i++){
-            thisProxy(thisIndex.getChild(i)).insert(false, false, false); 
-        }
-        thisProxy.doneInserting();
-    }
-    
-    for(int i=0; i<NUM_NEIGHBORS; i++){
-        //if(thisIndex!=nbr[i])
-        thisProxy(nbr[i]).inform_nbr_of_refinement(SENDER_DIR[i]);
-    }
-}
-
-void Advection::inform_nbr_of_refinement(int inbr){
-    /*Update Neighbor Infomration*/
-    //ckout << inbr << " has refined" << endl;
-    nbr_isdummy[inbr]=false;
-    nbr_hasRealChildren[inbr]=true;
-    nbr_hasDummyChildren[inbr]=false;
-    
-    /* Take Action To Maintain Mesh Structure*/
-    if(isdummy){
-        /*Two things need to be done here:
-         * 1. Ask the parent to refine itself so that myself and my siblings become real.
-         * 2. Create my dummy children to be available for communication with the neighbor who has decided to refine itself
-         */
-        thisProxy(parent).refine();
-    }    
-    else if(!hasDummyChildren && !hasRealChildren){
-        hasDummyChildren = true;/* Will Now create dummy children*/
-        hasRealChildren = false;
-    }
-    else if(hasRealChildren || hasDummyChildren)
-        return;
-
-    //create dummy children  
-    for(int i=0; i<4; i++)
-        thisProxy(thisIndex.getChild(i)).insert(true, false, false);      
-
-    thisProxy.doneInserting();
-    /* Inform Neighbors that I now have Dummy Children*/
-    for(int i=0; i<NUM_NEIGHBORS; i++){
-        thisProxy(nbr[i]).inform_nbr_hasDummyChildren(SENDER_DIR[i]);
-    }
-    /* Inform Parent Also that I now have Dummy Children */
-    thisProxy(parent).inform_child_hasDummyChildren(thisIndex.getChildNum());
-}
- 
-void Advection::derefine(){
-    /* If Any of My Children Have Dummy Children then I cannot derefine
-     * because that means the dummy grandchildren are serving some of their
-     * real neighbors and hence cannot be removed*/
-    for(int i=0; i<NUM_CHILDREN; i++)
-        if(child_hasDummyChildren[i]==true){
-            ckout << "Cannot derefine MySelf" << endl;
-            return;
-        }
-    /* Now I can Derefine MySelf */
-
-    /* Check If Any of My Neighbors have Real Children Then I have to make 
-     * my children Dummy */
-    int i=0;
-    for(i=0; i<NUM_NEIGHBORS; i++){
-        if(nbr_hasRealChildren[i]){
-            /* Make my Children Dummy*/
-            for(int j=0; j<NUM_CHILDREN;j++)
-                thisProxy(thisIndex.getChild(j)).setDummy();
-            /* Inform Neighbors that I now have Dummy  Children*/
-            for(int j=0; j<NUM_NEIGHBORS; j++)
-                thisProxy(nbr[j]).inform_nbr_hasDummyChildren(SENDER_DIR[j]);
-            return;
-        }
-    }
-    if (i==NUM_NEIGHBORS){
-        /* i.e. when none of the neighbors have real children
-         * In that case, delete the children
-         */
-        destroyChildren();
-        /* Inform Neighbors of What You Did to Your Children*/
-        for(int j=0; j<NUM_NEIGHBORS; j++)
-            thisProxy(nbr[j]).inform_nbr_hasNoChildren(SENDER_DIR[j]);
-    }
-}
-
-void Advection::destroyChildren(){
-    for(int j=0; j<NUM_CHILDREN; j++){
-        // free the Memory Held by the Children
-        thisProxy(thisIndex.getChild(j)).free_memory();
-        //destoy the array element
-        thisProxy(thisIndex.getChild(j)).ckDestroy();
-    }
-}
-
-void Advection::inform_nbr_hasNoChildren(int inbr){
-    /* This entry method will be called when the neighbor has derefined 
-     * and has destroyed his children, the neighbor can derefine in such a 
-     * manneronly if I had no Real Children. That means I can have Dummy Children.
-     * Now I should check that if I have Dummy Children and there are no neighbors 
-     * with Real Children, then I should also destry my dummy children*/
-     
-    nbr_hasDummyChildren[inbr]=false;
-    nbr_hasRealChildren[inbr]=false; 
-    int i;
-    if(hasDummyChildren){/* do not destroy if it has real children
-                          * because may be those children have been created
-                          * as a result of refinement that occured simultaneously with
-                          * neighbors derefinement */
-        for(i=0; i<NUM_NEIGHBORS; i++){
-            if(nbr_hasRealChildren[i]==true)
-                /* If any of the other neighbors has real children
-                 * then donot destroy your dummy children*/                                            
-                break;
-        }
-        if(i==NUM_NEIGHBORS)
-            destroyChildren();
-    }
-}
-
-void Advection::inform_nbr_hasDummyChildren(int inbr){
-    nbr_hasDummyChildren[inbr]=true;
-    /* Check if all the neighbors have dummy children
-     * And if That is the case destroy all Children */
-    int i;
-    if(hasDummyChildren){/* If I have Dummy Children then I can destroy them 
-                          * if none of my neighbors has real children */  
-        for(i=0; i<NUM_NEIGHBORS; i++){
-            if(nbr_hasRealChildren[i]==true)
-                break;
-        }
-        if(i==NUM_NEIGHBORS)
-            destroyChildren();
-    }
-}
-
 void Advection::printState(){
     QuadIndex qindex = thisIndex;
     ckout << "Printing Status of Node " << qindex.getIndexString() << endl;
-    ckout << "isdummy: " << isdummy << endl;
-    ckout << "hasRealChildren: " << hasRealChildren << endl;
-    ckout << "hasDummyChldren: " << hasDummyChildren << endl;
-    ckout << "nbr_isdummy: ";
+    ckout << "exists: " << exists << endl;
+    ckout << "isRefined: " << isRefined << endl;
+    ckout << "nbr_exists: ";
     for(int j=0; j<NUM_NEIGHBORS; j++)
-        ckout << nbr_isdummy[j] << ", ";
-    ckout << endl << "nbr_hasRealChildren: ";
+        ckout << nbr_exists[j] << ", ";
+    ckout << endl << "nbr_isRefined: ";
     for(int j=0; j<NUM_NEIGHBORS; j++)
-        ckout << nbr_hasRealChildren[j] << ", ";
-    ckout << endl << "nbr_hasDummyChildren: ";
-    for(int j=0; j<NUM_NEIGHBORS; j++)
-        ckout << nbr_hasDummyChildren[j] << ", ";
-    ckout << endl << "child_hasDummyChildren: ";
-    for(int j=0; j<NUM_CHILDREN; j++)
-        ckout << child_hasDummyChildren[j] << ", ";
+        ckout << nbr_isRefined[j] << ", ";
     ckout << endl;
 }
 
@@ -296,11 +146,13 @@ void Advection::pup(PUP::er &p){
     CBase_Advection::pup(p);
    __sdag_pup(p);
 
-    p|isdummy;
-    p|hasRealChildren;
-    p|hasDummyChildren;
-    for(int i=0; i<NUM_NEIGHBORS; i++)
-      p|nbr[i];
+    p|exists;
+    p|isRefined;
+    for(int i=0; i<NUM_NEIGHBORS; i++){
+      p|nbr_exists[i];
+      p|nbr_isRefined[i];
+      p|nbr_dataSent[i];
+    }
     p|parent;
     p|xc;
     p|yc;
@@ -317,12 +169,12 @@ void Advection::pup(PUP::er &p){
 
     for (int i=0; i<block_width+2; i++){
         p|x[i];
+        p|top_edge[i];
+        p|bottom_edge[i];
     }
 
     for (int i=0; i<block_height+2; i++){
         p|y[i];
-    }
-    for (int i=0; i<block_height+2; i++){
         p|left_edge[i];
         p|right_edge[i];
     }
@@ -332,6 +184,8 @@ void Advection::pup(PUP::er &p){
     p|un;
     p|myt;
     p|mydt;
+    
+    p|hasReceived;
 }
     
 Advection::~Advection(){
@@ -346,11 +200,15 @@ Advection::~Advection(){
     delete [] right_edge;
 
     delete [] top_edge;
-    delete [] right_edge;
+    delete [] bottom_edge;
 }
 
 void Advection::begin_iteration(void) {
     //ckout << "String: " << thisIndex.getIndexString() << endl;
+    for(int i=0; i<NUM_NEIGHBORS; i++)
+        nbr_dataSent[i]=false;
+    
+    hasReceived.clear();
 
     for(int i=1; i<=block_width; i++)
         for(int j=1; j<=block_height; j++)
@@ -379,20 +237,47 @@ void Advection::begin_iteration(void) {
     else if(!nbr_exists[LEFT]){
         //extrapolate the data
         QuadIndex receiver = thisIndex.getParent().getNeighbor(LEFT);
+        for(int j=1; j<=block_height; j+=2){
+            left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
+        }
+        thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), LEFT), block_height/2, left_edge);
     }
-
+    
     //ckout << "Right Neighbor of " << thisIndex.getIndexString() << " is " << nbr[RIGHT].getIndexString() << endl;
     //send my right edge
-    thisProxy(nbr[RIGHT]).receiveGhosts(iterations, LEFT, block_height, right_edge);
-
+    if(nbr_exists[RIGHT] && !nbr_isRefined[RIGHT])
+        thisProxy(nbr[RIGHT]).receiveGhosts(iterations, LEFT, block_height, right_edge);
+    else if(!nbr_exists[RIGHT]){
+        QuadIndex receiver = thisIndex.getParent().getNeighbor(RIGHT);
+        for(int j=1; j<=block_height; j+=2){
+            right_edge[j/2] = (u[index(block_width-1,j)] + u[index(block_width,j)] + u[index(block_width-1,j+1)] +u[index(block_width, j+1)])/4;
+        }
+        thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), RIGHT), block_height/2, left_edge);
+    }
 
     //ckout << "Top Neighbor of " << thisIndex.getIndexString() << " is " << nbr[UP].getIndexString() << endl;
     //send my top edge
-    thisProxy(nbr[UP]).receiveGhosts(iterations, DOWN, block_width, &u[index(1,1)]);
-
+    if(nbr_exists[UP] && !nbr_isRefined[UP])
+        thisProxy(nbr[UP]).receiveGhosts(iterations, DOWN, block_width, &u[index(1,1)]);
+    else if(!nbr_exists[UP]){
+        QuadIndex receiver = thisIndex.getParent().getNeighbor(UP);
+        for(int i=1; i<=block_width; i+=2){
+            top_edge[i/2] = (u[index(i,1)] + u[index(i,2)] + u[index(i+1,1)] + u[index(i+1,2)])/4;
+        }
+        thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), UP), block_width/2, top_edge);
+    }
+    
     //ckout << "Bottom Neighbor of " << thisIndex.getIndexString() << " is " << nbr[DOWN].getIndexString() << endl;
     //send my bottom edge
-    thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[index(1, block_height)]);
+    if(nbr_exists[DOWN] && !nbr_isRefined[DOWN])
+        thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[index(1, block_height)]);
+    else if(!nbr_exists[DOWN]){
+        QuadIndex receiver = thisIndex.getParent().getNeighbor(DOWN);
+        for(int i=1; i<=block_width; i+=2){
+            bottom_edge[i/2] = (u[index(i,block_height-1)] + u[index(i,block_height)] + u[index(i+1,block_height-1)] + u[index(i+1,block_height)])/4;
+        }
+        thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), DOWN), block_width/2, bottom_edge);
+    }
 
 }
 template<class T>
@@ -408,33 +293,217 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
     switch(dir){
         case LEFT:
+            imsg++;
+            hasReceived.insert(LEFT);
             for(int i=0; i<size; i++)
                 u[index(0,i+1)] = gh[i];
                 //u[i+1][0] = gh[i];
         break;
 
         case RIGHT:
+            imsg++;
+            hasReceived.insert(RIGHT);
             for(int i=0; i<size; i++)
                 u[index(block_width+1,i+1)] = gh[i];
                 //u[i+1][block_width+1]=gh[i];
         break;
 
         case UP:
+            imsg++;
+            hasReceived.insert(UP);
             for(int i=0; i<size; i++)
                 u[index(i+1,0)] = gh[i];
                 //u[block_height+1][i+1]=gh[i];
             break;
 
          case DOWN:
+            imsg++;
+            hasReceived.insert(DOWN);
             for(int i=0; i<size; i++)
                 u[index(i+1,block_height+1)] = gh[i];
                 //u[0][i+1]=gh[i];
             break;
+
+        case LEFT_UP:
+            imsg+=0.5;
+            hasReceived.insert(LEFT_UP);
+            for(int i=0; i<size; i++)
+                u[index(0,i+1)] = gh[i];
+            
+            break;
+
+        case LEFT_DOWN:
+            imsg+=0.5;
+            hasReceived.insert(LEFT_DOWN);
+            for(int i=0; i<size; i++)
+                u[index(0,block_height/2+i+1)] = gh[i];
+            break;
+
+        case RIGHT_UP:
+            imsg+=0.5;
+            hasReceived.insert(RIGHT_UP);
+            for(int i=0; i<size; i++)
+                u[index(block_width+1, i+1)]=gh[i];
+            break;
+
+        case RIGHT_DOWN:
+            imsg+=0.5;
+            hasReceived.insert(RIGHT_DOWN);
+            for(int i=0; i<size; i++)
+                u[index(block_width+1, block_height/2+i+1)]=gh[i];
+            break;
+
+        case UP_LEFT:
+            imsg+=0.5;
+            hasReceived.insert(UP_LEFT);
+            for(int i=0; i<size; i++)
+                u[index(i+1, 0)]=gh[i];
+            break;
+
+        case UP_RIGHT:
+            imsg+=0.5;
+            hasReceived.insert(UP_RIGHT);
+            for(int i=0; i<size; i++)
+                u[index(block_width/2+i+1,0)]=gh[i];
+            break;
+
+        case DOWN_LEFT:
+            imsg+=0.5;
+            hasReceived.insert(DOWN_LEFT);
+            for(int i=0; i<size; i++)
+                u[index(i+1,block_height+1)]=gh[i];
+            break;
+
+        case DOWN_RIGHT:
+            imsg+=0.5;
+            hasReceived.insert(DOWN_RIGHT);
+            for(int i=0; i<size; i++)
+                u[index(block_width/2+i+1,block_height+1)]=gh[i];
+            break;
+
         default:
             CkAbort("ERROR\n");
     }
+    //check if data can be sent to any of the refined neighbors
+    //If the neighbors are at the same level or do not exist at all 
+    //data will be sent as a part of the current iteration and need 
+    //not be sent here
+    for(int i=0; i<NUM_NEIGHBORS; i++)
+        if(nbr_isRefined[i] && !nbr_dataSent[i]){
+            if(i==RIGHT){
+                if(hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
+                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end() && 
+                    hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
+                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end()){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+            else if(i==LEFT){
+                if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
+                    hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
+                    hasReceived.find(UP_LEFT)!=hasReceived.end() &&
+                    hasReceived.find(DOWN_LEFT)!=hasReceived.end()){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+            else if(i==UP){
+                if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
+                    hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
+                    hasReceived.find(LEFT_UP)!= hasReceived.end() &&
+                    hasReceived.find(RIGHT_UP)!=hasReceived.end()){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+            else{ // if i==DOWN
+                if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
+                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
+                    hasReceived.find(LEFT_DOWN) != hasReceived.end() &&
+                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end()){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+        }
 }
     
+void Advection::interpolateAndSend(int NBR){
+    double sx, sy;
+    if(NBR==RIGHT){
+        for(int i=0; i<block_height; i++){
+            sx = (u[index(block_width-1, i+1)] - u[index(block_width+1, i+1)])/(2*dx);
+            sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
+
+            right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) - sy*(dy/4);
+            right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) + sy*(dy/4);
+            if(i==block_height/2 -1 ){//send the data to RIGHT_UP Neighbor
+                QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_UP));//LEFT_UP child of the nieghbor
+                thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge);
+            }
+            else if(i==block_height-1){// send the data to the RIGHT_DOWN Neighbor
+                QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_DOWN));//LEFT_DOWN child of the neighbor
+                thisProxy.receiveGhosts(iterations, LEFT, block_height, right_edge);
+            }
+        }
+    }
+    else if(NBR==LEFT){
+        for(int i=0; i<block_height; i++){
+            sx = (u[index(0, i+1)] - u[index(2,i+1)])/(2*dx);
+            sy = (u[index(1, i)] - u[index(1, i+2)])/(2*dy);
+
+            left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] - sx*(dx/4) -sy*(dy/4);
+            left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] - sx*(dx/4) +sy*(dy/4);
+        
+            if(i==block_height/2 -1 ){//send the data to LEFT_UP Neighbor
+                QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_UP));//LEFT_UP child of the nieghbor
+                thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge);
+            }
+            else if(i==block_height-1){// send the data to the LEFT_DOWN Neighbor
+                QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_DOWN));//LEFT_DOWN child of the neighbor
+                thisProxy.receiveGhosts(iterations, RIGHT, block_height, left_edge);
+            }
+        }
+    }
+    else if(NBR==UP){
+        for(int i=0; i<block_width; i++){
+            sx = (u[index(i,1)]-u[index(i+2,1)])/(2*dx);
+            sy = (u[index(i+1,0)]-u[index(i+1,2)])/(2*dy);
+
+            top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] -sx*(dx/4) - sy*(dy/4);
+            top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] + sx*(dx/4) -sy*(dy/4);
+
+            if(i==block_width/2-1){// send the data to UP_LEFT Neighbor
+                QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_LEFT));
+                thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge);
+            }
+            else if(i==block_width-1){//send the data to the UP_RIGHT Neighbor
+                QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_RIGHT));
+                thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge);
+            }
+        }
+    }
+    else{// if NBR==DOWN
+        for(int i=0; i<block_width; i++){
+            sx = (u[index(i,block_height)]-u[index(i+2, block_height)])/(2*dx);
+            sy = (u[index(i+1, block_height-1)] - u[index(i+1, block_height+1)])/(2*dy);
+
+            bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] - sx*(dx/4) + sy*(dy/4);
+            bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] + sx*(dx/4) + sy*(dy/4);
+
+            if(i==block_width/2-1){// send the data to UP_LEFT Neighbor
+                QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_LEFT));
+                thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge);
+            }
+            else if(i==block_width-1){//send the data to the UP_RIGHT Neighbor
+                QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_RIGHT));
+                thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge);
+            }
+        }
+    }
+};
+
 void Advection::compute_and_iterate(){
     //ckout << "dt: " << dt << " ap:" << ap << " an:" << an << endl;
     //ckout << iterations << endl;
@@ -463,7 +532,7 @@ void Advection::compute_and_iterate(){
         for(int i=1; i<=block_width; i++)
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
     
-#if 0
+#if 1
     for(int i=1; i<=block_height; i++){
         for(int j=1; j<=block_width; j++)
             ckout << u[index(j,i)] << "\t";
@@ -471,7 +540,6 @@ void Advection::compute_and_iterate(){
     }
     ckout << endl;
     ckout << "After First Iteration" << endl;
-    cin.get();cin.get();
 #endif
     iterate();
 }
@@ -490,7 +558,7 @@ void Advection::iterate() {
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){
-    if (isdummy || hasRealChildren){
+    if (isRefined){
         liveVizDeposit(m,0,0,0,0,NULL, this);
     }
 

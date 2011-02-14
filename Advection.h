@@ -1,16 +1,63 @@
 #include "Constants.h"
 #include "QuadIndex.h"
 #include "Advection.decl.h"
+#include "pup_stl.h"
+
+int inline map_nbr(int quad, int nbr){
+    if(quad==0){
+        if(nbr == RIGHT)
+            return LEFT_UP;
+        else if(nbr == UP)
+            return DOWN_RIGHT;
+    }
+    else if(quad==1){
+        if(nbr == LEFT)
+            return RIGHT_UP;
+        else if(nbr == UP)
+            return DOWN_LEFT;
+    }
+    else if(quad==2){
+        if(nbr == LEFT)
+            return RIGHT_DOWN;
+        else if(nbr == DOWN)
+            return UP_LEFT;
+    }
+    else{
+        if(quad==3)
+            return LEFT_DOWN;
+        else if(nbr == DOWN)
+            return UP_RIGHT;
+    }
+    return -1;
+}
+
+int inline wrap(int item, int max_size){
+    return item%max_size;
+}
+
+inline char* map_child(int child){
+    if(child == LEFT_UP || child == UP_LEFT)
+        return "01";
+    else if(child == LEFT_DOWN || DOWN_LEFT)
+        return "10";
+    else if(child == DOWN_RIGHT || RIGHT_DOWN)
+        return "11";
+    else if(child == RIGHT_UP || child == UP_RIGHT)
+        return "00";
+    else return "-1";
+}
 
 class Advection: public CBase_Advection{
 Advection_SDAG_CODE
     public:
         //tree information
-        bool exits;
+        bool exists;
         bool isRefined;
         
         bool nbr_exists[NUM_NEIGHBORS];
         bool nbr_isRefined[NUM_NEIGHBORS];
+        bool nbr_dataSent[NUM_NEIGHBORS];
+        set<int> hasReceived;
 
         QuadIndex nbr[4], parent;
         int xc, yc;
@@ -41,31 +88,18 @@ Advection_SDAG_CODE
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
-        Advection(bool, bool, bool);
+        Advection(bool, bool);
         Advection(){advection();}
         Advection(CkMigrateMessage* m) {__sdag_init();}
         
         void advection();// common function for initialization
-        void refine();
-        void derefine();
-        void inform_nbr_of_refinement(int);
-        void inform_nbr_hasDummyChildren(int inbr);
-        void destroyChildren();
-        void inform_nbr_hasNoChildren(int inbr);
-        void inform_child_hasDummyChildren(int cindx){
-            child_hasDummyChildren[cindx] = true;
-        }
 
-        void setDummy();
-        void setReal();
-        void manage_memory_RealToDummy();
-        void manage_memory_DummyToReal();
-        
         void printState();
         void pup(PUP::er &p);
 
         void begin_iteration();
         void process(int, int, int, double*);
+        void interpolateAndSend(int);
         void compute_and_iterate();
         void iterate();
         void requestNextFrame(liveVizRequestMsg*);

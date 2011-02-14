@@ -103,12 +103,13 @@ Main:: Main(CkArgMsg* m){
      int depth = (int)(log(num_chares)/log(4));
       
      QuadIndex qindex = *new QuadIndex("");
-     qtree[qindex].insert(false, false, false);
-    
-     queue<QuadIndex> q;
+     qtree[qindex].insert(true, false);
+     qtree[qindex].doStep();
+
+     /*queue<QuadIndex> q;
      q.push("");
        
-     /*for(int i=0; i<depth; i++){
+     for(int i=0; i<depth; i++){
         int size = q.size();
         for(int j=0; j<size; j++){
             qindex = q.front(); q.pop();
@@ -117,7 +118,7 @@ Main:: Main(CkArgMsg* m){
             for(int dir=0; dir<4; dir++)
                 q.push(qindex.getChild(dir));
         }
-    }*/
+    }
     CkVec<QuadIndex> v = *new CkVec<QuadIndex>();
     qtree[qindex].refine();
     v.push_back(qindex);
@@ -129,7 +130,7 @@ Main:: Main(CkArgMsg* m){
     v.push_back(qindex.getChild("00")); v.push_back(qindex.getChild("01"));
     v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));
     
-    thisProxy.printTreeInformation(v);
+    thisProxy.printTreeInformation(v);*/
     //setup - liveViz
     CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
     liveVizConfig cfg(liveVizConfig::pix_color, true);

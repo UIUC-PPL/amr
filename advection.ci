@@ -44,12 +44,7 @@ mainmodule Main{
 module Advection{
         array [QuadIndex] Advection{
             entry Advection();
-            entry Advection(bool, bool, bool);
-            entry void refine();
-            entry void inform_nbr_of_refinement(int);
-            entry void inform_nbr_hasDummyChildren(int);
-            entry void inform_nbr_hasNoChildren(int);
-            entry void inform_child_hasDummyChildren(int);
+            entry Advection(bool, bool);
             entry void printState();
 
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);
@@ -58,8 +53,8 @@ module Advection{
             entry void doStep(){
                 atomic "begin iteration"{
                     begin_iteration();
+                    imsg=0;
                 }
-                
                 for(imsg = 0; imsg < 4; imsg++) {
                     // "iterations keep track of messages accross steps"
                     when 
@@ -75,9 +70,6 @@ module Advection{
         
             //for LiveViz
             entry void requestNextFrame(liveVizRequestMsg *m);
-            entry void setReal();
-            entry void setDummy();
-
             entry void free_memory();
         };
 };

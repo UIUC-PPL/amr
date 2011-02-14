@@ -83,12 +83,15 @@ Advection_SDAG_CODE
         double up;
         double un;
         double myt, mydt;
+        double dx, dy;
+        double xmin, xmax, ymin, ymax;
+        int nx, ny;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
-        Advection(bool, bool);
+        Advection(bool, bool, int, int, double, double, double, double);
         Advection(){advection();}
         Advection(CkMigrateMessage* m) {__sdag_init();}
         

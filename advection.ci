@@ -11,20 +11,11 @@ mainmodule Main{
         readonly int num_chare_cols;
 
 	readonly int nframe;
-	readonly double xmin;
-        readonly double xmax;
-        readonly double ymin;
-        readonly double ymax;
 
 	readonly double xctr;
         readonly double yctr;
         readonly double radius;
         
-        readonly int nx;
-        readonly int ny;
-
-        readonly double dx;
-        readonly double dy;
         readonly double v;
 
         readonly double ap;
@@ -44,7 +35,7 @@ mainmodule Main{
 module Advection{
         array [QuadIndex] Advection{
             entry Advection();
-            entry Advection(bool, bool);
+            entry Advection(bool, bool, int, int, double, double, double, double);
             entry void printState();
 
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);

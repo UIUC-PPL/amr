@@ -28,10 +28,8 @@ extern int block_width;
 extern CkArrayID a;
 
 extern int nframe;
-extern double xmin, xmax, ymin, ymax;
 extern double xctr, yctr, radius;
-extern int nx, ny;
-extern double dx, dy, v;
+extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
 
@@ -59,7 +57,7 @@ void Advection::mem_allocate_all(){
     
 }
 
-Advection::Advection(bool exists, bool isRefined){
+Advection::Advection(bool exists, bool isRefined, int nx, int ny, double xmin, double xmax, double ymin, double ymax){
 
     CBase_Advection();
     this->exists = true;
@@ -78,6 +76,17 @@ Advection::Advection(bool exists, bool isRefined){
         }
 
     hasReceived = *new set<int>();
+
+    this->nx = nx;
+    this->ny = ny;
+    this->xmin = xmin;
+    this->xmax = xmax;
+    this->ymin = ymin;
+    this->ymax = ymax;
+
+    dx = (xmax - xmin)/double(nx);
+    dy = (ymax - ymin)/double(ny);
+
     advection();
 }
     
@@ -232,8 +241,9 @@ void Advection::begin_iteration(void) {
 
     //ckout << "Left Neighbor of " << thisIndex.getIndexString() << " is " << nbr[LEFT].getIndexString() << endl;
     //send my left edge
-    if(nbr_exists[LEFT] && !nbr_isRefined[LEFT])
+    if(nbr_exists[LEFT] && !nbr_isRefined[LEFT]){ckout << "LEFT" << endl;
         thisProxy(nbr[LEFT]).receiveGhosts(iterations, RIGHT, block_height, left_edge);
+    }
     else if(!nbr_exists[LEFT]){
         //extrapolate the data
         QuadIndex receiver = thisIndex.getParent().getNeighbor(LEFT);
@@ -245,8 +255,9 @@ void Advection::begin_iteration(void) {
     
     //ckout << "Right Neighbor of " << thisIndex.getIndexString() << " is " << nbr[RIGHT].getIndexString() << endl;
     //send my right edge
-    if(nbr_exists[RIGHT] && !nbr_isRefined[RIGHT])
+    if(nbr_exists[RIGHT] && !nbr_isRefined[RIGHT]){ckout << "RIGHT" << endl;
         thisProxy(nbr[RIGHT]).receiveGhosts(iterations, LEFT, block_height, right_edge);
+    }
     else if(!nbr_exists[RIGHT]){
         QuadIndex receiver = thisIndex.getParent().getNeighbor(RIGHT);
         for(int j=1; j<=block_height; j+=2){
@@ -257,8 +268,9 @@ void Advection::begin_iteration(void) {
 
     //ckout << "Top Neighbor of " << thisIndex.getIndexString() << " is " << nbr[UP].getIndexString() << endl;
     //send my top edge
-    if(nbr_exists[UP] && !nbr_isRefined[UP])
+    if(nbr_exists[UP] && !nbr_isRefined[UP]){ckout << "UP: " << nbr[UP].getIndexString() <<endl;
         thisProxy(nbr[UP]).receiveGhosts(iterations, DOWN, block_width, &u[index(1,1)]);
+    }
     else if(!nbr_exists[UP]){
         QuadIndex receiver = thisIndex.getParent().getNeighbor(UP);
         for(int i=1; i<=block_width; i+=2){
@@ -269,8 +281,9 @@ void Advection::begin_iteration(void) {
     
     //ckout << "Bottom Neighbor of " << thisIndex.getIndexString() << " is " << nbr[DOWN].getIndexString() << endl;
     //send my bottom edge
-    if(nbr_exists[DOWN] && !nbr_isRefined[DOWN])
+    if(nbr_exists[DOWN] && !nbr_isRefined[DOWN]){ckout << "DOWN" << endl;
         thisProxy(nbr[DOWN]).receiveGhosts(iterations, UP, block_width, &u[index(1, block_height)]);
+    }
     else if(!nbr_exists[DOWN]){
         QuadIndex receiver = thisIndex.getParent().getNeighbor(DOWN);
         for(int i=1; i<=block_width; i+=2){
@@ -291,33 +304,38 @@ void print_Array(T* array, int size, int row_size){
 
 void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
+    ckout << "process called on " << dir << endl;
     switch(dir){
         case LEFT:
             imsg++;
+            ckout << "Received From Left" << endl;
             hasReceived.insert(LEFT);
             for(int i=0; i<size; i++)
                 u[index(0,i+1)] = gh[i];
                 //u[i+1][0] = gh[i];
-        break;
+            break;
 
         case RIGHT:
             imsg++;
+            ckout << "Received From RIGHT" << endl;
             hasReceived.insert(RIGHT);
             for(int i=0; i<size; i++)
                 u[index(block_width+1,i+1)] = gh[i];
                 //u[i+1][block_width+1]=gh[i];
-        break;
+            break;
 
         case UP:
             imsg++;
+            ckout << "Received From UP" << endl;
             hasReceived.insert(UP);
             for(int i=0; i<size; i++)
                 u[index(i+1,0)] = gh[i];
                 //u[block_height+1][i+1]=gh[i];
             break;
 
-         case DOWN:
+        case DOWN:
             imsg++;
+            ckout << "Received From Down" << endl;
             hasReceived.insert(DOWN);
             for(int i=0; i<size; i++)
                 u[index(i+1,block_height+1)] = gh[i];

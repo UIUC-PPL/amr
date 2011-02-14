@@ -53,9 +53,8 @@ module Advection{
             entry void doStep(){
                 atomic "begin iteration"{
                     begin_iteration();
-                    imsg=0;
                 }
-                for(imsg = 0; imsg < 4; imsg++) {
+                for(imsg = 0; imsg < 4;) {
                     // "iterations keep track of messages accross steps"
                     when 
                         receiveGhosts[iterations] (int iter, int dir, int width, double u[width])

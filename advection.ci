@@ -23,6 +23,8 @@ mainmodule Main{
         readonly double tmax;
         readonly double dt;
         readonly double cfl;
+        readonly int nx;
+        readonly int ny;
 
         mainchare Main{
             entry Main(CkArgMsg *m);
@@ -35,7 +37,7 @@ mainmodule Main{
 module Advection{
         array [QuadIndex] Advection{
             entry Advection();
-            entry Advection(bool, bool, int, int, double, double, double, double);
+            entry Advection(bool, bool, double, double, double, double);
             entry void printState();
 
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);

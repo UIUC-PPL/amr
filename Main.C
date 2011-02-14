@@ -103,7 +103,7 @@ Main:: Main(CkArgMsg* m){
      int depth = (int)(log(num_chares)/log(4));
       
      QuadIndex qindex = *new QuadIndex("");
-     qtree[qindex].insert(true, false);
+     qtree[qindex].insert(true, false, xmin, xmax, ymin, ymax);
      qtree[qindex].doStep();
 
      /*queue<QuadIndex> q;

@@ -32,7 +32,7 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-
+extern int nx, ny;
 #define index(i,j)  ((j)*(block_width+2) + i)
 
 void Advection::mem_allocate(double* &p, int size){
@@ -57,7 +57,7 @@ void Advection::mem_allocate_all(){
     
 }
 
-Advection::Advection(bool exists, bool isRefined, int nx, int ny, double xmin, double xmax, double ymin, double ymax){
+Advection::Advection(bool exists, bool isRefined, double xmin, double xmax, double ymin, double ymax){
 
     CBase_Advection();
     this->exists = true;
@@ -77,8 +77,6 @@ Advection::Advection(bool exists, bool isRefined, int nx, int ny, double xmin, d
 
     hasReceived = *new set<int>();
 
-    this->nx = nx;
-    this->ny = ny;
     this->xmin = xmin;
     this->xmax = xmax;
     this->ymin = ymin;

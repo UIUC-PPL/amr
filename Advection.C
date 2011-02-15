@@ -32,7 +32,7 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-extern int nx, ny;
+extern int  ny;
 #define index(i,j)  ((j)*(block_width+2) + i)
 
 void Advection::mem_allocate(double* &p, int size){
@@ -594,4 +594,46 @@ void Advection::requestNextFrame(liveVizRequestMsg *m){
     liveVizDeposit(m, sy*w,sx*h, w,h, intensity, this);
     delete[] intensity;
 }
+
+void Advection::interpolate(double *u, double *refined_u, int xstart, int xend, int ystart, int yend){
+
+    for(int i=xstart; i<=xend; i++)
+        for(int j=ystart; j<=yend; j++){
+            sx = (u[index(i-1,j)]-u[index(i+1,j)])/(2*dx);
+            sy = (u[index(i,j-1)]-u[index(i,j+1)])/(2*dy);
+
+            refined_u[index(2*(i-1), 2*(j-1))] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
+            refined_u[index(2*(i-1)+1, 2*(j-1))] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
+            refined_u[index(2*(i-1), 2*(j-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
+            refined_u[index(2*(i-1)+1, 2*(j-1)+1)] = u[index(i,j)] + sx*(dx/4) + sy*(dy/4);
+        }
+}
+
+void Advection::refine(){
+    //Spawn The four children and give them the data
+    //Assuming we already have the new boundary data
+    
+    //Interpolate the data and give it to the children when they are initialized
+    // boundaries of the children will have to be sent by the neighbor
+    double sx, sy, s;
+    double *refined_u = new double[(block_width+2)*(block_height+2)];
+
+    interpolate(u, refined_u, 1, block_width/2, 1, block_height/2);
+    //initialize the child
+    thisProxy(thisIndex.getChild("01")).insert(xmin, xmax, ymin, ymax, refined_u);
+
+    interpolate(u, refined_u, block_width/2+1, block_width, 1, block_height/2);
+    //initialize the child
+
+    interpolate(u, refined_u, 1, block_width/2, block_height/2+1, block_height);
+    //init the child
+
+    interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
+    //init the child
+}
+
+void Advection::Advection(double, double, double, double, double*){
+
+}
+
 #include "Advection.def.h"

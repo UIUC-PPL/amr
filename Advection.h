@@ -104,5 +104,6 @@ Advection_SDAG_CODE
         void interpolateAndSend(int);
         void compute_and_iterate();
         void iterate();
+        void refine();
         void requestNextFrame(liveVizRequestMsg*);
 };

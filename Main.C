@@ -5,6 +5,7 @@
 #include <queue>
 
 using namespace std;
+using namespace boost::assign;
 
 #include "charm++.h"
 #include "liveViz.h"
@@ -36,8 +37,13 @@ int nx, ny;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
+map<char*, DIR> nbrDirectionMap;
+map<DIR, DIR> reverse_dir_map;
+
 
 Main:: Main(CkArgMsg* m){
+
+    initUtils();
     mainProxy = thisProxy;
     iterations = 0;
 
@@ -144,6 +150,22 @@ Main:: Main(CkArgMsg* m){
         qtree[qindex].doStep();
     }*/
     /*qtree[qindex].doStep();*/
+}
+
+void Main::initUtils(){
+
+    //first two characters in the key are the source's index
+    //and the last two characters are the target's index
+    nbrDirectionMap.add("0001", LEFT);
+    nbrDirectionMap.add("0011", DOWN);
+    nbrDirectionMap.add("0100", RIGHT);
+    nbrDirectionMap.add("0110", DOWN);
+    nbrDirectionMap.add("1001", UP);
+    nbrDirectionMap.add("1011", RIGHT);
+    nbrDirectionMap.add("1100", UP);
+    nbrDirectionMap.add("1110", LEFT);
+
+    reverse_dir_map = map_list_of (RIGHT, LEFT) (LEFT, RIGHT) (UP, DOWN) (DOWN, UP);
 }
 
 void Main::printTreeInformation(CkVec<QuadIndex> list){

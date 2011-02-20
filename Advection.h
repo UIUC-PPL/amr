@@ -2,6 +2,7 @@
 #include "QuadIndex.h"
 #include "Advection.decl.h"
 #include "pup_stl.h"
+#include "Messages.h"
 
 int inline map_nbr(int quad, int nbr){
     if(quad==0){
@@ -91,6 +92,7 @@ Advection_SDAG_CODE
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
         Advection(bool, bool, double, double, double, double);
+        Advection(InitRefineMsg*);
         Advection(){advection();}
         Advection(CkMigrateMessage* m) {__sdag_init();}
         
@@ -105,5 +107,6 @@ Advection_SDAG_CODE
         void compute_and_iterate();
         void iterate();
         void refine();
+        void interpolate(double*, double*, int, int, int, int);
         void requestNextFrame(liveVizRequestMsg*);
 };

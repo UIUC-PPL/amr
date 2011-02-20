@@ -38,6 +38,12 @@ public:
             return false;
         return true;
     }
+    
+    bool operator ==(QuadIndex qidx) const{
+        if(nbits==qidx.nbits && bitVector==qidx.bitVector)
+            return true;
+        return false;
+    }
 
     void getCoordinates(int&, int&)const;
     char* getIndexString() const;
@@ -56,6 +62,8 @@ public:
         p|nbits;
         p|bitVector;
     }
+
+    DIR getSiblingDirection();
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {

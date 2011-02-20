@@ -32,7 +32,10 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-extern int  ny;
+extern int nx, ny;
+extern map<char*, DIR> nbrDirectionMap;
+extern map<DIR, DIR> reverse_dir_map;
+
 #define index(i,j)  ((j)*(block_width+2) + i)
 
 void Advection::mem_allocate(double* &p, int size){
@@ -596,7 +599,7 @@ void Advection::requestNextFrame(liveVizRequestMsg *m){
 }
 
 void Advection::interpolate(double *u, double *refined_u, int xstart, int xend, int ystart, int yend){
-
+    double sx, sy;
     for(int i=xstart; i<=xend; i++)
         for(int j=ystart; j<=yend; j++){
             sx = (u[index(i-1,j)]-u[index(i+1,j)])/(2*dx);
@@ -630,9 +633,42 @@ void Advection::refine(){
 
     interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
     //init the child
+
+    delete [] refined_u;
 }
 
-void Advection::Advection(double, double, double, double, double*){
+Advection::Advection(InitRefineMsg* msg){
+//Called as a result of refinement of parent
+    CBase_Advection();
+    this->exists = true;
+    this->isRefined = false;
+
+    for(int dir=UP; dir<=RIGHT; ++dir)
+        nbr[dir] = thisIndex.getNeighbor(dir);
+    if(thisIndex.nbits!=0)
+        parent = thisIndex.getParent();
+
+    /*set the status of the neighbors
+    1. If parent of the neighbor is same as mine, 
+       then the status is also the same, 
+       i.e. it exists and is not refined     
+    2. If parent of the neihgbor is not the same as mine
+       then infomration about the neighbor will be obtained in two steps
+       1. ask the corresponding neighbor of the parent to know if it is refined
+       2. if it is refined ask the neighbor if it is refined.
+    */
+    for(int dir=0; dir<NUM_NEIGHBORS; dir++){
+        if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are same
+            nbr_exists[dir]=true;
+            nbr_isRefined[dir]=true;
+        }
+        else{//if the parents are not the same
+            msg->parent_nbr_exists[nbr[dir]]
+        }
+
+    }
+
+
 
 }
 

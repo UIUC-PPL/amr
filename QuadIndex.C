@@ -3,7 +3,10 @@
 #include "math.h"
 #include "charm++.h"
 #include "Constants.h"
+#include <cmap>
+#include "boost/assign.hpp"
 #include "QuadIndex.h"
+
 
 using namespace std;
 
@@ -207,3 +210,31 @@ int QuadIndex::getChildNum() const{
     int bit1 = ((bitVector & 1<<(bits_per_int-nbits+1))>0)?1:0;
     return 2*bit1+bit0;
 }
+
+char* QuadIndex:getQuad(){
+    char* index = getIndexString();
+    char* quad = new char[3];
+    memcpy(index + len -2, quad, 2);
+    quad[2] = 0;
+    delete [] index;
+    return quad;
+}
+
+DIR QuadIndex::getSiblingDirection(QuadIndex nbr){
+    char* quad1 = getQuad();
+    char* quad2 = nbr.getQuad();
+
+    char* key = strcat(quad1, quad2);
+    delete [] quad2;
+    Dir dir;
+    if(this->getParent() == nbr->getParent())
+        dir = nbrDirectionMap.find(key)->second;
+    else
+        dir= reverse_dir_map[nbrDirectionMap.find(key)->second];
+
+    delete [] key;
+    return dir;
+}
+
+
+

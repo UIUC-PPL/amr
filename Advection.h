@@ -88,6 +88,8 @@ Advection_SDAG_CODE
         double xmin, xmax, ymin, ymax;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
+
+	DECISION decision;
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         

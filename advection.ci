@@ -39,10 +39,10 @@ mainmodule Main{
 module Advection{
 
         message InitRefineMsg {
-            double xmin;
-            double xmax;
-            double ymin;
-            double ymax;
+	    double dx;
+	    double dy;
+	    double myt;
+	    double mydt;
             double refined_u[];
         };
 

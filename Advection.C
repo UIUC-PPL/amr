@@ -562,18 +562,89 @@ void Advection::compute_and_iterate(){
 #endif
     iterate();
 }
+
 void Advection::iterate() {
          myt = myt+mydt;
          if(myt < tmax){
              mydt = min(dx,dy)/v * cfl;
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
-             doStep();    
+	     if(iterations%10==0){//time to check need for refinement/coarsening
+	     	/*This computation phase can be tested for correctness by running 
+	     	extreme cases - like everyone wants to refine, 
+	     	everyone wants to derefine, nobody wants to do anything */
+		doMeshReStructure();	
+	     }
+	     else{
+             	doStep();    
+	     }
          }
          else {
              CkPrintf("Contribute\n");
              contribute();
          }
+}
+
+DECISION Advection::getGranularityDecision(){
+    if(rand()%2==0){
+        return REFINE;
+    }
+    else{
+        if(rand()%2==0)
+	    return DEREFINE;	
+	else 
+	    return SATISFIED;
+    }
+}
+
+void Advection::doMeshReStructure(){
+    decision = getGranularityDecision();
+
+    //initiate Phase1 of the computation
+    if(decision==REFINE){
+	//tell the nieghbor if it exists, also tell to children of the neighbor 
+	// if that neighbor is refined
+	//In case the neighbor does not exist, just tell to the parent of the 
+	//non-existing neighbor
+
+	for(int i=0; i<NUM_NEIGBORS; i++){
+	    if(nbr_exists[i]){
+	        thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i]);//Since Phase1Msgs are only refinement messages
+						      //just send the your direction w.r.t. to the receiving neighbor
+		if(nbr_isRefined(nbr[i])){
+		    //Get Corresponding Childrens of the neighbor
+		    
+		}
+	    }
+	    else{//send to the parent of the non-existing neighbor
+	    }
+	}
+
+    }
+    else{//No Need to do anything, just wait for 
+    	 //neighbors to tell if they wish to derefine
+	
+    }
+}
+
+void Advection::doPhase1(){
+	
+}
+
+void Advection::doPhase1(){
+    //send the messages to your neighbors
+    for(int i=0; i<NUM_NEIGHBORS; i++){
+        if(nbr_exists[i]){
+	    if(!nbr_isRefined[i])
+	    	thisIndex(nbr[i]).recvPhase1Msg(decision, SENDER_DIR[i]);
+	    else{//if neighbor is refined
+	       
+	    }
+	}
+	else{// if neighbor does not exist send the message to the parent
+	    
+	}
+    }
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){
@@ -623,16 +694,23 @@ void Advection::refine(){
 
     interpolate(u, refined_u, 1, block_width/2, 1, block_height/2);
     //initialize the child
-    thisProxy(thisIndex.getChild("01")).insert(xmin, xmax, ymin, ymax, refined_u);
+    InitRefineMsg * msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, refined_u, nbr_exists, nbr_isRefined);
+    thisProxy(thisIndex.getChild("01")).insert(msg);
 
     interpolate(u, refined_u, block_width/2+1, block_width, 1, block_height/2);
     //initialize the child
+    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, refined_u, nbr_exists, nbr_isRefined);
+    thisProxy(thisIndex.getChild("00")).insert(msg);
 
     interpolate(u, refined_u, 1, block_width/2, block_height/2+1, block_height);
     //init the child
+    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, refined_u, nbr_exists, nbr_isRefined);
+    thisProxy(thisIndex.getChild("10")).insert();
 
     interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
     //init the child
+    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, refined_u, nbr_exists, nbr_isRefined);
+    thisProxy(thisIndex.getChild("11")).insert(msg);
 
     delete [] refined_u;
 }
@@ -660,15 +738,58 @@ Advection::Advection(InitRefineMsg* msg){
     for(int dir=0; dir<NUM_NEIGHBORS; dir++){
         if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are same
             nbr_exists[dir]=true;
-            nbr_isRefined[dir]=true;
+            nbr_isRefined[dir]=false;
         }
-        else{//if the parents are not the same
-            msg->parent_nbr_exists[nbr[dir]]
+        else{//when the parents are not the same
+	     //if I want to refine then no-one can stop me from doing so
+	     //so it is possible that my parents neighbor do not exist
+	     //at this moment but a notification has been sent that they
+	     //should be generated
+            if(msg->parent_nbr_exists[nbr[dir]]){
+		if(msg->parent_nbr_isRefined[nbr[dir]]){
+			nbr_exists[dir]=true;
+			//To know whether the neighbors are refined or not. 
+			//At least I can say with confidence that before this iteration 
+			//neighbors were not refined. What if they have decided to 
+			//refine in this iteration - then they should have sent a notification 
+			//to my parent and my parent will let me know about it. For now I will 
+			// assume that they are not refined
+			nbr_isrefined[dir]=false;
+		}
+	    }
+	    else{
+	    	nbr_exists[dir]=false;
+	    }
         }
-
     }
 
+    //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
 
+    dx = msg->dx;
+    dy = msg->dy;
+
+    myt = msg->myt;
+    mydt = msg->mydt;
+    iterations = msg->iterations;
+
+    mem_allocate_all();
+
+    //x[i] and y[i] need not be initialized they are needed only for setting initial conditions
+    delete [] x;
+    delete [] y;
+ 	
+    
+    //Initialize u - For boundaries I have to wait for the neighbors
+    //to send the values, rest of it can be initialized by the values 
+    //received from the parent
+    int ctr=0;
+    for(int j=1; j<=block_height; j++)
+    	for(int i=1; i<=block_width; i++)
+		u[index(i,j)]=refined_u[ctr++];
+
+    
+    //delete the message
+    delete msg;
 
 }
 

@@ -12,6 +12,8 @@ enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP, LEFT_DOWN, RIGHT_UP,
 
 static int SENDER_DIR[NUM_NEIGHBORS] = {1,0,3,2};
 
+enum DECISION{REFINE=0, DEREFINE=1, SATISFIED=2};
+
 class QuadIndex{
 public:
     int nbits;

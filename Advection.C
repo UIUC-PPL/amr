@@ -163,6 +163,10 @@ void Advection::pup(PUP::er &p){
       p|nbr_isRefined[i];
       p|nbr_dataSent[i];
     }
+
+    for(int i=0; i<NUM_CHILDREN; i++)
+        p|child_isRefined[i]=false;
+
     p|parent;
     p|xc;
     p|yc;
@@ -600,7 +604,22 @@ DECISION Advection::getGranularityDecision(){
 void Advection::doMeshReStructure(){
     decision = getGranularityDecision();
 
+    //Reset Old Data
+    for(int i=0; i<3*NUM_NEIGHBORS; i++)
+        nbr_decision[i]=-1;
+
     //initiate Phase1 of the computation
+    if(decision==REFINE){
+	communicateRefinement();
+    }
+
+    //Wait for Quiescence
+    CkStartQD(CkIndex_Advection::doPhase2(), thisIndex);
+}
+
+/***** PHASE1 FUNCTIONS****/
+void Advection::communicateRefinement(){
+
     if(decision==REFINE){
 	//tell the nieghbor if it exists, also tell to children of the neighbor 
 	// if that neighbor is refined
@@ -610,41 +629,45 @@ void Advection::doMeshReStructure(){
 	for(int i=0; i<NUM_NEIGBORS; i++){
 	    if(nbr_exists[i]){
 	        thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i]);//Since Phase1Msgs are only refinement messages
-						      //just send the your direction w.r.t. to the receiving neighbor
+						      //just send your direction w.r.t. to the receiving neighbor
 		if(nbr_isRefined(nbr[i])){
-		    //Get Corresponding Childrens of the neighbor
-		    
+		    //Get Corresponding Children of the neighbor
+		    QuadIndex q1, q2;
+                    getChildren(nbr[i], SENDER_DIR[i], q1, q2);
+                    thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i]);
+                    thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i]);
 		}
 	    }
 	    else{//send to the parent of the non-existing neighbor
+                thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(nbr[i].getQuad(), i));
 	    }
 	}
-
     }
     else{//No Need to do anything, just wait for 
     	 //neighbors to tell if they wish to derefine
-	
     }
 }
 
-void Advection::doPhase1(){
-	
+void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
+    //save the nbr's decision
+    nbr_decision[dir]=REFINE;
+
+    //Now check if my Decision Changes Because of this Message
+    if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN);//don't do anything
+    else if(dir==LEFT_UP||dir==LEFT_DOWN||dir==RIGHT_UP||dir==RIGHT_DOWN||
+            dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
+            decision = REFINE;
+            //tell all neighbors
+            communicateRefinement();
+    }
+
 }
 
-void Advection::doPhase1(){
-    //send the messages to your neighbors
-    for(int i=0; i<NUM_NEIGHBORS; i++){
-        if(nbr_exists[i]){
-	    if(!nbr_isRefined[i])
-	    	thisIndex(nbr[i]).recvPhase1Msg(decision, SENDER_DIR[i]);
-	    else{//if neighbor is refined
-	       
-	    }
-	}
-	else{// if neighbor does not exist send the message to the parent
-	    
-	}
-    }
+
+/**** PHASE2 FUNCTIONS ****/
+void Advection::doPhase2(){
+    //If I am a Parent Such that None of the children are refined
+    
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){

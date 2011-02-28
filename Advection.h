@@ -32,6 +32,27 @@ int inline map_nbr(int quad, int nbr){
     return -1;
 }
 
+inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
+    if(dir==LEFT){
+        q1 = *new QuadIndex(strcat(myIndex.getIndexString()), "01");
+        q2 = *new QuadIndex(strcat(myIndex.getIndexString()), "10");
+    }
+    else if(dir==RIGHT){
+        q1 = *new QuadIndex(strcat(myIndex.getIndexString()), "00");
+        q2 = *new QuadIndex(strcat(myIndex.getIndexString()), "11");
+    }
+    else if(dir==UP){
+        q1 = *new QuadIndex(strcat(myIndex.getIndexString()), "01");
+        q2 = *new QuadIndex(strcat(myIndex.getIndexString()), "00");
+    }
+    else if(dir==DOWN){
+        q1 = *new QuadIndex(strcat(myIndex.getIndexString()), "10");
+        q2 = *new QuadIndex(strcat(myIndex.getIndexString()), "11");
+    }
+    return;
+}
+
+
 int inline wrap(int item, int max_size){
     return item%max_size;
 }
@@ -55,9 +76,12 @@ Advection_SDAG_CODE
         bool exists;
         bool isRefined;
         
+        bool child_isRefined[NUM_CHILDREN];
+
         bool nbr_exists[NUM_NEIGHBORS];
         bool nbr_isRefined[NUM_NEIGHBORS];
         bool nbr_dataSent[NUM_NEIGHBORS];
+        int nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
         set<int> hasReceived;
 
         QuadIndex nbr[4], parent;

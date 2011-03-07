@@ -75,14 +75,18 @@ Advection_SDAG_CODE
         //tree information
         bool exists;
         bool isRefined;
+        bool isGrandParent;
         
         bool child_isRefined[NUM_CHILDREN];
 
         bool nbr_exists[NUM_NEIGHBORS];
         bool nbr_isRefined[NUM_NEIGHBORS];
         bool nbr_dataSent[NUM_NEIGHBORS];
-        int nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
+        DIR nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
+        DIR child_decision[NUM_CHILDREN];
+
         set<int> hasReceived;
+        bool hasInitiatedPhase2;
 
         QuadIndex nbr[4], parent;
         int xc, yc;
@@ -110,6 +114,7 @@ Advection_SDAG_CODE
         double myt, mydt;
         double dx, dy;
         double xmin, xmax, ymin, ymax;
+
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
 
@@ -134,5 +139,6 @@ Advection_SDAG_CODE
         void iterate();
         void refine();
         void interpolate(double*, double*, int, int, int, int);
+        void doPhase2();
         void requestNextFrame(liveVizRequestMsg*);
 };

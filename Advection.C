@@ -615,6 +615,11 @@ void Advection::doMeshReStructure(){
 
     //Wait for Quiescence
     CkStartQD(CkIndex_Advection::doPhase2(), thisIndex);
+
+    //Also Register Quiescence for the Parent
+    if(!isRefined){
+        CkStartQD(CkIndex_Advection::doPhase2(), thisProxy(thisIndex.getParent()));
+    }
 }
 
 /***** PHASE1 FUNCTIONS****/
@@ -668,6 +673,14 @@ void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
 void Advection::doPhase2(){
     //If I am a Parent Such that None of the children are refined
     
+    if(isGrandParent){//tell the children which are not-refined that they cannot derefine
+        for(int i=0; i<NUM_CHILDREN; i++){
+            if(!child_isRefined[i]){
+                thisProxy(thisIndex.getChild(i)).
+            }
+        }
+        
+    }
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){

@@ -71,7 +71,11 @@ module Advection{
                     compute_and_iterate();
                 }
             };
-        
+            
+            void doPhase2(){
+                atomic ""
+            }
+
             //for LiveViz
             entry void requestNextFrame(liveVizRequestMsg *m);
             entry void free_memory();

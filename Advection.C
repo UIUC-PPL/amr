@@ -577,7 +577,8 @@ void Advection::iterate() {
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
-		doMeshReStructure();	
+		hasInitiatedPhase1=false;
+		doMeshReStructure();
 	     }
 	     else{
              	doStep();    
@@ -602,31 +603,43 @@ DECISION Advection::getGranularityDecision(){
 }
 
 void Advection::doMeshReStructure(){
-    decision = getGranularityDecision();
+    if(!hasInitiatedPhase1){
+        hasInitiatedPhase1=true;
+	//Reset Old Data
+	for(int i=0; i<3*NUM_NEIGHBORS; i++)
+	    nbr_decision[i]=-1;
+	decision = -1;
 
-    //Reset Old Data
-    for(int i=0; i<3*NUM_NEIGHBORS; i++)
-        nbr_decision[i]=-1;
+	if(!isRefined)
+	    decision = getGranularityDecision();
 
-    //initiate Phase1 of the computation
-    if(decision==REFINE){
-	communicateRefinement();
+	//initiate Phase1 of the computation
+	if(decision==REFINE){
+	    communicateRefinement();
+	}
+	//Inform Parent About Start of the Restructure Phase 
+	// Think of a better way to do this because right now as many as 
+	// number of unrefined children are informing the parent about the
+	// start of the restructure phase while only one of them need to do so
+	if(!isRefined){
+	    thisIndex(parent).doMeshReStructure();
+	}
+
+	if(isGrandParent && !parentHasAlreadyMadeDecision){
+	    informParent(-1);
+	}
+
+	//Wait for Quiescence
+	CkStartQD(CkIndex_Advection::doPhase2(), thisIndex);
     }
 
-    //Wait for Quiescence
-    CkStartQD(CkIndex_Advection::doPhase2(), thisIndex);
-
-    //Also Register Quiescence for the Parent
-    if(!isRefined){
-        CkStartQD(CkIndex_Advection::doPhase2(), thisProxy(thisIndex.getParent()));
-    }
 }
 
 /***** PHASE1 FUNCTIONS****/
 void Advection::communicateRefinement(){
 
     if(decision==REFINE){
-	//tell the nieghbor if it exists, also tell to children of the neighbor 
+	//tell the neighbor if it exists, also tell to children of the neighbor 
 	// if that neighbor is refined
 	//In case the neighbor does not exist, just tell to the parent of the 
 	//non-existing neighbor
@@ -651,36 +664,123 @@ void Advection::communicateRefinement(){
     else{//No Need to do anything, just wait for 
     	 //neighbors to tell if they wish to derefine
     }
+
+    //If my DECISION is to stay or to REFINE, tell the parent
+    if(decision == REFINE || decision == STAY){
+    	thisProxy(parent).informParent(thisIndex.getChildNum());
+    }
+}
+
+void Advection::informParent(int childNum){
+    if(parentHasAlreadyMadeDecision==false){
+        parentHasAlreadyMadeDecision=true;
+	//tell rest of the children which are not refined
+	for(int i=0 ;i<NUM_CHILDREN; i++){
+	    if(i!=childNum && !child_isRefined[i])
+	        thisProxy(thisIndex.getChild(i)).recvParentDecision();
+	}
+	//now tell those neighbors which are not refined
+	for(int i=0; i<NUM_NEIGBORS; i++){//all the neighbors must be existing as I am a Parent
+	    CkAssert(nbr_exists[i]);
+	    if(!nbr_isRefined[i]){
+	        thisProxy(nbr[i]).recvNeighborDecision(SENDER_DIRE[i]);
+	    }
+	}
+    }
+}
+
+void Advection::recvParentDecision(){
+    hasReceivedParentDecision=true;
+    if(decision==DEREFINE)
+        decision=STAY;
+}
+void Advection::recvNeighborDecision(int dir){
+    //This Message can be sent only by refined neighbors
+    CkAssert(nbr_exists[dir] && nbr_isRefined[dir]);
+    nbr_decision[dir]=STAY;
+    if(!hasReceivedParentDecision){
+        //Inform parent of your change in decision
+	thisProxy(parent).informParent();	
+    }
 }
 
 void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
     //save the nbr's decision
     nbr_decision[dir]=REFINE;
-
-    //Now check if my Decision Changes Because of this Message
-    if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN);//don't do anything
-    else if(dir==LEFT_UP||dir==LEFT_DOWN||dir==RIGHT_UP||dir==RIGHT_DOWN||
-            dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
-            decision = REFINE;
-            //tell all neighbors
-            communicateRefinement();
+    
+    if(decision!=REFINE){
+	//Now check if my Decision Changes Because of this Message
+	if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN);//don't do anything
+	else if(dir==LEFT_UP||dir==LEFT_DOWN||dir==RIGHT_UP||dir==RIGHT_DOWN||
+	    dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
+	    decision = REFINE;
+	    //tell all neighbors
+	    communicateRefinement();
+	}
     }
-
 }
 
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
-    //If I am a Parent Such that None of the children are refined
-    
-    if(isGrandParent){//tell the children which are not-refined that they cannot derefine
-        for(int i=0; i<NUM_CHILDREN; i++){
-            if(!child_isRefined[i]){
-                thisProxy(thisIndex.getChild(i)).
-            }
-        }
-        
+    if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
+        //Get Data From the Children and extrapolate it
     }
+    if(decision==DEREFINE && !isRefined && !hasReceivedParentDecision){//send data to the parent
+        ChildDataMsg *msg = new(((block_height)*(block_width))/4) ChildDataMsg();
+    	//extrapolate the data
+	for(int i=1; i<= block_width; i+=2){
+	    for(int j=1; j<=block_height; j+=2){
+	        int idx = index(i/2, j/2);
+	        msg->child_u[idx] = u[index(i,j)];
+		msg->child_u[idx] += u[index(i+1,j)];
+		msg->child_u[idx] += u[index(i, j+1)];
+		msg->child_u[idx] += u[index(i+1,j+1)];
+		msg->child_u[idx] /= 4;
+	    }
+	}
+	msg->childNum = thisIndex.getChildNum();
+
+        thisProxy(parent).recvChildData(msg);
+    }
+    CkStartQD(CkIndex_Advection::doStep(), thisIndex);
+}
+
+void Advection::recvChildData(ChildDataMsg *msg){
+    if(!hasAllocatedMemory){
+        hasAllocatedMemory=true;
+	mem_allocate_all();
+    }
+    int st_i, end_i, st_j, end_j;
+    if(msg->childNum==0){
+    	st_i=block_width/2+1; end_i=block_width;
+	st_j=1; end_j=block_height;
+    }
+    else if(msg->childNum==1){
+        st_i=1; end_i=block_width/2;
+	st_j=1; end_j=block_height/2;
+    }
+    else if(msg->childNum==2){
+        st_i=1; end_i=block_width/2;
+	st_j=block_height/2+1; end_j=block_height;
+    }
+    else if(msg->childNum==3){
+        st_i=block_width/2+1; end_i=block_width;
+	st_j=block_height/2+1;end_j=block_height;
+    }
+    else{
+        ckout << "Error: recvChildData(ChildDataMsg*) received " << msg->childNum << "as ChildNum" <<endl;
+	CkExit();
+    }
+
+    int ctr=0;
+    for(int i=st_i; i<=end_i; i++){
+        for(int j=st_j; j<=end_j; j++){
+	    u[index(i,j)]=msg->child_u[ctr++];
+	}
+    }
+
+    delete msg;
 }
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){

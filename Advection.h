@@ -87,6 +87,10 @@ Advection_SDAG_CODE
 
         set<int> hasReceived;
         bool hasInitiatedPhase2;
+	bool parentHasAlreadyMadeDecision;
+	bool hasReceivedParentDecision;
+
+	bool hasAllocatedMemory;
 
         QuadIndex nbr[4], parent;
         int xc, yc;
@@ -141,4 +145,21 @@ Advection_SDAG_CODE
         void interpolate(double*, double*, int, int, int, int);
         void doPhase2();
         void requestNextFrame(liveVizRequestMsg*);
+};
+
+class InitRefineMsg: public CBase_InitRefineMsg{
+    public:
+        double dx, dy, myt, mydt, *refined_u;
+
+};
+
+class ChildDataMsg: public CBase_ChildDataMsg{
+    public:
+        int childNum;
+	double *child_u;
+	
+	ChildDataMsg(int num, double *u){
+	    childNum = num;
+	    memcpy();
+	}
 };

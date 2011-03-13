@@ -46,6 +46,11 @@ module Advection{
             double refined_u[];
         };
 
+	message ChildDataMsg{
+	    int childNum;
+	    double child_u[];
+	};
+
         array [QuadIndex] Advection{
             entry Advection();
             entry Advection(bool, bool, double, double, double, double);

@@ -204,7 +204,7 @@ QuadIndex QuadIndex::getChild(int idx) const{
 int QuadIndex::getChildNum() const{
     if (nbits==0){//When I am the root
         ckout << "CAUTION: getChildNum() called on Root of tree" << endl;
-        return 0;
+        return -1;
     }
     int bit0 = ((bitVector & 1<<(bits_per_int-nbits))>0)?1:0;
     int bit1 = ((bitVector & 1<<(bits_per_int-nbits+1))>0)?1:0;

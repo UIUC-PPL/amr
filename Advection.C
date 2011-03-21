@@ -309,7 +309,7 @@ void print_Array(T* array, int size, int row_size){
 
 void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
-    ckout << "process called on " << dir << endl;
+    ckout << "Process called on " << dir << endl;
     switch(dir){
         case LEFT:
             imsg++;
@@ -723,10 +723,52 @@ void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+    //Do Some Sanity Checks
+    if(decision == DEREFINE){
+        for(int i=0; i<NUM_NEIGHBORS; i++){
+	    if(nbr_exists[i] && !nbr_isRefined[i] && nbr_decision[i]==REFINE){
+	        ckout << "ERROR: doPhase2()::Sanity Check: My decision is Derefine But one of my\
+		          Neighbor wants to derefine" << endl;
+		CkExit();
+	    }
+	    if(nbr_exists[i] && nbr_isRefined[i]){
+	        if(nbr[i].getParent() == parent){//if same parent
+		    ckout << "ERROR: doPhase()::Sanity Check: My decision is to derefine but one\
+		    	      of my siblings has children" << endl;
+                    CkExit();
+		}
+		else{//different parent
+		   if(nbr_decision[i]=!STAY){
+		       ckout << "ERROR: doPhase2::Sanity Check: MyDecision is to DEREFINE but one of\
+		                 my refined neighbors hasn't yet said that it will derefine" << endl;
+			CkExit();
+		   }
+		}
+	    }
+	}
+    }
+
+    //Send Appropriate Data to the Neighbors based on their New Status
+    if(isRefined==false){// can send data only if I am a leaf node
+        for(int i=0; i<NUM_NEIGHBORS; i++){
+            if(nbr_decision[i]==REFINE){
+	       if(i==UP){
+	           
+	       }
+	       else if(i==DOWN){
+	       }
+	       else if(i==LEFT){
+	       }
+	       else if(I==RIGHT){
+	       }
+	    }
+        }
+    }
+
     if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
         //Get Data From the Children and extrapolate it
     }
-    if(decision==DEREFINE && !isRefined && !hasReceivedParentDecision){//send data to the parent
+    else if(decision==DEREFINE && !isRefined && !hasReceivedParentDecision){//send data to the parent
         ChildDataMsg *msg = new(((block_height)*(block_width))/4) ChildDataMsg();
     	//extrapolate the data
 	for(int i=1; i<= block_width; i+=2){
@@ -742,7 +784,44 @@ void Advection::doPhase2(){
 	msg->childNum = thisIndex.getChildNum();
 
         thisProxy(parent).recvChildData(msg);
+	//deallocate all your memory and destroy yourself
+	~Advection();
+	thisProxy(thisIndex).remove();
     }
+    else if(decision==REFINE){
+        refine();
+    }
+    
+    /* Update the State of Your Neighbors */
+    if(decision == STAY){
+       for(int i=0; i<NUM_NEIGHBORS; i++){
+           if(!nbr_exists[i]){
+	       if(nbr_decision[i]==DEREFINE){
+	           ckout << "ERROR: doPhase(): Uncle Cannot DEREFINE while I want to STAY" << endl;
+		   CkExit();
+	        }
+	       else if(nbr_decision[i]==REFINE){
+	           nbr_exists[i]=true;
+		   nbr_isRefined[i]=false
+	       }
+	       else if(nbr_decision[i]==STAY){
+	           nbr_exists[i]=false;
+	       }
+	   }
+	   else if(nbr_exists[i] && !nbr_isRefined[i]){
+	       if(nbr_decision[i]==REFINE)
+	           nbr_isRefined[i]=true;
+	   }
+	   else if(nbr_exists[i] && nbr_isRefined[i] && nbr_decision[i]!=STAY){
+	      nbr_isRefined[i]=false;
+	   }
+       }
+    }
+    else if(decision==REFINE){//I will Now become a Parent and therefore I need not Store Neighbor Status
+    }
+    else if(decision==DEREFINE){// I am going to destroy myself
+    }
+    
     CkStartQD(CkIndex_Advection::doStep(), thisIndex);
 }
 

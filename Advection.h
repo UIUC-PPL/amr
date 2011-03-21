@@ -90,8 +90,8 @@ Advection_SDAG_CODE
 	bool parentHasAlreadyMadeDecision;
 	bool hasReceivedParentDecision;
 
-	bool hasAllocatedMemory;
-
+	bool hasAllocatedMemory;//for Use of Node who is going to derefine
+	
         QuadIndex nbr[4], parent;
         int xc, yc;
 

@@ -26,7 +26,7 @@ mainmodule Main{
         readonly int nx;
         readonly int ny;
 
-        readonly map<char*, DIR> nbrDirectionMap;
+        readonly map<string, DIR> nbrDirectionMap;
         readonly map<DIR, DIR> reverse_dir_map;
         mainchare Main{
             entry Main(CkArgMsg *m);
@@ -59,6 +59,12 @@ module Advection{
 
             entry void receiveGhosts(int iter, int dir, int width, double u[width]);
             entry void begin_iteration();
+            entry void informParent(int, DECISION);
+            entry void recvParentDecision();
+            entry void recvNeighborDecision(DIR);
+            entry void recvStatusUpdateFromParent(int);
+            entry void exchangePhase1Msg(int);
+            entry void doMeshRestructure();
 
             entry void doStep(){
                 atomic "begin iteration"{
@@ -70,6 +76,7 @@ module Advection{
                         receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
                     atomic "process ghosts" {
                         process(iter, dir, width, u);
+                        sendReadyData();
                     }
                 }
                 atomic "doWork" {
@@ -77,12 +84,22 @@ module Advection{
                 }
             };
             
-            void doPhase2(){
-                atomic ""
-            }
-
+            entry void getGhostsAndRefine(){
+                for(imsg=0; imsg<4;){
+                    when 
+                        receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
+                    atomic "save ghosts"{
+                        process(iter, dir, width, u);
+                    }
+                }
+                atomic "refine"{
+                    refine();
+                }
+            };
             //for LiveViz
             entry void requestNextFrame(liveVizRequestMsg *m);
             entry void free_memory();
+            entry void doPhase2();
+            entry void recvChildData(ChildDataMsg*);
         };
 };

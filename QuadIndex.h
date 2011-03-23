@@ -9,10 +9,13 @@ inline bool liesin(int x, int st, int end){
 
 enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP, LEFT_DOWN, RIGHT_UP, 
             RIGHT_DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT};
+PUPbytes(DIR);
 
-static int SENDER_DIR[NUM_NEIGHBORS] = {1,0,3,2};
+static DIR SENDER_DIR[NUM_NEIGHBORS] = {DOWN,UP,RIGHT,LEFT};
 
-enum DECISION{REFINE=0, DEREFINE=1, STAY=2, DEREFINE_};
+enum DECISION {INV=-1, REFINE=0, DEREFINE=1, STAY=2};
+PUPbytes(DECISION);
+
 
 class QuadIndex{
 public:
@@ -56,6 +59,8 @@ public:
 
     QuadIndex getChild(int) const;
     int getChildNum() const;
+    char* getQuadC() const;
+    int getQuadI() const;
     
     unsigned int getBitVector() const{ return bitVector;}
     unsigned int getNbits() const{ return nbits;}
@@ -65,7 +70,8 @@ public:
         p|bitVector;
     }
 
-    DIR getSiblingDirection();
+    DIR getSiblingDirection(QuadIndex) const;
+    void getSiblingInDirection(DIR, int&, int&) const;
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {

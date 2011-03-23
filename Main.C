@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 #include <queue>
+#include <boost/assign/list_of.hpp>
 
 using namespace std;
 using namespace boost::assign;
@@ -37,7 +38,7 @@ int nx, ny;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
-map<char*, DIR> nbrDirectionMap;
+map<string, DIR> nbrDirectionMap;
 map<DIR, DIR> reverse_dir_map;
 
 
@@ -156,14 +157,14 @@ void Main::initUtils(){
 
     //first two characters in the key are the source's index
     //and the last two characters are the target's index
-    nbrDirectionMap.add("0001", LEFT);
-    nbrDirectionMap.add("0011", DOWN);
-    nbrDirectionMap.add("0100", RIGHT);
-    nbrDirectionMap.add("0110", DOWN);
-    nbrDirectionMap.add("1001", UP);
-    nbrDirectionMap.add("1011", RIGHT);
-    nbrDirectionMap.add("1100", UP);
-    nbrDirectionMap.add("1110", LEFT);
+    nbrDirectionMap.insert(std::pair<string, DIR>("0001", LEFT));
+    nbrDirectionMap.insert(std::pair<string, DIR>("0011", DOWN));
+    nbrDirectionMap.insert(std::pair<string, DIR>("0100", RIGHT));
+    nbrDirectionMap.insert(std::pair<string, DIR>("0110", DOWN));
+    nbrDirectionMap.insert(std::pair<string, DIR>("1001", UP));
+    nbrDirectionMap.insert(std::pair<string, DIR>("1011", RIGHT));
+    nbrDirectionMap.insert(std::pair<string, DIR>("1100", UP));
+    nbrDirectionMap.insert(std::pair<string, DIR>("1110", LEFT));
 
     reverse_dir_map = map_list_of (RIGHT, LEFT) (LEFT, RIGHT) (UP, DOWN) (DOWN, UP);
 }

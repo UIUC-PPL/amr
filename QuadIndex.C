@@ -3,12 +3,15 @@
 #include "math.h"
 #include "charm++.h"
 #include "Constants.h"
-#include <cmap>
+#include <map>
 #include "boost/assign.hpp"
 #include "QuadIndex.h"
 
-
 using namespace std;
+using namespace boost::assign;
+
+extern map<char*, DIR> nbrDirectionMap;
+extern map<DIR, DIR> reverse_dir_map;
 
 /*constructor
 __________
@@ -211,23 +214,38 @@ int QuadIndex::getChildNum() const{
     return 2*bit1+bit0;
 }
 
-char* QuadIndex:getQuad(){
+char* QuadIndex::getQuadC() const{
     char* index = getIndexString();
     char* quad = new char[3];
+    int len = strlen(index);
     memcpy(index + len -2, quad, 2);
     quad[2] = 0;
     delete [] index;
     return quad;
 }
 
-DIR QuadIndex::getSiblingDirection(QuadIndex nbr){
-    char* quad1 = getQuad();
-    char* quad2 = nbr.getQuad();
+int QuadIndex::getQuadI() const{
+    char* index = getIndexString();
+    char* quad = new char[3];
+    int len = strlen(index);
+    memcpy(index + len -2, quad, 2);
+    quad[2] = 0;
+    delete [] index;
+    if(strcmp(quad, "00")) return 0;
+    else if(strcmp(quad, "01"))return 1;
+    else if(strcmp(quad, "10"))return 2;
+    else return 3;
+}
+
+
+DIR QuadIndex::getSiblingDirection(QuadIndex nbr) const{
+    char* quad1 = getQuadC();
+    char* quad2 = nbr.getQuadC();
 
     char* key = strcat(quad1, quad2);
     delete [] quad2;
-    Dir dir;
-    if(this->getParent() == nbr->getParent())
+    DIR dir;
+    if(this->getParent() == nbr.getParent())
         dir = nbrDirectionMap.find(key)->second;
     else
         dir= reverse_dir_map[nbrDirectionMap.find(key)->second];
@@ -236,5 +254,15 @@ DIR QuadIndex::getSiblingDirection(QuadIndex nbr){
     return dir;
 }
 
+void QuadIndex::getSiblingInDirection(DIR dir, int &c1, int &c2) const{
+    if(dir==RIGHT){
+        c1=0; c2=3;}
+    else if(dir==UP){
+        c1=0; c2=1;}
+    else if(dir==LEFT){
+        c1=1; c2=2;}
+    else if(dir==DOWN){
+        c1=2; c2=3;}
+}
 
 

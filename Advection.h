@@ -110,11 +110,14 @@ Advection_SDAG_CODE
         bool nbr_exists[NUM_NEIGHBORS];
         bool nbr_isRefined[NUM_NEIGHBORS];
         bool nbr_dataSent[NUM_NEIGHBORS];
+        set<int> hasReceived;
+
+        /*Phase1 DataStructures*/
+	DECISION decision;
         DECISION nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
         DECISION child_decision[NUM_CHILDREN];
         bool hasReceivedStatusFromParent[NUM_NEIGHBORS];
 
-        set<int> hasReceived;
         bool hasInitiatedPhase1;
         bool hasInitiatedPhase2;
 	bool parentHasAlreadyMadeDecision;
@@ -152,11 +155,11 @@ Advection_SDAG_CODE
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
 
-	DECISION decision;
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
-        Advection(bool, bool, double, double, double, double);
+        /*Constructors*/
+        Advection(double, double, double, double);
         Advection(InitRefineMsg*);
         Advection(){advection();}
         Advection(CkMigrateMessage* m) {__sdag_init();}
@@ -165,18 +168,16 @@ Advection_SDAG_CODE
 
         void printState();
         void pup(PUP::er &p);
-
+        
+        /*Computation Methods*/
         void begin_iteration();
         void process(int, int, int, double*);
-        void interpolateAndSend(int);
         void compute_and_iterate();
         void iterate();
-        void refine();
-        void interpolate(double*, double*, int, int, int, int);
-        void requestNextFrame(liveVizRequestMsg*);
 
-        void sendReadyData();
-        void sendGhost(int);
+        /*Phase1 Entry Methods*/
+        DECISION getGranularityDecision();
+
         void doMeshRestructure();
         void communicateRefinement();
         void informParent(int, DECISION);
@@ -184,11 +185,20 @@ Advection_SDAG_CODE
         void recvNeighborDecision(DIR);
         void recvStatusUpdateFromParent(int);
         void exchangePhase1Msg(int);
-        void recvChildData(ChildDataMsg*);
-        DECISION getGranularityDecision();
+
+        /*Phase2 entry methods*/
+        void setNbrStatus(int, ChildDataMsg*);
+        void sendReadyData();
+        void sendGhost(int);
         void doPhase2();
 
-        void setNbrStatus(int, ChildDataMsg*);
+        void recvChildData(ChildDataMsg*);
+        void interpolateAndSend(int);
+        void refine();
+        void interpolate(double*, double*, int, int, int, int);
+
+        /*LiveViz*/
+        void requestNextFrame(liveVizRequestMsg*);
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{

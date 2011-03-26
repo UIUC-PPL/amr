@@ -72,24 +72,24 @@ void Advection::mem_allocate_all(){
     
 }
 
-Advection::Advection(bool exists, bool isRefined, double xmin, double xmax, double ymin, double ymax){
-
+Advection::Advection(double xmin, double xmax, double ymin, double ymax){
+//Constructor for the Initial Grid Zones
     CBase_Advection();
     this->exists = true;
-    this->isRefined = isRefined;
+    this->isRefined = false;
     
     for(int dir=UP; dir<=RIGHT; ++dir)
         nbr[dir] = thisIndex.getNeighbor(dir);
     if(thisIndex.nbits!=0)
         parent = thisIndex.getParent();
+    else parent = thisIndex;
     
     /*Lets set the nieghbors status if this is the root node */
-    if(thisIndex.nbits==0)
-        for(int i=0; i<NUM_NEIGHBORS; i++){
-            nbr_exists[i]=true;
-            nbr_isRefined[i]=false;
-        }
-
+    for(int i=0; i<NUM_NEIGHBORS; i++){
+        nbr_exists[i]=true;
+        nbr_isRefined[i]=false;
+    }
+    
     hasReceived = *new set<int>();
 
     this->xmin = xmin;
@@ -142,7 +142,7 @@ void Advection::advection(){
     double rsq;
     
     //ckout << "In Adfvection2" << endl;
-    //ckout << xctr << ", " << yctr << endl;
+    ckout << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << endl;
     for(int i=0; i<block_height+2; i++){
         for(int j=0; j<block_width+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -151,14 +151,14 @@ void Advection::advection(){
             else u[index(i,j)] = 1;
         }
     }
-    //ckout << "In Advection 3: " <<u[1][1]<< endl;
-#if 0
+#if 1
     for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
             ckout << u[index(j+1,i+1)] << "\t";
         ckout << endl;
     }
     ckout << endl;
+    //CkExit();
 #endif
 }
 
@@ -573,7 +573,7 @@ void Advection::iterate() {
              mydt = min(dx,dy)/v * cfl;
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
-	     if(iterations%10==11){//time to check need for refinement/coarsening
+	     if(iterations%10==1){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
@@ -591,15 +591,17 @@ void Advection::iterate() {
 }
 
 DECISION Advection::getGranularityDecision(){
-    if(rand()%2==0){
+    if(parent == thisIndex)
+        return STAY;
+    /*if(rand()%2==0){
         return REFINE;
     }
     else{
-        if(rand()%2==0)
+        if(rand()%2==0 && parent != thisIndex)
 	    return DEREFINE;	
 	else 
 	    return STAY;
-    }
+    }*/
 }
 
 void Advection::doMeshRestructure(){
@@ -607,11 +609,31 @@ void Advection::doMeshRestructure(){
         hasInitiatedPhase1=true;
 
         if(!isRefined){//run this on leaf nodes
-            //Reset Old Data
+            /*Reset Old Data*/
+            /*Phase1 Resetting*/
             for(int i=0; i<3*NUM_NEIGHBORS; i++)
                 nbr_decision[i]=INV;
+
             decision = INV;
 
+            for(int i=0; i<NUM_CHILDREN; i++)
+                child_decision[i]=INV;
+
+            for(int i=0; i<NUM_NEIGHBORS; i++)
+                hasReceivedStatusFromParent[i]=false;
+
+            parentHasAlreadyMadeDecision=false;
+            hasReceivedParentDecision=false;
+
+            /*Phase2 resetting*/
+            hasInitiatedPhase2 = false;
+            for(int i=0; i<NUM_NEIGHBORS; i++)
+                nbr_dataSent[i]=false;
+
+            hasReceived.empty();
+            hasAllocatedMemory=false;
+
+            /*Done Resetting Old Data*/
             if(!isRefined)
                 decision = getGranularityDecision();
 
@@ -666,7 +688,7 @@ void Advection::communicateRefinement(){
     }
 
     //If my DECISION is to stay or to REFINE, tell the parent
-    if(decision == REFINE || decision == STAY){
+    if((decision == REFINE || decision == STAY) && (parent!=thisIndex)){
     	thisProxy(parent).informParent(thisIndex.getChildNum(), decision);
     }
 }
@@ -705,7 +727,7 @@ void Advection::recvNeighborDecision(DIR dir){
     if(!hasReceivedParentDecision){
         hasReceivedParentDecision = true;
         //Inform parent of your change in decision
-        if(!isRefined)
+        if(!isRefined && parent!=thisIndex)
             thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);
     }
 

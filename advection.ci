@@ -53,7 +53,7 @@ module Advection{
 
         array [QuadIndex] Advection{
             entry Advection();
-            entry Advection(bool, bool, double, double, double, double);
+            entry Advection(double, double, double, double);
             entry Advection(InitRefineMsg*);
             entry void printState();
 

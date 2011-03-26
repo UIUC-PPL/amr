@@ -109,9 +109,24 @@ Main:: Main(CkArgMsg* m){
      num_chares = num_chare_rows*num_chare_cols;
      int depth = (int)(log(num_chares)/log(4));
       
-     QuadIndex qindex = *new QuadIndex("");
-     qtree[qindex].insert(true, false, xmin, xmax, ymin, ymax);
-     qtree[qindex].doStep();
+     /* Construct Initial Quadtree*/ 
+     QuadIndex qindex = *new QuadIndex("00");
+     qtree[qindex].insert(xmin, xmax, ymin, ymax);
+
+     qindex = *new QuadIndex("01");
+     qtree[qindex].insert(xmin, xmax, ymin, ymax);
+
+     qindex = *new QuadIndex("10");
+     qtree[qindex].insert(xmin, xmax, ymin, ymax);
+
+     qindex = *new QuadIndex("11");
+     qtree[qindex].insert(xmin, xmax, ymin, ymax);
+
+     qtree.doneInserting();
+     qtree[*new QuadIndex("00")].doStep();
+     qtree[*new QuadIndex("01")].doStep();
+     qtree[*new QuadIndex("10")].doStep();
+     qtree[*new QuadIndex("11")].doStep();
 
      /*queue<QuadIndex> q;
      q.push("");

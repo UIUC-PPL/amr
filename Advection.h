@@ -22,8 +22,8 @@ int inline map_nbr(int quad, int nbr){
         else if(nbr == DOWN)
             return UP_LEFT;
     }
-    else{
-        if(quad==3)
+    else if(quad==3){
+        if(nbr==RIGHT)
             return LEFT_DOWN;
         else if(nbr == DOWN)
             return UP_RIGHT;
@@ -104,7 +104,8 @@ Advection_SDAG_CODE
         bool exists;
         bool isRefined;
         bool isGrandParent;
-        
+        int depth;
+
         bool child_isRefined[NUM_CHILDREN];
 
         bool nbr_exists[NUM_NEIGHBORS];
@@ -120,7 +121,7 @@ Advection_SDAG_CODE
 
         bool hasInitiatedPhase1;
         bool hasInitiatedPhase2;
-	bool parentHasAlreadyMadeDecision;
+	bool parentHasAlreadyMadeDecision;//to be used by a parent
 	bool hasReceivedParentDecision;
 
 	bool hasAllocatedMemory;//for Use of Node who is going to derefine
@@ -170,6 +171,14 @@ Advection_SDAG_CODE
         void pup(PUP::er &p);
         
         /*Computation Methods*/
+        /*void doStep(){
+            begin_iteration();
+        }*/
+        /*void receiveGhosts(int iter, int dir, int width, double *u){
+            imsg=0;
+            process(iter, dir, width, u);
+            sendReadyData();
+        }*/
         void begin_iteration();
         void process(int, int, int, double*);
         void compute_and_iterate();
@@ -179,7 +188,7 @@ Advection_SDAG_CODE
         DECISION getGranularityDecision();
 
         void doMeshRestructure();
-        void communicateRefinement();
+        void communicatePhase1Msgs();
         void informParent(int, DECISION);
         void recvParentDecision();
         void recvNeighborDecision(DIR);
@@ -206,9 +215,11 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
     public:
         double dx, dy, myt, mydt, *refined_u;
         int iterations;
-        bool parent_nbr_exists[NUM_NEIGHBORS];
-        bool parent_nbr_isRefined[NUM_NEIGHBORS];
-        bool parent_nbr_decision[3*NUM_NEIGHBORS];
+        bool *parent_nbr_exists;
+        bool *parent_nbr_isRefined;
+        DECISION *parent_nbr_decision;
+
+        InitRefineMsg(){};
         InitRefineMsg(double dx, double dy, double myt, double mydt, int iterations, double *refined_u, bool nbr_exists[NUM_NEIGHBORS], bool nbr_isRefined[NUM_NEIGHBORS], DECISION nbr_decision[3*NUM_NEIGHBORS]);
 };
 

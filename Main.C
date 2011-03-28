@@ -25,6 +25,8 @@ int num_chare_cols;
 int block_height;
 int block_width;
 
+int min_depth, max_depth;
+
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
 
@@ -41,6 +43,19 @@ double tmax, t, dt, cfl;
 map<string, DIR> nbrDirectionMap;
 map<DIR, DIR> reverse_dir_map;
 
+char* decimal_to_binary_string(int num, int len){
+    char* _ret = new char[len+1];
+    int i=0;
+    _ret[len]=0;
+    while(num){
+        _ret[len-i-1] = (num&1==1)?'1':'0';
+        num = num>>1;
+        i++;
+    };
+    for(; i<len; i++)
+        _ret[len-i-1]='0';
+    return _ret;
+}
 
 Main:: Main(CkArgMsg* m){
 
@@ -108,26 +123,24 @@ Main:: Main(CkArgMsg* m){
      //save the total number of worker chares we have in this simulation
      num_chares = num_chare_rows*num_chare_cols;
      int depth = (int)(log(num_chares)/log(4));
-      
-     /* Construct Initial Quadtree*/ 
-     QuadIndex qindex = *new QuadIndex("00");
-     qtree[qindex].insert(xmin, xmax, ymin, ymax);
+     min_depth = depth;
+     max_depth = 100;
 
-     qindex = *new QuadIndex("01");
-     qtree[qindex].insert(xmin, xmax, ymin, ymax);
-
-     qindex = *new QuadIndex("10");
-     qtree[qindex].insert(xmin, xmax, ymin, ymax);
-
-     qindex = *new QuadIndex("11");
-     qtree[qindex].insert(xmin, xmax, ymin, ymax);
-
-     qtree.doneInserting();
-     qtree[*new QuadIndex("00")].doStep();
-     qtree[*new QuadIndex("01")].doStep();
-     qtree[*new QuadIndex("10")].doStep();
-     qtree[*new QuadIndex("11")].doStep();
-
+     QuadIndex qindex;
+     for(int i=0; i < num_chares; i++){
+        char* str = decimal_to_binary_string(i, 2*depth);
+        ckout << str << endl;
+        qindex = *new QuadIndex(str);
+        qtree[qindex].insert(xmin, xmax, ymin, ymax);
+     }
+     qtree[qindex].doneInserting();
+     
+     for(int i=0; i < num_chares; i++){
+        char* str = decimal_to_binary_string(i, 2*depth);
+        qindex = *new QuadIndex(str);
+        qtree[qindex].doStep();
+     }
+     
      /*queue<QuadIndex> q;
      q.push("");
        

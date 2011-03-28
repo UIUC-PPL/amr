@@ -52,6 +52,9 @@ public:
 
     void getCoordinates(int&, int&)const;
     char* getIndexString() const;
+    inline int getDepth() const{
+        return nbits/2;
+    }
 
     QuadIndex getNeighbor(int) const;
     QuadIndex getParent() const;

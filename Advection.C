@@ -20,6 +20,8 @@ extern int num_chare_cols;
 
 extern int block_width, block_height;
 
+extern int min_depth, max_depth;
+
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
 
@@ -80,14 +82,20 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax){
     
     for(int dir=UP; dir<=RIGHT; ++dir)
         nbr[dir] = thisIndex.getNeighbor(dir);
+    /*    
     if(thisIndex.nbits!=0)
         parent = thisIndex.getParent();
-    else parent = thisIndex;
-    
+    else parent = thisIndex;*/
+
+    /*Nodes constructed here will not have any parent as this 
+    is the coarsest level of the Mesh*/
+    parent = thisIndex;
+    isGrandParent = false;
     /*Lets set the nieghbors status if this is the root node */
     for(int i=0; i<NUM_NEIGHBORS; i++){
         nbr_exists[i]=true;
         nbr_isRefined[i]=false;
+        nbr_dataSent[i]=false;
     }
     
     hasReceived = *new set<int>();
@@ -231,6 +239,7 @@ Advection::~Advection(){
 
 void Advection::sendGhost(int dir){
     if(nbr_exists[dir] && !nbr_isRefined[dir]){
+        ckout << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << endl;
         if(dir==LEFT)
             thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], block_height, left_edge);
         else if(dir==RIGHT)
@@ -242,6 +251,7 @@ void Advection::sendGhost(int dir){
     }
     else if(!nbr_exists[dir]){
         QuadIndex receiver = thisIndex.getParent().getNeighbor(dir);
+        ckout << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;
         if(dir==LEFT){
             for(int j=1; j<=block_height; j+=2){
                 left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
@@ -271,6 +281,7 @@ void Advection::sendGhost(int dir){
 
 void Advection::begin_iteration(void) {
     //ckout << "String: " << thisIndex.getIndexString() << endl;
+    ckout << "Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << endl;
     for(int i=0; i<NUM_NEIGHBORS; i++)
         nbr_dataSent[i]=false;
     
@@ -290,10 +301,11 @@ void Advection::begin_iteration(void) {
         left_edge[j-1] = u[index(1,j)];
         right_edge[j-1] = u[index(block_width,j)];
     }
-
+    //ckout << "Seding Ghosts " << thisIndex.getIndexString() << endl;
     for(int i=0; i<NUM_NEIGHBORS; i++){
         sendGhost(i);
     }
+    ckout << "Done Sending Ghosts " << thisIndex.getIndexString() << endl;
 }
 template<class T>
 void print_Array(T* array, int size, int row_size){
@@ -306,7 +318,7 @@ void print_Array(T* array, int size, int row_size){
 
 void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
-    ckout << "Process called on " << dir << endl;
+    ckout << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iter << endl;
     switch(dir){
         case LEFT:
             imsg++;
@@ -409,47 +421,41 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 void Advection::sendReadyData(){
     //check if data can be sent to any of the refined neighbors
     //If the neighbors are at the same level or do not exist at all 
-    //data will be sent as a part of the current iteration and need 
+    //data will be sent in begin_iteration function and need 
     //not be sent here
     for(int i=0; i<NUM_NEIGHBORS; i++)
         if(nbr_isRefined[i] && !nbr_dataSent[i]){
             if(i==RIGHT){
                 if(hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
-                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end() && 
-                    hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
-                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end()){
+                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end()){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else if(i==LEFT){
                 if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
-                    hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
-                    hasReceived.find(UP_LEFT)!=hasReceived.end() &&
-                    hasReceived.find(DOWN_LEFT)!=hasReceived.end()){
+                    hasReceived.find(LEFT_DOWN)!=hasReceived.end()){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else if(i==UP){
                 if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
-                    hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
-                    hasReceived.find(LEFT_UP)!= hasReceived.end() &&
-                    hasReceived.find(RIGHT_UP)!=hasReceived.end()){
+                    hasReceived.find(UP_RIGHT)!=hasReceived.end()){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else{ // if i==DOWN
                 if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
-                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
-                    hasReceived.find(LEFT_DOWN) != hasReceived.end() &&
-                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end()){
+                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end()){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
         }
+        /*if(imsg==4)
+            compute_and_iterate();*/
 }
     
 void Advection::interpolateAndSend(int NBR){
@@ -573,11 +579,12 @@ void Advection::iterate() {
              mydt = min(dx,dy)/v * cfl;
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
-	     if(iterations%10==1){//time to check need for refinement/coarsening
+	     if(iterations%10==0){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
 		hasInitiatedPhase1=false;
+                ckout << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << endl;
 		doMeshRestructure();
 	     }
 	     else{
@@ -591,13 +598,18 @@ void Advection::iterate() {
 }
 
 DECISION Advection::getGranularityDecision(){
-    if(parent == thisIndex)
-        return STAY;
-    /*if(rand()%2==0){
+    if(strcmp(thisIndex.getIndexString(),"00")==0)// && iterations <15)
+        return REFINE;
+    else return STAY;
+    /*if(thisIndex.getDepth()==min_depth)
+        return STAY;*/
+    
+
+    /*if(rand()%3==0){
         return REFINE;
     }
     else{
-        if(rand()%2==0 && parent != thisIndex)
+        if(rand()%3==0 && thisIndex.getDepth()!=min_depth))
 	    return DEREFINE;	
 	else 
 	    return STAY;
@@ -638,14 +650,15 @@ void Advection::doMeshRestructure(){
                 decision = getGranularityDecision();
 
             //initiate Phase1 of the computation
-            if(decision==REFINE){
-                communicateRefinement();
+            if(decision==REFINE||decision==STAY){
+                communicatePhase1Msgs();
             }
             //Inform Parent About Start of the Restructure Phase 
             // Think of a better way to do this because right now as many as 
             // number of unrefined children are informing the parent about the
             // start of the restructure phase while only one of them need to do so
-            thisProxy(parent).doMeshRestructure();
+            if(parent!=thisIndex)
+                thisProxy(parent).doMeshRestructure();
         }
 	else if(isGrandParent && !parentHasAlreadyMadeDecision){
 	    informParent(-1, INV);
@@ -658,7 +671,7 @@ void Advection::doMeshRestructure(){
 }
 
 /***** PHASE1 FUNCTIONS****/
-void Advection::communicateRefinement(){
+void Advection::communicatePhase1Msgs(){
 
     if(decision==REFINE){
 	//tell the neighbor if it exists, also tell to children of the neighbor 
@@ -667,16 +680,15 @@ void Advection::communicateRefinement(){
 	//non-existing neighbor
 
 	for(int i=0; i<NUM_NEIGHBORS; i++){
-	    if(nbr_exists[i]){
+	    if(nbr_exists[i] && !nbr_isRefined[i])
 	        thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i]);//Since Phase1Msgs are only refinement messages
 						      //just send your direction w.r.t. to the receiving neighbor
-		if(nbr_isRefined[i]){
+	    else if(nbr_exists[i] && nbr_isRefined[i]){
 		    //Get Corresponding Children of the neighbor
 		    QuadIndex q1, q2;
                     getChildren(nbr[i], SENDER_DIR[i], q1, q2);
                     thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i]);
                     thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i]);
-		}
 	    }
 	    else{//send to the parent of the non-existing neighbor
                 thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(nbr[i].getQuadI(), i));
@@ -724,16 +736,24 @@ void Advection::recvNeighborDecision(DIR dir){
     //This Message can be sent only by refined neighbors
     CkAssert(nbr_exists[dir] && nbr_isRefined[dir]);
     nbr_decision[dir]=STAY;
-    if(!hasReceivedParentDecision){
-        hasReceivedParentDecision = true;
-        //Inform parent of your change in decision
-        if(!isRefined && parent!=thisIndex)
-            thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);
-    }
 
-    if(isRefined){/*then the parent already knows that it cannot derefine
-                   however, tell the children that the neighbor is not going to derefine
-                 */
+    if(!isRefined){
+        if(decision==REFINE);//the message will be communicated elsewhere
+        else if(decision==DEREFINE){//now I cannot derefine and tell parent about it
+            decision=STAY;
+            if(parent!=thisIndex && !hasReceivedParentDecision){
+                thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);//communicate only if the 
+                                                                              //parent's decision has not already been received
+                hasReceivedParentDecision=true;//because I know the parent's decision now
+            }
+        }
+        else{
+            //the message will be communicated elsewhere
+        }
+    }
+    else if(isRefined){/*then the parent already knows that it cannot derefine
+                        however, tell the children that the neighbor is not going to derefine
+                        */
         int c1, c2;
         thisIndex.getSiblingInDirection(dir, c1, c2);
         thisProxy(thisIndex.getChild(c1)).recvStatusUpdateFromParent(dir);
@@ -759,7 +779,7 @@ void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
 	    dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
 	    decision = REFINE;
 	    //tell all neighbors
-	    communicateRefinement();
+	    communicatePhase1Msgs();
 	}
     }
 }
@@ -767,6 +787,8 @@ void Advection::exchangePhase1Msg(int dir){//Phase1 Msgs are all Refine Messages
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+    hasInitiatedPhase1 = false; //reset this for the next MeshRestructure Phase for a Parent
+    ckout << "Entering Phase2 on " << thisIndex.getIndexString() << endl;
     //Do Some Sanity Checks
     if(decision == DEREFINE){
         for(int i=0; i<NUM_NEIGHBORS; i++){
@@ -791,40 +813,16 @@ void Advection::doPhase2(){
 	    }
 	}
     }
-    //Update the Status of Your Neighbors
-    if(decision == STAY){
-       for(int i=0; i<NUM_NEIGHBORS; i++){
-           if(!nbr_exists[i]){
-	       if(nbr_decision[i]==DEREFINE){
-	           ckout << "ERROR: doPhase(): Uncle Cannot DEREFINE while I want to STAY" << endl;
-		   CkExit();
-	        }
-	       else if(nbr_decision[i]==REFINE){
-	           nbr_exists[i]=true;
-		   nbr_isRefined[i]=false;
-	       }
-	       else if(nbr_decision[i]==STAY){
-	           nbr_exists[i]=false;
-	       }
-	   }
-	   else if(nbr_exists[i] && !nbr_isRefined[i]){
-	       if(nbr_decision[i]==REFINE)
-	           nbr_isRefined[i]=true;
-               else if(hasReceivedStatusFromParent[i]==true){
-                   nbr_exists[i]=true;
-                   nbr_isRefined[i]=false;
-               }
-               else{// the neighbor is going to get derefined
-                   nbr_exists[i]=false;
-               }
-	   }
-	   else if(nbr_exists[i] && nbr_isRefined[i] && nbr_decision[i]!=STAY){
-	      nbr_isRefined[i]=false;
-	   }
-       }
-    }
-    else if(decision==REFINE){//I will Now become a Parent and therefore I need not Store Neighbor Status
 
+    //Update the decision of your neighbors
+    if(decision == STAY){
+        for(int i=0; i<NUM_NEIGHBORS; i++){
+            if(!nbr_exists[i]){
+                if(nbr[i].getParent().getDepth()==min_depth){
+                    nbr_decision[i]=STAY;
+                }
+            }
+        }
     }
     else if(decision==DEREFINE){// I am going to destroy myself
         for(int i=0; i<NUM_NEIGHBORS; i++){
@@ -841,7 +839,7 @@ void Advection::doPhase2(){
             }
         }
     }
-    
+
     //Send Appropriate Data to the Neighbors based on their New Status
     if(isRefined==false){// can send data only if I am a leaf node
         for(int i=0; i<NUM_NEIGHBORS; i++){
@@ -890,7 +888,43 @@ void Advection::doPhase2(){
         getGhostsAndRefine();
     }
     
-    CkStartQD(CkIndex_Advection::doStep(), &thishandle);
+    //Update the Status of Your Neighbors
+    if(decision == STAY){
+        ckout << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << endl;
+       for(int i=0; i<NUM_NEIGHBORS; i++){
+           if(!nbr_exists[i]){
+	       if(nbr_decision[i]==DEREFINE){
+	           ckout << "ERROR: doPhase(): Uncle Cannot DEREFINE while I want to STAY" << endl;
+		   CkExit();
+	        }
+	       else if(nbr_decision[i]==REFINE){
+	           nbr_exists[i]=true;
+		   nbr_isRefined[i]=false;
+	       }
+	       else if(nbr_decision[i]==STAY){
+	           nbr_exists[i]=false;
+	       }
+	   }
+	   else if(nbr_exists[i] && !nbr_isRefined[i]){
+	       if(nbr_decision[i]==REFINE)
+	           nbr_isRefined[i]=true;
+               else if(hasReceivedStatusFromParent[i]==true || nbr[i].getDepth()==min_depth){
+                   nbr_exists[i]=true;
+                   nbr_isRefined[i]=false;
+               }
+               else{// the neighbor is going to get derefined
+                   nbr_exists[i]=false;
+               }
+	   }
+	   else if(nbr_exists[i] && nbr_isRefined[i] && nbr_decision[i]!=STAY){
+	      nbr_isRefined[i]=false;
+	   }
+       }
+    }
+    else if(decision==REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
+    }
+    if(decision==STAY || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision))
+        CkStartQD(CkIndex_Advection::doStep(), &thishandle);
 }
 
 void Advection::recvChildData(ChildDataMsg *msg){
@@ -996,19 +1030,25 @@ void Advection::requestNextFrame(liveVizRequestMsg *m){
     liveVizDeposit(m, sy*w,sx*h, w,h, intensity, this);
     delete[] intensity;
 }
+#define index_l(i,j)  (int)((j)*(block_width) + i)
 
 void Advection::interpolate(double *u, double *refined_u, int xstart, int xend, int ystart, int yend){
     double sx, sy;
-    for(int i=xstart; i<=xend; i++)
+    int m=1, n=1;
+    for(int i=xstart; i<=xend; i++){
         for(int j=ystart; j<=yend; j++){
             sx = (u[index(i-1,j)]-u[index(i+1,j)])/(2*dx);
             sy = (u[index(i,j-1)]-u[index(i,j+1)])/(2*dy);
 
-            refined_u[index(2*(i-1), 2*(j-1))] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
-            refined_u[index(2*(i-1)+1, 2*(j-1))] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
-            refined_u[index(2*(i-1), 2*(j-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
-            refined_u[index(2*(i-1)+1, 2*(j-1)+1)] = u[index(i,j)] + sx*(dx/4) + sy*(dy/4);
+            refined_u[index_l(2*(m-1), 2*(n-1))] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
+            refined_u[index_l(2*(m-1)+1, 2*(n-1))] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
+            refined_u[index_l(2*(m-1), 2*(n-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
+            refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx*(dx/4) + sy*(dy/4);
+            n++;
         }
+        m++;
+        n=1;
+    }
 }
 
 void Advection::refine(){
@@ -1018,34 +1058,39 @@ void Advection::refine(){
     //Interpolate the data and give it to the children when they are initialized
     // boundaries of the children will have to be sent by the neighbor
     double sx, sy, s;
-    size_t sz = (block_width+2)*(block_height+2); 
+    size_t sz = (block_width)*(block_height); 
     double *refined_u = new double[sz];
 
     interpolate(u, refined_u, 1, block_width/2, 1, block_height/2);
     //initialize the child
-    InitRefineMsg * msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("01")).insert(msg);
 
     interpolate(u, refined_u, block_width/2+1, block_width, 1, block_height/2);
     //initialize the child
-    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("00")).insert(msg);
 
     interpolate(u, refined_u, 1, block_width/2, block_height/2+1, block_height);
     //init the child
-    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-    thisProxy(thisIndex.getChild("10")).insert();
+    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    thisProxy(thisIndex.getChild("10")).insert(msg);
 
     interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
     //init the child
-    msg = new (block_width*block_height)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("11")).insert(msg);
-
-    delete [] refined_u;
+    thisProxy.doneInserting();
+    //delete [] refined_u;
+    ckout << thisIndex.getIndexString() << " done with refinement" << endl;
 }
 
 Advection::Advection(InitRefineMsg* msg){
+    __sdag_init();
+    usesAtSync=CmiTrue;
+
 //Called as a result of refinement of parent
+    ckout << "Inserting New Zone: " << thisIndex.getIndexString() << endl;
     CBase_Advection();
     this->exists = true;
     this->isRefined = false;
@@ -1055,6 +1100,7 @@ Advection::Advection(InitRefineMsg* msg){
     if(thisIndex.nbits!=0)
         parent = thisIndex.getParent();
 
+    isGrandParent = false;
     /*set the status of the neighbors
     1. If parent of the neighbor is same as mine, 
        then the status is also the same, 
@@ -1097,7 +1143,7 @@ Advection::Advection(InitRefineMsg* msg){
     }
 
     //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
-
+    hasReceived = *new set<int>();
     dx = msg->dx;
     dy = msg->dy;
 
@@ -1111,7 +1157,6 @@ Advection::Advection(InitRefineMsg* msg){
     delete [] x;
     delete [] y;
  	
-    
     //Initialize u - For boundaries I have to wait for the neighbors
     //to send the values, rest of it can be initialized by the values 
     //received from the parent
@@ -1124,5 +1169,7 @@ Advection::Advection(InitRefineMsg* msg){
     //delete the message
     delete msg;
 
+    //call Quiesence detection to begin next iteration*/
+    CkStartQD(CkIndex_Advection::doStep(), &thishandle);
 }
 #include "Advection.def.h"

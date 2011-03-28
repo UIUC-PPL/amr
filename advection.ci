@@ -9,6 +9,9 @@ mainmodule Main{
 
         readonly int num_chare_rows;
         readonly int num_chare_cols;
+        
+        readonly int min_depth;
+        readonly int max_depth;
 
 	readonly int nframe;
 
@@ -28,6 +31,7 @@ mainmodule Main{
 
         readonly map<string, DIR> nbrDirectionMap;
         readonly map<DIR, DIR> reverse_dir_map;
+
         mainchare Main{
             entry Main(CkArgMsg *m);
             entry void printTreeInformation(CkVec<QuadIndex>);
@@ -44,6 +48,9 @@ module Advection{
 	    double myt;
 	    double mydt;
             double refined_u[];
+            bool parent_nbr_exists[];
+            bool parent_nbr_isRefined[];
+            DECISION parent_nbr_decision[];
         };
 
 	message ChildDataMsg{
@@ -65,18 +72,23 @@ module Advection{
             entry void recvStatusUpdateFromParent(int);
             entry void exchangePhase1Msg(int);
             entry void doMeshRestructure();
-
             entry void doStep(){
                 atomic "begin iteration"{
+                    //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
                     begin_iteration();
                 }
                 for(imsg = 0; imsg < 4;) {
                     // "iterations keep track of messages accross steps"
+                    //atomic ""{
+                      //   ckout << "In for loop of " << thisIndex.getIndexString() << endl;
+                    //}
                     when 
                         receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
+
                     atomic "process ghosts" {
                         process(iter, dir, width, u);
                         sendReadyData();
+                      //  ckout << "Successfull executed process " << thisIndex.getIndexString() << endl;
                     }
                 }
                 atomic "doWork" {

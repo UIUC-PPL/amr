@@ -218,7 +218,7 @@ char* QuadIndex::getQuadC() const{
     char* index = getIndexString();
     char* quad = new char[3];
     int len = strlen(index);
-    memcpy(index + len -2, quad, 2);
+    memcpy(quad, index + len -2, 2);
     quad[2] = 0;
     delete [] index;
     return quad;
@@ -229,7 +229,6 @@ int QuadIndex::getQuadI() const{
     char* quad = new char[3];
     int len = strlen(index);
     memcpy(quad, index + len -2, 2);
-    ckout << index << ", " << quad << endl;
     quad[2] = 0;
     delete [] index;
     if(strcmp(quad, "00")==0) return 0;

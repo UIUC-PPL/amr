@@ -256,25 +256,26 @@ void Advection::sendGhost(int dir){
             for(int j=1; j<=block_height; j+=2){
                 left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
             }
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), LEFT), block_height/2, left_edge);
+            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge);
         }
         else if(dir==RIGHT){
             for(int j=1; j<=block_height; j+=2){
                 right_edge[j/2] = (u[index(block_width-1,j)] + u[index(block_width,j)] + u[index(block_width-1,j+1)] +u[index(block_width, j+1)])/4;
             }
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), RIGHT), block_height/2, left_edge);
+            ckout <<  map_nbr(thisIndex.getQuadI(), RIGHT) << endl;
+            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, left_edge);
         }
         else if(dir==UP){
             for(int i=1; i<=block_width; i+=2){
                 top_edge[i/2] = (u[index(i,1)] + u[index(i,2)] + u[index(i+1,1)] + u[index(i+1,2)])/4;
             }
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), UP), block_width/2, top_edge);
+            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge);
         }
         else if(dir==DOWN){
             for(int i=1; i<=block_width; i+=2){
                 bottom_edge[i/2] = (u[index(i,block_height-1)] + u[index(i,block_height)] + u[index(i+1,block_height-1)] + u[index(i+1,block_height)])/4;
             }
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getChildNum(), DOWN), block_width/2, bottom_edge);
+            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge);
         }
     }else{
         ckout << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << endl;
@@ -475,10 +476,12 @@ void Advection::interpolateAndSend(int NBR){
             if(i==block_height/2 -1 ){//send the data to RIGHT_UP Neighbor
                 QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_UP));//LEFT_UP child of the nieghbor
                 thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
             else if(i==block_height-1){// send the data to the RIGHT_DOWN Neighbor
                 QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_DOWN));//LEFT_DOWN child of the neighbor
                 thisProxy.receiveGhosts(iterations, LEFT, block_height, right_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
         }
     }
@@ -493,10 +496,12 @@ void Advection::interpolateAndSend(int NBR){
             if(i==block_height/2 -1 ){//send the data to LEFT_UP Neighbor
                 QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_UP));//LEFT_UP child of the nieghbor
                 thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
             else if(i==block_height-1){// send the data to the LEFT_DOWN Neighbor
                 QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_DOWN));//LEFT_DOWN child of the neighbor
                 thisProxy.receiveGhosts(iterations, RIGHT, block_height, left_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
         }
     }
@@ -511,10 +516,12 @@ void Advection::interpolateAndSend(int NBR){
             if(i==block_width/2-1){// send the data to UP_LEFT Neighbor
                 QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_LEFT));
                 thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
             else if(i==block_width-1){//send the data to the UP_RIGHT Neighbor
                 QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_RIGHT));
                 thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
             }
         }
     }
@@ -529,6 +536,7 @@ void Advection::interpolateAndSend(int NBR){
             if(i==block_width/2-1){// send the data to DOWN_LEFT Neighbor
                 QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_LEFT));
                 thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge);
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
                 ckout << thisIndex.getIndexString() << " did interpolation for DOWN_LEFT direction and sending to " << receiver.getIndexString() << endl;
                 for(int i=0; i<block_width; i++){
                     ckout << bottom_edge[i] << "\t";
@@ -538,6 +546,7 @@ void Advection::interpolateAndSend(int NBR){
                 QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_RIGHT));
                 thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge);
                 ckout << thisIndex.getIndexString() << " did interpolation for DOWN_RIGHT direction and sending to " << receiver.getIndexString() << endl;
+                ckout << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << endl;
                 for(int i=0; i<block_width; i++){
                     ckout << bottom_edge[i] << "\t";
                 }ckout << endl;
@@ -618,7 +627,7 @@ DECISION Advection::getGranularityDecision(){
         //return REFINE;
     if(strcmp(thisIndex.getIndexString(),"00")==0)
         return REFINE;
-    if(strcmp(thisIndex.getIndexString(),"0000")==0)
+    if(strlen(thisIndex.getIndexString())==4)
         return REFINE;
 
     return STAY;
@@ -683,7 +692,7 @@ void Advection::doMeshRestructure(){
                 if(dec==STAY || dec==REFINE)
                     decision=dec;
             }
-
+            ckout << thisIndex.getIndexString() << " decision = " << decision << endl;
             //initiate Phase1 of the computation
             if(decision==REFINE && !hasCommunicatedREFINE){
                 hasCommunicatedREFINE=true;
@@ -721,8 +730,10 @@ void Advection::communicatePhase1Msgs(){
 	//non-existing neighbor
 
 	for(int i=0; i<NUM_NEIGHBORS; i++){
-	    if(nbr_exists[i] && !nbr_isRefined[i])
+	    if(nbr_exists[i] && !nbr_isRefined[i]){
+                ckout << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << endl;
 	        thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i],decision);//Since Phase1Msgs are only refinement messages
+            }
 						      //just send your direction w.r.t. to the receiving neighbor
 	    else if(nbr_exists[i] && nbr_isRefined[i]){
 		    //Get Corresponding Children of the neighbor
@@ -736,7 +747,8 @@ void Advection::communicatePhase1Msgs(){
                     thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision);
             }
 	    else{//send to the parent of the non-existing neighbor
-                thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(nbr[i].getQuadI(), i), decision);
+                ckout << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << endl;
+                thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision);
 	    }
         }
     }
@@ -773,6 +785,7 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
 }
 
 void Advection::recvParentDecision(){
+    ckout << thisIndex.getIndexString() << " has received decision from parent " << endl;
     if(!hasReset){
         hasReset=true;
         resetMeshRestructureData();
@@ -781,6 +794,11 @@ void Advection::recvParentDecision(){
     hasReceivedParentDecision=true;
     if(decision==DEREFINE){
         decision=STAY;
+        if(!hasCommunicatedSTAY){
+            hasCommunicatedSTAY=true;
+            communicatePhase1Msgs();
+        }
+
     }
 }
 
@@ -826,6 +844,7 @@ void Advection::recvParentDecision(){
 }*/
 
 void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are all Refine Messages
+    ckout << thisIndex.getIndexString() << " received " << dec << " from direction " << dir << endl; 
     if(!hasReset){
         hasReset=true;
         resetMeshRestructureData();
@@ -1014,6 +1033,7 @@ void Advection::doPhase2(){
         isRefined = false;
     }
     //ckout << thisIndex.getIndexString() << " decision = " << decision << endl;
+    parentHasAlreadyMadeDecision=false;
 }
 
 void Advection::recvChildData(ChildDataMsg *msg){

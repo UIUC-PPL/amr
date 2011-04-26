@@ -228,12 +228,13 @@ int QuadIndex::getQuadI() const{
     char* index = getIndexString();
     char* quad = new char[3];
     int len = strlen(index);
-    memcpy(index + len -2, quad, 2);
+    memcpy(quad, index + len -2, 2);
+    ckout << index << ", " << quad << endl;
     quad[2] = 0;
     delete [] index;
-    if(strcmp(quad, "00")) return 0;
-    else if(strcmp(quad, "01"))return 1;
-    else if(strcmp(quad, "10"))return 2;
+    if(strcmp(quad, "00")==0) return 0;
+    else if(strcmp(quad, "01")==0)return 1;
+    else if(strcmp(quad, "10")==0)return 2;
     else return 3;
 }
 

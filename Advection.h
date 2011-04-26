@@ -59,22 +59,29 @@ int inline getNbrDir(int quad, int dir){
 }
 
 inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
+    char* str = new char[1000];
+    strcpy(str, myIndex.getIndexString());
     if(dir==LEFT){
-        q1 = *new QuadIndex(strcat(myIndex.getIndexString(), "01"));
-        q2 = *new QuadIndex(strcat(myIndex.getIndexString(), "10"));
+        q1 = *new QuadIndex(strcat(str, "01"));
+        strcpy(str, myIndex.getIndexString());
+        q2 = *new QuadIndex(strcat(str, "10"));
     }
     else if(dir==RIGHT){
-        q1 = *new QuadIndex(strcat(myIndex.getIndexString(), "00"));
-        q2 = *new QuadIndex(strcat(myIndex.getIndexString(), "11"));
+        q1 = *new QuadIndex(strcat(str, "00"));
+        strcpy(str, myIndex.getIndexString());
+        q2 = *new QuadIndex(strcat(str, "11"));
     }
     else if(dir==UP){
-        q1 = *new QuadIndex(strcat(myIndex.getIndexString(), "01"));
-        q2 = *new QuadIndex(strcat(myIndex.getIndexString(), "00"));
+        q1 = *new QuadIndex(strcat(str, "01"));
+        strcpy(str, myIndex.getIndexString());
+        q2 = *new QuadIndex(strcat(str, "00"));
     }
     else if(dir==DOWN){
-        q1 = *new QuadIndex(strcat(myIndex.getIndexString(), "10"));
-        q2 = *new QuadIndex(strcat(myIndex.getIndexString(), "11"));
+        q1 = *new QuadIndex(strcat(str, "10"));
+        strcpy(str, myIndex.getIndexString());
+        q2 = *new QuadIndex(strcat(str, "11"));
     }
+    delete [] str;
     return;
 }
 
@@ -86,9 +93,9 @@ int inline wrap(int item, int max_size){
 inline char* map_child(int child){
     if(child == LEFT_UP || child == UP_LEFT)
         return "01";
-    else if(child == LEFT_DOWN || DOWN_LEFT)
+    else if(child == LEFT_DOWN || child==DOWN_LEFT)
         return "10";
-    else if(child == DOWN_RIGHT || RIGHT_DOWN)
+    else if(child == DOWN_RIGHT || child==RIGHT_DOWN)
         return "11";
     else if(child == RIGHT_UP || child == UP_RIGHT)
         return "00";
@@ -117,12 +124,13 @@ Advection_SDAG_CODE
 	DECISION decision;
         DECISION nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
         DECISION child_decision[NUM_CHILDREN];
-        bool hasReceivedStatusFromParent[NUM_NEIGHBORS];
 
+        bool hasReset;
         bool hasInitiatedPhase1;
         bool hasInitiatedPhase2;
 	bool parentHasAlreadyMadeDecision;//to be used by a parent
 	bool hasReceivedParentDecision;
+        bool hasCommunicatedSTAY, hasCommunicatedREFINE;
 
 	bool hasAllocatedMemory;//for Use of Node who is going to derefine
 	
@@ -130,7 +138,7 @@ Advection_SDAG_CODE
         int xc, yc;
 
         //data
-        int imsg;
+        double imsg;
 
         double* u;
         double* u2;
@@ -188,12 +196,13 @@ Advection_SDAG_CODE
         DECISION getGranularityDecision();
 
         void doMeshRestructure();
+        void resetMeshRestructureData();
         void communicatePhase1Msgs();
         void informParent(int, DECISION);
         void recvParentDecision();
-        void recvNeighborDecision(DIR);
-        void recvStatusUpdateFromParent(int);
-        void exchangePhase1Msg(int);
+        //void recvNeighborDecision(DIR);
+        //void recvStatusUpdateFromParent(int);
+        void exchangePhase1Msg(int, DECISION);
 
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
@@ -220,16 +229,18 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
         DECISION *parent_nbr_decision;
 
         InitRefineMsg(){};
-        InitRefineMsg(double dx, double dy, double myt, double mydt, int iterations, double *refined_u, bool nbr_exists[NUM_NEIGHBORS], bool nbr_isRefined[NUM_NEIGHBORS], DECISION nbr_decision[3*NUM_NEIGHBORS]);
+        InitRefineMsg(double dx, double dy, double myt, double mydt, int iterations, 
+                        double *refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 
 class ChildDataMsg: public CMessage_ChildDataMsg{
     public:
         int childNum;
+        double myt, mydt; int iterations;
 	double *child_u;
-        bool child_nbr_exists[NUM_NEIGHBORS];
-        bool child_nbr_isRefined[NUM_NEIGHBORS];
-        DECISION child_nbr_decision[NUM_NEIGHBORS];
-
-        ChildDataMsg(){}
+        bool *child_nbr_exists;
+        bool *child_nbr_isRefined;
+        DECISION *child_nbr_decision;
+        
+        ChildDataMsg(int cnum, double myt, double mydt, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };

@@ -7,8 +7,8 @@ inline bool liesin(int x, int st, int end){
     else return false;
 }
 
-enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP, LEFT_DOWN, RIGHT_UP, 
-            RIGHT_DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT};
+enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP=4, LEFT_DOWN=5, RIGHT_UP=6, 
+            RIGHT_DOWN=7, UP_LEFT=8, UP_RIGHT=9, DOWN_LEFT=10, DOWN_RIGHT=11};
 PUPbytes(DIR);
 
 static DIR SENDER_DIR[NUM_NEIGHBORS] = {DOWN,UP,RIGHT,LEFT};
@@ -45,7 +45,7 @@ public:
     }
     
     bool operator ==(QuadIndex qidx) const{
-        if(nbits==qidx.nbits && bitVector==qidx.bitVector)
+        if(nbits==qidx.nbits && strcmp(getIndexString(), qidx.getIndexString())==0)
             return true;
         return false;
     }
@@ -88,6 +88,7 @@ public:
     }
     CkArrayIndexQuadIndex(){
         idx = new(index) QuadIndex();
+        nInts = sizeof(QuadIndex)/sizeof(int);
     }
     
     CkArrayIndexQuadIndex &operator=(const CkArrayIndexQuadIndex &that)  {

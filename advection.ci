@@ -55,7 +55,13 @@ module Advection{
 
 	message ChildDataMsg{
 	    int childNum;
+            int iterations;
+            double myt;
+            double mydt;
 	    double child_u[];
+            bool child_nbr_exists[];
+            bool child_nbr_isRefined[];
+            DECISION child_nbr_decision[];
 	};
 
         array [QuadIndex] Advection{
@@ -68,13 +74,14 @@ module Advection{
             entry void begin_iteration();
             entry void informParent(int, DECISION);
             entry void recvParentDecision();
-            entry void recvNeighborDecision(DIR);
-            entry void recvStatusUpdateFromParent(int);
-            entry void exchangePhase1Msg(int);
+            //entry void recvNeighborDecision(DIR);
+            //entry void recvStatusUpdateFromParent(int);
+            entry void exchangePhase1Msg(int, DECISION);
             entry void doMeshRestructure();
             entry void doStep(){
                 atomic "begin iteration"{
                     //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
+                    hasReset=false;
                     begin_iteration();
                 }
                 for(imsg = 0; imsg < 4;) {
@@ -102,9 +109,11 @@ module Advection{
                         receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
                     atomic "save ghosts"{
                         process(iter, dir, width, u);
+                        ckout << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << endl;
                     }
                 }
                 atomic "refine"{
+                    ckout << thisIndex.getIndexString() << " now refining " << endl;
                     refine();
                 }
             };

@@ -107,6 +107,8 @@ class ChildDataMsg;
 class Advection: public CBase_Advection{
 Advection_SDAG_CODE
     public:
+        
+        ofstream logFile;
         //tree information
         bool exists;
         bool isRefined;
@@ -207,7 +209,7 @@ Advection_SDAG_CODE
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
         void sendReadyData();
-        void sendGhost(int);
+        void sendGhost(int,bool);
         void doPhase2();
 
         void recvChildData(ChildDataMsg*);

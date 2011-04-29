@@ -24,6 +24,7 @@ This is how quadrants are defined
 */
 QuadIndex::QuadIndex(const char* index){
     nbits = strlen(index);
+    bitVector=0;
     //cout << "nbits: " << nbits << endl;
     int nElements = ceil((double)nbits/bits_per_int);// number of integers requries in the bit vector
     

@@ -70,7 +70,7 @@ module Advection{
             entry Advection(InitRefineMsg*);
             entry void printState();
 
-            entry void receiveGhosts(int iter, int dir, int width, double u[width]);
+            entry void receiveGhosts(int iter, int dir, int width, double u[width], QuadIndex sender, int tag);
             entry void begin_iteration();
             entry void informParent(int, DECISION);
             entry void recvParentDecision();
@@ -81,21 +81,16 @@ module Advection{
             entry void doStep(){
                 atomic "begin iteration"{
                     //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
-                    hasReset=false;
                     begin_iteration();
                 }
                 for(imsg = 0; imsg < 4;) {
-                    // "iterations keep track of messages accross steps"
-                    //atomic ""{
-                      //   ckout << "In for loop of " << thisIndex.getIndexString() << endl;
-                    //}
                     when 
-                        receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
+                        receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
 
                     atomic "process ghosts" {
-                        process(iter, dir, width, u);
+                        logFile << thisIndex.getIndexString() << " process: " << iter << ", " << dir << ", " << width << ", " << sender.getIndexString() << ", " << tag << std::endl;
+                        process(iter, dir, width, u1);
                         sendReadyData();
-                      //  ckout << "Successfull executed process " << thisIndex.getIndexString() << endl;
                     }
                 }
                 atomic "doWork" {
@@ -106,15 +101,26 @@ module Advection{
             entry void getGhostsAndRefine(){
                 for(imsg=0; imsg<4;){
                     when 
-                        receiveGhosts[iterations] (int iter, int dir, int width, double u[width])
+                        receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
                     atomic "save ghosts"{
-                        process(iter, dir, width, u);
-                        ckout << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << endl;
+                        process(iter, dir, width, u1);
+                        logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;
                     }
                 }
                 atomic "refine"{
-                    ckout << thisIndex.getIndexString() << " now refining " << endl;
+                    logFile << thisIndex.getIndexString() << " now refining " << std::endl;
                     refine();
+                }
+            };
+            //happens in doPhase2()
+            entry void receiveRefGhosts(int ,int, int width, double u[width]);
+            entry void getAndSendGhost(){
+                when
+                    receiveRefGhosts[iterations] (int iter, int dir, int width, double u1[width])
+
+                atomic "interpolate and send"{
+                    process(iter, dir, width, u1);
+                    interpolateAndSend(dir);
                 }
             };
             //for LiveViz

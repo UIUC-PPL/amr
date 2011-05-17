@@ -109,6 +109,7 @@ Advection_SDAG_CODE
     public:
         
         ofstream logFile;
+        ofstream outFile;
         //tree information
         bool exists;
         bool isRefined;
@@ -216,6 +217,9 @@ Advection_SDAG_CODE
         void interpolateAndSend(int);
         void refine();
         void interpolate(double*, double*, int, int, int, int);
+        
+        template<class T>
+        void print_Array(T*,int,int);
 
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);
@@ -224,14 +228,14 @@ Advection_SDAG_CODE
 class InitRefineMsg: public CMessage_InitRefineMsg{
 
     public:
-        double dx, dy, myt, mydt, *refined_u;
+        double dx, dy, myt, mydt, xmin, ymin, *refined_u;
         int iterations;
         bool *parent_nbr_exists;
         bool *parent_nbr_isRefined;
         DECISION *parent_nbr_decision;
 
         InitRefineMsg(){};
-        InitRefineMsg(double dx, double dy, double myt, double mydt, int iterations, 
+        InitRefineMsg(double dx, double dy, double myt, double mydt, double xmin, double ymin, int iterations, 
                         double *refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 

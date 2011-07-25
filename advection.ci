@@ -26,8 +26,6 @@ mainmodule Main{
         readonly double tmax;
         readonly double dt;
         readonly double cfl;
-        readonly int nx;
-        readonly int ny;
 
         readonly map<string, DIR> nbrDirectionMap;
         readonly map<DIR, DIR> reverse_dir_map;

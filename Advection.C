@@ -36,7 +36,6 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-extern int nx, ny;
 extern map<string, DIR> nbrDirectionMap;
 extern map<DIR, DIR> reverse_dir_map;
 
@@ -113,14 +112,21 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax){
     }
     
     hasReceived = *new set<int>();
+    
+    int xc, yc;
+    thisIndex.getCoordinates(xc, yc);
 
-    this->xmin = xmin;
-    this->xmax = xmax;
-    this->ymin = ymin;
-    this->ymax = ymax;
+    dx = (xmax - xmin)/double(array_height);
+    dy = (ymax - ymin)/double(array_width);
 
-    dx = (xmax - xmin)/double(nx);
-    dy = (ymax - ymin)/double(ny);
+    nx = array_height/(num_chare_cols);
+    ny = array_width/(num_chare_rows);
+
+
+    this->xmin = xc*nx*dx;
+    this->ymin = yc*ny*dy;
+
+    logFile << "xmin: " << this->xmin << ", ymin: " << this->ymin << std::endl;
 
     advection();
 }
@@ -149,13 +155,13 @@ void Advection::advection(){
     thisIndex.getCoordinates(xc, yc);
 
     for(int i=0; i<block_width+2; i++){
-        x[i] = xmin + double(xc*block_width+i)*dx - 0.5*dx;
+        x[i] = xmin + double(i)*dx - 0.5*dx;
         //logFile << x[i] << std::endl;
     }
     //logFile << std::endl;
 
     for(int i=0; i<block_height+2; i++){
-        y[i] = ymin + double(yc*block_height+i)*dy - 0.5*dy;
+        y[i] = ymin + double(i)*dy - 0.5*dy;
        // logFile << y[i] << std::endl;
     }
     //logFile << std::endl;
@@ -796,12 +802,12 @@ void Advection::compute_and_iterate(){
 
     
     outFile << "coordinates: " << xc << ", " << yc << std::endl;
-    outFile << dx << ", " << dy << std::endl;
+    //outFile << dx << ", " << dy << std::endl;
     for(int i=1; i<=block_width; i++){
         for(int j=1; j<=block_height; j++){
-            outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
-            outFile << xmin + (double(xc*block_width + i))*dx - 0.5*dx << " "\
-                    << ymin + (double(yc*block_height+j))*dy - 0.5*dy << " "\
+            //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
+            outFile << xmin + (double(i))*dx - 0.5*dx << " "\
+                    << ymin + (double(j))*dy - 0.5*dy << " "\
                     << u[index(i,j)] << std::endl;
         }
     }
@@ -1434,12 +1440,12 @@ void Advection::refine(){
 
     interpolate(u, refined_u, 1, block_width/2, 1, block_height/2);
     //initialize the child
-    InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin+dy/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin+(ny*dy)/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("01")).insert(msg);
 
     interpolate(u, refined_u, block_width/2+1, block_width, 1, block_height/2);
     //initialize the child
-    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+dx/2, ymin+dy/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+(nx*dx)/2, ymin+(ny*dy)/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("00")).insert(msg);
 
     interpolate(u, refined_u, 1, block_width/2, block_height/2+1, block_height);
@@ -1449,7 +1455,7 @@ void Advection::refine(){
 
     interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
     //init the child
-    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+dx/2, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+(nx*dx)/2, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy(thisIndex.getChild("11")).insert(msg);
     thisProxy.doneInserting();
     //delete [] refined_u;
@@ -1461,7 +1467,7 @@ Advection::Advection(InitRefineMsg* msg){
     usesAtSync=CmiTrue;
 
     char fname[100];
-    sprintf(fname, "%s.log", thisIndex.getIndexString());
+    sprintf(fname, "log/%s.log", thisIndex.getIndexString());
 
     logFile.open(fname);
     srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
@@ -1536,6 +1542,12 @@ Advection::Advection(InitRefineMsg* msg){
 
     xmin = msg->xmin;
     ymin = msg->ymin;
+    
+    nx = array_height/(num_chare_cols);
+    ny = array_width/(num_chare_rows);
+
+
+    logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;
 
     thisIndex.getCoordinates(xc, yc);
     iterations = msg->iterations;

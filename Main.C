@@ -38,7 +38,6 @@ CkArrayID a;
 int nframe;
 double xmin, xmax, ymin, ymax;
 double xctr, yctr, radius;
-int nx, ny;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
@@ -98,10 +97,8 @@ Main:: Main(CkArgMsg* m){
      io_tout = tmax/nframe;
 
      //call colormap
-     nx = array_height;
-     ny = array_width;
-     dx = (xmax - xmin)/double(nx);//ckout << "dx: " << dx << endl;
-     dy = (ymax - ymin)/double(ny);//ckout << "dy: " << dy << endl;
+     dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;
+     dy = (ymax - ymin)/double(array_height);//ckout << "dy: " << dy << endl;
      //ckout << min(dx, dy) << endl;	
      dt = min(dx,dy)/v * cfl;
      if ((t + dt) >= tmax )
@@ -119,7 +116,7 @@ Main:: Main(CkArgMsg* m){
 
      /*****End Initialization **********/
      CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
-                                                        CkNumPes(), nx, ny);
+                                                        CkNumPes(), array_width, array_height);
      CkCallback *cb = new CkCallback(CkCallback::ckExit);
 
      qtree = CProxy_Advection::ckNew();

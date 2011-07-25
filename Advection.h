@@ -161,7 +161,7 @@ Advection_SDAG_CODE
         double up;
         double un;
         double myt, mydt;
-        double dx, dy;
+        double dx, dy, nx, ny;
         double xmin, xmax, ymin, ymax;
 
         void mem_allocate(double* &p, int size);

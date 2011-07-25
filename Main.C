@@ -5,6 +5,7 @@
 #include <cstring>
 #include <queue>
 #include <boost/assign/list_of.hpp>
+#include "boost/filesystem.hpp"
 
 using namespace std;
 using namespace boost::assign;
@@ -62,6 +63,9 @@ Main:: Main(CkArgMsg* m){
 
     initUtils();
     mainProxy = thisProxy;
+    boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
+    boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
+
     iterations = 0;
 
     if(m->argc < 3){

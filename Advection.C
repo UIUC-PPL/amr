@@ -85,7 +85,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax){
     usesAtSync = CmiTrue;
 
     char fname[100];
-    sprintf(fname, "%s.log", thisIndex.getIndexString());
+    sprintf(fname, "log/%s.log", thisIndex.getIndexString());
     logFile.open(fname);
     
     srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
@@ -324,7 +324,7 @@ void Advection::begin_iteration(void) {
     
     iterations++;
     char fname[100];
-    sprintf(fname, "out_%s_%d", thisIndex.getIndexString(), iterations);
+    sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString(), iterations);
     outFile.open(fname);
     logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;
 

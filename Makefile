@@ -13,7 +13,7 @@ OBJS = QuadIndex.o Advection.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -language charm++ -o advection Main.C  $(OBJS)
+	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -language charm++ -o advection Main.C  $(OBJS) -lboost_filesystem
 
 advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci

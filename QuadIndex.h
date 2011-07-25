@@ -51,6 +51,7 @@ public:
     }
 
     void getCoordinates(int&, int&)const;
+    void getPhysicalCoordinates(int &x, int &y) const;
     char* getIndexString() const;
     inline int getDepth() const{
         return nbits/2;

@@ -30,6 +30,8 @@ mainmodule Main{
         readonly map<string, DIR> nbrDirectionMap;
         readonly map<DIR, DIR> reverse_dir_map;
 
+        readonly int max_iterations;
+
         mainchare Main{
             entry Main(CkArgMsg *m);
             entry void printTreeInformation(CkVec<QuadIndex>);

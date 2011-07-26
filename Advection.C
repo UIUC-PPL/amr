@@ -38,6 +38,7 @@ extern double ap, an;
 extern double tmax, t, dt, cfl;
 extern map<string, DIR> nbrDirectionMap;
 extern map<DIR, DIR> reverse_dir_map;
+extern int max_iterations;
 
 #define index(i,j)  (int)((j)*(block_width+2) + i)
 
@@ -819,12 +820,18 @@ void Advection::compute_and_iterate(){
 }
 
 void Advection::iterate() {
+        if(iterations==max_iterations+1){
+            CkStartQD(CkCallback::ckExit);
+            return;
+        }
+
          myt = myt+mydt;
          if(myt < tmax){
              mydt = min(dx,dy)/v * cfl;
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
-	     if(iterations%4==0){//time to check need for refinement/coarsening
+             
+	     if(iterations%10==0){//iterations%5==0){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */

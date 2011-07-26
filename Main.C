@@ -28,6 +28,8 @@ int block_height;
 int block_width;
 
 int min_depth, max_depth;
+int max_iterations;
+
 
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
@@ -67,13 +69,14 @@ Main:: Main(CkArgMsg* m){
 
     iterations = 0;
 
-    if(m->argc < 3){
-        ckout << "Usage: " << m->argv[0] << "[array_size] [block_size]" << endl; 
+    if(m->argc < 4){
+        ckout << "Usage: " << m->argv[0] << "[array_size] [block_size] [iterations]" << endl; 
         CkExit();
     }
            
     array_height = array_width =atoi(m->argv[1]);
     block_height = block_width = atoi(m->argv[2]);
+    max_iterations = atoi(m->argv[3]);
 
     if(array_width%block_width < 0 || array_width < block_width){
         ckout << "Incompatible arguments" << endl;

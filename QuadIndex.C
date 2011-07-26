@@ -179,7 +179,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         getCoordinates(x, y);
         int depth = nbits/2;
         int range = std::pow(2.0, (double)depth);
-        int yc = (y==0)?(range-1):y-1;
+        int yc = (y+1)%range;
         int xc = x;
         return *new QuadIndex(xc, yc, depth);
     }
@@ -188,7 +188,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         getCoordinates(x, y);
         int depth = nbits/2;
         int range = std::pow(2.0, (double)depth);
-        int yc = (y+1)%range;
+        int yc = (y==0)?(range-1):y-1;
         int xc = x;
         return *new QuadIndex(xc, yc, depth);
     }

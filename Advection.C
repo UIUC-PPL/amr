@@ -170,12 +170,12 @@ void Advection::advection(){
     
     //logFile << "In Adfvection2" << std::endl;
     logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;
-    for(int i=0; i<block_height+2; i++){
-        for(int j=0; j<block_width+2; j++){
+    for(int i=0; i<block_width+2; i++){
+        for(int j=0; j<block_height+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
             if(rsq <= radius*radius)
-                u[index(i,j)] = 2;
-            else u[index(i,j)] = 1;
+                u[index(i, block_height+1-j)] = 2;
+            else u[index(i, block_height+1-j)] = 1;
         }
     }
 #if 1
@@ -808,7 +808,7 @@ void Advection::compute_and_iterate(){
             //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
             outFile << xmin + (double(i))*dx - 0.5*dx << " "\
                     << ymin + (double(j))*dy - 0.5*dy << " "\
-                    << u[index(i,j)] << std::endl;
+                    << u[index(i,block_height+1-j)] << std::endl;
         }
     }
     outFile.flush();

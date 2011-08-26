@@ -1,0 +1,14 @@
+1. Changes in the Makefile
+a) set the CHARMC variable to the path of charmc binary in the charm build directory
+b) set BOOST_ROOT to the boost build directory having lib and include as sub-directories
+
+
+Compiling the code:
+1. make
+2. for debugging: make OPTS=-g -O0
+
+Running the code:
+./charmrun +p8 ++local ./advection arg1 arg2 arg3
+where arg1 = #zones in one dimension per chare
+      arg2 = #zones in one dimension per chare
+      arg3 = #iterations for which the code is to be run

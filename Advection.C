@@ -848,7 +848,7 @@ void Advection::iterate() {
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
              
-	     if(iterations%10==0){//iterations%5==0){//time to check need for refinement/coarsening
+	     if(iterations%5==0){//iterations%5==0){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
@@ -879,12 +879,14 @@ DECISION Advection::getGranularityDecision(){
         return DEREFINE;
     }
     return STAY;*/
-    return REFINE;
+    if(iterations==5 || iterations==10)
+        return REFINE;
+    return STAY;
     //if(thisIndex.getDepth()==min_depth)
       //  return STAY;
     
 
-    if(rand()%3==0){
+    /*if(rand()%3==0){
         return REFINE;
     }
     else{
@@ -892,7 +894,7 @@ DECISION Advection::getGranularityDecision(){
 	    return DEREFINE;	
 	else 
 	    return STAY;
-    }
+    }*/
 }
 
 void Advection::resetMeshRestructureData(){

@@ -188,6 +188,23 @@ void Advection::advection(){
     logFile << std::endl;
     //CkExit();
 #endif
+    char fname[100];
+    sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString(), iterations);
+    outFile.open(fname);
+
+    
+    //outFile << "coordinates: " << xc << ", " << yc << std::endl;
+    //outFile << dx << ", " << dy << std::endl;
+    for(int i=1; i<=block_width; i++){
+        for(int j=1; j<=block_height; j++){
+            //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
+            outFile << xmin + (double(i))*dx - 0.5*dx << " "\
+                    << ymin + (double(j))*dy - 0.5*dy << " "\
+                    << u[index(i,block_height+1-j)] << std::endl;
+        }
+    }
+    outFile.flush();
+    outFile.close();
 }
 
     //added for array migration - see how 2D arrays can be packed
@@ -802,7 +819,7 @@ void Advection::compute_and_iterate(){
     logFile << std::endl;
 
     
-    outFile << "coordinates: " << xc << ", " << yc << std::endl;
+    //outFile << "coordinates: " << xc << ", " << yc << std::endl;
     //outFile << dx << ", " << dy << std::endl;
     for(int i=1; i<=block_width; i++){
         for(int j=1; j<=block_height; j++){

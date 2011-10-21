@@ -174,11 +174,19 @@ void Advection::advection(){
     for(int i=0; i<block_width+2; i++){
         for(int j=0; j<block_height+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-            if(rsq <= radius*radius)
+            if(i==block_width/2)
                 u[index(i, block_height+1-j)] = 2;
             else u[index(i, block_height+1-j)] = 1;
         }
     }
+    /*for(int i=0; i<block_width+2; i++){
+        for(int j=0; j<block_height+2; j++){
+            rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
+            if(rsq <= radius*radius)
+                u[index(i, block_height+1-j)] = 2;
+            else u[index(i, block_height+1-j)] = 1;
+        }
+    }*/
 #if 1
     for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
@@ -293,7 +301,7 @@ void Advection::sendGhost(int dir, bool which=0){
     }
     else if(!nbr_exists[dir]){
         QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
-        logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations;
+        logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;
         if(dir==LEFT){
             for(int j=1; j<=block_height; j+=2){
                 left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
@@ -502,29 +510,42 @@ void Advection::sendReadyData(){
     for(int i=0; i<NUM_NEIGHBORS; i++)
         if(nbr_isRefined[i] && !nbr_dataSent[i]){
             if(i==RIGHT){
-                if(hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
-                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end()){
+                if( hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
+                    hasReceived.find(RIGHT_DOWN)!=hasReceived.end() &&
+                    (hasReceived.find(UP_RIGHT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end()) &&
+                    (hasReceived.find(DOWN_RIGHT) != hasReceived.end() || hasReceived.find(DOWN)!= hasReceived.end())
+                )
+                {
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else if(i==LEFT){
                 if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
-                    hasReceived.find(LEFT_DOWN)!=hasReceived.end()){
+                    hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
+                    (hasReceived.find(UP_LEFT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end()) &&
+                    (hasReceived.find(DOWN_LEFT) != hasReceived.end() || hasReceived.find(DOWN)!= hasReceived.end())
+                ){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else if(i==UP){
                 if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
-                    hasReceived.find(UP_RIGHT)!=hasReceived.end()){
+                    hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
+                    (hasReceived.find(RIGHT_UP)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end()) &&
+                    (hasReceived.find(LEFT_UP)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())
+                ){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
             }
             else{ // if i==DOWN
                 if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
-                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end()){
+                    hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
+                    (hasReceived.find(RIGHT_DOWN)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end()) &&
+                    (hasReceived.find(LEFT_DOWN)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())
+                ){
                     interpolateAndSend(i);
                     nbr_dataSent[i]=true;
                 }
@@ -684,9 +705,15 @@ void Advection::interpolateAndSend(int NBR){
         logFile << std::endl;
     }
     else if(NBR==RIGHT_UP){
+        for(int j=0; j<block_height; j++){
+            for(int i=0; i<3; i++)
+                logFile << u[index(block_width-1+i, j)] << "\t";
+            logFile << std::endl;
+        }
         for(int i=0; i<block_height/2; i++){
             sx = (u[index(block_width-1, i+1)] - u[index(block_width+1, i+1)])/(2*dx);
             sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
+
 
             right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) - sy*(dy/4);
             right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) + sy*(dy/4);
@@ -837,7 +864,9 @@ void Advection::compute_and_iterate(){
 }
 
 void Advection::iterate() {
-        if(iterations==max_iterations+1){
+        if(iterations==max_iterations){
+            ckout << thisIndex.getIndexString() << " now calling QD" << endl;
+            logFile << thisIndex.getIndexString() << " now calling QD" << std::endl;
             CkStartQD(CkCallback::ckExit);
             return;
         }
@@ -848,7 +877,7 @@ void Advection::iterate() {
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
              
-	     if(iterations%5==0){//iterations%5==0){//time to check need for refinement/coarsening
+	     if(iterations%5==0 && iterations<19){//iterations%5==0){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
@@ -861,7 +890,8 @@ void Advection::iterate() {
 	     }
          }
          else {
-             CkPrintf("Contribute\n");
+             CkPrintf("Contribute from %s\n", thisIndex.getIndexString());
+
              contribute();
          }
 }
@@ -879,14 +909,15 @@ DECISION Advection::getGranularityDecision(){
         return DEREFINE;
     }
     return STAY;*/
-    if(iterations==5 || iterations==10)
+    /*if(iterations==5 || iterations==10 || iterations==15)
         return REFINE;
-    return STAY;
+    return STAY;*/
+    
     //if(thisIndex.getDepth()==min_depth)
       //  return STAY;
     
 
-    /*if(rand()%3==0){
+    if(rand()%3==0){
         return REFINE;
     }
     else{
@@ -894,7 +925,7 @@ DECISION Advection::getGranularityDecision(){
 	    return DEREFINE;	
 	else 
 	    return STAY;
-    }*/
+    }
 }
 
 void Advection::resetMeshRestructureData(){
@@ -935,6 +966,7 @@ void Advection::doMeshRestructure(){
             /*Done Resetting Old Data*/
             /* It is possible that some Message has alreasdy been processed
             MeshRestructure Phase was called*/
+            logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;
             if(decision==INV)
                 decision = getGranularityDecision();
             else if(decision==REFINE);
@@ -1104,20 +1136,27 @@ void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are all R
         nbr_decision[dir]=dec;
 
     
-    if(decision==DEREFINE || decision==STAY){//if decision was refine it would already have been 
+    if(decision==DEREFINE || decision==STAY || decision==INV){//if decision was refine it would already have been 
                                             //communicated and the neighbors decision cannot change my decision now
 	//Now check if my Decision Changes Because of this Message
-	if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN);//don't do anything
+	if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN && dec==REFINE){
+            decision=STAY;
+            if(!hasCommunicatedSTAY){
+                hasCommunicatedSTAY=true;
+                communicatePhase1Msgs();
+            }
+        }
 	else if(dir==LEFT_UP||dir==LEFT_DOWN||dir==RIGHT_UP||dir==RIGHT_DOWN||
 	    dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
-            if(decision==STAY && dec==REFINE){// I am going to refine
+            if(dec==REFINE){// I am going to refine
                 decision =REFINE;
                 hasCommunicatedREFINE=true;
                 logFile << thisIndex.getIndexString() << " has changed its decision to REFINE" << std::endl;
                 communicatePhase1Msgs();
-            }else if(decision==DEREFINE && (dec==STAY||dec==REFINE)){
+            }else if(dec==STAY){//dec can be either REFINE or STAY
                 decision=dec;
-
+                
+                logFile << thisIndex.getIndexString() << " decision\'s now is STAY" << std::endl;
                 if(decision==STAY && !hasCommunicatedSTAY){
                     hasCommunicatedSTAY=true;
 	            communicatePhase1Msgs();

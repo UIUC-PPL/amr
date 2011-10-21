@@ -120,11 +120,9 @@ Main:: Main(CkArgMsg* m){
      /*****End Initialization **********/
      CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
                                                         CkNumPes(), array_width, array_height);
-     CkCallback *cb = new CkCallback(CkCallback::ckExit);
 
      qtree = CProxy_Advection::ckNew();
 
-     qtree.ckSetReductionClient(cb);
      //save the total number of worker chares we have in this simulation
      num_chares = num_chare_rows*num_chare_cols;
      int depth = (int)(log(num_chares)/log(4));
@@ -139,7 +137,9 @@ Main:: Main(CkArgMsg* m){
         qtree[qindex].insert(xmin, xmax, ymin, ymax);
      }
      qtree[qindex].doneInserting();
-     
+
+     CkCallback *cb = new CkCallback(CkCallback::ckExit);
+     qtree.ckSetReductionClient(cb);//sets the default callback for the array
      for(int i=0; i < num_chares; i++){
         char* str = decimal_to_binary_string(i, 2*depth);
         qindex = *new QuadIndex(str);

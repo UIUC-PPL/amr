@@ -9,6 +9,6 @@ Compiling the code:
 
 Running the code:
 ./charmrun +p8 ++local ./advection arg1 arg2 arg3
-where arg1 = #zones in one dimension per chare
+where arg1 = #total numbe rof zones in one dimension
       arg2 = #zones in one dimension per chare
       arg3 = #iterations for which the code is to be run

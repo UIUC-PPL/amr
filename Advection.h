@@ -31,6 +31,7 @@ int inline map_nbr(int quad, int nbr){
     return -1;
 }
 
+//returns the direction of the neighbor in direction 'dir' with repsect to the parent
 int inline getNbrDir(int quad, int dir){
     if(quad==0){
         if(dir==RIGHT)

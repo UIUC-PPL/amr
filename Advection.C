@@ -84,6 +84,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax){
     __sdag_init();
     usesAtSync = CmiTrue;
 
+    has_terminated=false;
     char fname[100];
     sprintf(fname, "log/%s.log", thisIndex.getIndexString());
     logFile.open(fname);
@@ -901,8 +902,11 @@ void Advection::compute_and_iterate(){
         }
 
     for(int j=1; j<=block_height; j++)
-        for(int i=1; i<=block_width; i++)
+        for(int i=1; i<=block_width; i++){
            u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
+           if(u[index(i,j)] <=1);
+
+        }
     
 #if 1
     logFile << "Values of " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;
@@ -931,11 +935,22 @@ void Advection::compute_and_iterate(){
     iterate();
 }
 
+void Advection::done(){
+    if(!has_terminated){
+        has_terminated=true;
+        contribute();
+        ckout << thisIndex.getIndexString()  << " is now terminating" << endl;
+        if(thisIndex.getDepth()!=min_depth)
+            thisProxy(thisIndex.getParent()).done();
+    }
+}
 void Advection::iterate() {
         if(iterations==max_iterations){
-            ckout << thisIndex.getIndexString() << " now calling QD" << endl;
-            logFile << thisIndex.getIndexString() << " now calling QD" << std::endl;
-            CkStartQD(CkCallback::ckExit);
+            ckout << thisIndex.getIndexString() << " now terminating" << endl;
+            logFile << thisIndex.getIndexString() << " now terminating" << std::endl;
+            CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
+            contribute();
+            thisProxy(thisIndex.getParent()).done();
             return;
         }
 
@@ -988,11 +1003,11 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     else return STAY;*/
 
-    if(rand()%3==0){
+    if(rand()%5==0){
         return REFINE;
     }
     else{
-        if(rand()%3==0 && thisIndex.getDepth()!=min_depth)
+        if(rand()%2==0 && thisIndex.getDepth()!=min_depth)
 	    return DEREFINE;	
 	else 
 	    return STAY;
@@ -1197,14 +1212,16 @@ void Advection::recvParentDecision(){
     }
 }*/
 
-void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are all Refine Messages
+void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are either REFINE or STAY messages
     logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; 
     if(!hasReset){
         hasReset=true;
         resetMeshRestructureData();
     }
-    if(nbr_decision[dir]!=REFINE)
+    if(nbr_decision[dir]!=REFINE){
+        logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;
         nbr_decision[dir]=dec;
+    }
 
     
     if(decision==DEREFINE || decision==STAY || decision==INV){//if decision was refine it would already have been 
@@ -1603,6 +1620,8 @@ void Advection::refine(){
 Advection::Advection(InitRefineMsg* msg){
     __sdag_init();
     usesAtSync=CmiTrue;
+
+    has_terminated=false;
 
     char fname[100];
     sprintf(fname, "log/%s.log", thisIndex.getIndexString());

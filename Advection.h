@@ -137,6 +137,7 @@ Advection_SDAG_CODE
         bool hasCommunicatedSTAY, hasCommunicatedREFINE;
 
 	bool hasAllocatedMemory;//for Use of Node who is going to derefine
+        bool has_terminated; //used to inform parent about termination so that it can contribute to the final reduction
 	
         QuadIndex nbr[4], parent;
         int xc, yc;
@@ -180,6 +181,7 @@ Advection_SDAG_CODE
         void advection();// common function for initialization
 
         void printState();
+        void done();
         void pup(PUP::er &p);
         
         /*Computation Methods*/

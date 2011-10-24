@@ -35,6 +35,7 @@ mainmodule Main{
         mainchare Main{
             entry Main(CkArgMsg *m);
             entry void printTreeInformation(CkVec<QuadIndex>);
+            entry void terminate();
         };
 
         extern module Advection;
@@ -78,6 +79,7 @@ module Advection{
             //entry void recvStatusUpdateFromParent(int);
             entry void exchangePhase1Msg(int, DECISION);
             entry void doMeshRestructure();
+            entry void done();
             entry void doStep(){
                 atomic "begin iteration"{
                     //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 

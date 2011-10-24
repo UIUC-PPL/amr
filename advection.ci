@@ -99,11 +99,21 @@ module Advection{
             };
             
             entry void getGhostsAndRefine(){
-                for(imsg=0; imsg<4;){
+                atomic "initialize imsg"{
+                    imsg=0;
+                    for(set<int>::iterator itr=hasReceived.begin(); itr!=hasReceived.end(); itr++){
+                        if(*itr <= 3)
+                            imsg++;
+                        else 
+                            imsg += 0.5;
+                    }
+                }
+                for(;imsg<4;){
                     when 
                         receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
                     atomic "save ghosts"{
                         process(iter, dir, width, u1);
+                        sendReadyData2RefiningNeighbors();
                         logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;
                     }
                 }
@@ -120,7 +130,7 @@ module Advection{
 
                 atomic "interpolate and send"{
                     process(iter, dir, width, u1);
-                    interpolateAndSend(dir);
+                    sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
                 }
             };
             //for LiveViz

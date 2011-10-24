@@ -121,7 +121,7 @@ Advection_SDAG_CODE
 
         bool nbr_exists[NUM_NEIGHBORS];
         bool nbr_isRefined[NUM_NEIGHBORS];
-        bool nbr_dataSent[NUM_NEIGHBORS];
+        bool nbr_dataSent[3*NUM_NEIGHBORS];
         set<int> hasReceived;
 
         /*Phase1 DataStructures*/
@@ -211,6 +211,7 @@ Advection_SDAG_CODE
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
         void sendReadyData();
+        void sendReadyData2RefiningNeighbors();
         void sendGhost(int,bool);
         void doPhase2();
 

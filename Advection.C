@@ -226,8 +226,10 @@ void Advection::pup(PUP::er &p){
     for(int i=0; i<NUM_NEIGHBORS; i++){
       p|nbr_exists[i];
       p|nbr_isRefined[i];
-      p|nbr_dataSent[i];
     }
+
+    for(int i=0; i<3*NUM_NEIGHBORS; i++)
+         p|nbr_dataSent[i];
 
     for(int i=0; i<NUM_CHILDREN; i++)
         p|child_isRefined[i];
@@ -305,7 +307,9 @@ void Advection::sendGhost(int dir, bool which=0){
         if(dir==LEFT){
             for(int j=1; j<=block_height; j+=2){
                 left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
+                logFile << left_edge[j/2] << "\t";
             }
+            logFile << std::endl;
             if(!which)
                 thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge, thisIndex, rand());
             else
@@ -316,19 +320,23 @@ void Advection::sendGhost(int dir, bool which=0){
         else if(dir==RIGHT){
             for(int j=1; j<=block_height; j+=2){
                 right_edge[j/2] = (u[index(block_width-1,j)] + u[index(block_width,j)] + u[index(block_width-1,j+1)] +u[index(block_width, j+1)])/4;
+                logFile << right_edge[j/2] << "\t";
             }
+            logFile << std::endl;
             logFile <<  map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;
             if(!which)
-                thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, left_edge, thisIndex, rand());
+                thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge, thisIndex, rand());
             else
-                thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, left_edge);
+                thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge);
 
             logFile << ", " << map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;
         }
         else if(dir==UP){
             for(int i=1; i<=block_width; i+=2){
                 top_edge[i/2] = (u[index(i,1)] + u[index(i,2)] + u[index(i+1,1)] + u[index(i+1,2)])/4;
+                logFile << top_edge[i/2] << "\t";
             }
+            logFile << std::endl;
             if(!which)
                 thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge, thisIndex, rand());
             else
@@ -338,7 +346,9 @@ void Advection::sendGhost(int dir, bool which=0){
         else if(dir==DOWN){
             for(int i=1; i<=block_width; i+=2){
                 bottom_edge[i/2] = (u[index(i,block_height-1)] + u[index(i,block_height)] + u[index(i+1,block_height-1)] + u[index(i+1,block_height)])/4;
+                logFile << bottom_edge[i/2] << "\t";
             }
+            logFile << std::endl;
             if(!which)
                 thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge, thisIndex, rand());
             else
@@ -360,7 +370,7 @@ void Advection::begin_iteration(void) {
     outFile.open(fname);
     logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;
 
-    for(int i=0; i<NUM_NEIGHBORS; i++)
+    for(int i=0; i<3*NUM_NEIGHBORS; i++)
         nbr_dataSent[i]=false;
     
     hasReceived.clear();
@@ -500,6 +510,64 @@ void Advection::process(int iter, int dir, int size, double gh[]){
         default:
             CkAbort("ERROR\n");
     }
+}
+
+void Advection::sendReadyData2RefiningNeighbors(){
+    for(int i=NUM_NEIGHBORS; i<3*NUM_NEIGHBORS; i++){
+        if(nbr_decision[i]==REFINE && !nbr_dataSent[i]){
+            if(i==RIGHT_UP){
+                if(hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
+                    (hasReceived.find(UP_RIGHT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+            else if(i==RIGHT_DOWN){
+                if(hasReceived.find(RIGHT_DOWN)!=hasReceived.end() &&
+                    (hasReceived.find(DOWN_RIGHT)!=hasReceived.end() || hasReceived.find(DOWN)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if (i==DOWN_RIGHT){
+                if(hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
+                    (hasReceived.find(RIGHT_DOWN)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if(i==DOWN_LEFT){
+                if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
+                    (hasReceived.find(LEFT_DOWN)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if(i==LEFT_DOWN){
+                if(hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
+                    (hasReceived.find(DOWN_LEFT)!=hasReceived.end() || hasReceived.find(DOWN)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if(i==LEFT_UP){
+                if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
+                    (hasReceived.find(UP_LEFT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if(i==UP_LEFT){
+                if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
+                    (hasReceived.find(LEFT_UP)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }else if(i==UP_RIGHT){
+                if(hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
+                    (hasReceived.find(RIGHT_UP)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end())){
+                    interpolateAndSend(i);
+                    nbr_dataSent[i]=true;
+                }
+            }
+        }
+    }
+
 }
 
 void Advection::sendReadyData(){
@@ -675,8 +743,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(i,block_height)]-u[index(i+2, block_height)])/(2*dx);
             sy = (u[index(i+1, block_height-1)] - u[index(i+1, block_height+1)])/(2*dy);
 
-            bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] - sx*(dx/4) + sy*(dy/4);
-            bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] + sx*(dx/4) + sy*(dy/4);
+            bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] + sx*(dx/4) - sy*(dy/4);
+            bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] - sx*(dx/4) - sy*(dy/4);
         }
         QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_LEFT));
         int val=rand();
@@ -692,8 +760,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(i,block_height)]-u[index(i+2, block_height)])/(2*dx);
             sy = (u[index(i+1, block_height-1)] - u[index(i+1, block_height+1)])/(2*dy);
 
-            bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] - sx*(dx/4) + sy*(dy/4);
-            bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] + sx*(dx/4) + sy*(dy/4);
+            bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] + sx*(dx/4) - sy*(dy/4);
+            bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] - sx*(dx/4) - sy*(dy/4);
         }
 
         QuadIndex receiver = nbr[DOWN].getChild(map_child(UP_RIGHT));
@@ -705,7 +773,7 @@ void Advection::interpolateAndSend(int NBR){
         logFile << std::endl;
     }
     else if(NBR==RIGHT_UP){
-        for(int j=0; j<block_height; j++){
+        for(int j=0; j<block_height+2; j++){
             for(int i=0; i<3; i++)
                 logFile << u[index(block_width-1+i, j)] << "\t";
             logFile << std::endl;
@@ -715,8 +783,8 @@ void Advection::interpolateAndSend(int NBR){
             sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
 
 
-            right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) - sy*(dy/4);
-            right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) + sy*(dy/4);
+            right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) + sy*(dy/4);
+            right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) - sy*(dy/4);
         }
         QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_UP));//LEFT_UP child of the nieghbor
         thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge, thisIndex, rand());
@@ -731,8 +799,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(block_width-1, i+1)] - u[index(block_width+1, i+1)])/(2*dx);
             sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
 
-            right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) - sy*(dy/4);
-            right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] + sx*(dx/4) + sy*(dy/4);
+            right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) + sy*(dy/4);
+            right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) - sy*(dy/4);
         }
         QuadIndex receiver = nbr[RIGHT].getChild(map_child(LEFT_DOWN));//LEFT_DOWN child of the neighbor
         thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge, thisIndex, rand());
@@ -747,8 +815,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(i,1)]-u[index(i+2,1)])/(2*dx);
             sy = (u[index(i+1,0)]-u[index(i+1,2)])/(2*dy);
 
-            top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] -sx*(dx/4) - sy*(dy/4);
-            top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] + sx*(dx/4) -sy*(dy/4);
+            top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] + sx*(dx/4) + sy*(dy/4);
+            top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] - sx*(dx/4) + sy*(dy/4);
         }
         QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_LEFT));
         thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge, thisIndex, rand());
@@ -763,8 +831,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(i,1)]-u[index(i+2,1)])/(2*dx);
             sy = (u[index(i+1,0)]-u[index(i+1,2)])/(2*dy);
 
-            top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] -sx*(dx/4) - sy*(dy/4);
-            top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] + sx*(dx/4) -sy*(dy/4);
+            top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] + sx*(dx/4) + sy*(dy/4);
+            top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] - sx*(dx/4) + sy*(dy/4);
         }
         QuadIndex receiver = nbr[UP].getChild(map_child(DOWN_RIGHT));
         thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge, thisIndex, rand());
@@ -779,8 +847,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(0, i+1)] - u[index(2,i+1)])/(2*dx);
             sy = (u[index(1, i)] - u[index(1, i+2)])/(2*dy);
 
-            left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] - sx*(dx/4) -sy*(dy/4);
-            left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] - sx*(dx/4) +sy*(dy/4);
+            left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] + sx*(dx/4) + sy*(dy/4);
+            left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] + sx*(dx/4) - sy*(dy/4);
         }
         QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_UP));//LEFT_UP child of the nieghbor
         thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge, thisIndex, rand());
@@ -795,8 +863,8 @@ void Advection::interpolateAndSend(int NBR){
             sx = (u[index(0, i+1)] - u[index(2,i+1)])/(2*dx);
             sy = (u[index(1, i)] - u[index(1, i+2)])/(2*dy);
 
-            left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] - sx*(dx/4) -sy*(dy/4);
-            left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] - sx*(dx/4) +sy*(dy/4);
+            left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] + sx*(dx/4) + sy*(dy/4);
+            left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] + sx*(dx/4) - sy*(dy/4);
         }
         QuadIndex receiver = nbr[LEFT].getChild(map_child(RIGHT_DOWN));//LEFT_DOWN child of the neighbor
         thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge, thisIndex, rand());
@@ -916,6 +984,9 @@ DECISION Advection::getGranularityDecision(){
     //if(thisIndex.getDepth()==min_depth)
       //  return STAY;
     
+    /*if(strcmp(thisIndex.getIndexString(),"0111")==0)
+        return REFINE;
+    else return STAY;*/
 
     if(rand()%3==0){
         return REFINE;
@@ -1200,6 +1271,7 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+    hasReceived.clear();//clear it up to track the ghosts layered required for restructure
     logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;
     CmiMemoryCheck();
     hasInitiatedPhase1 = false; //reset this for the next MeshRestructure Phase for a Parent
@@ -1260,7 +1332,8 @@ void Advection::doPhase2(){
         //If I am going to refine check if any of the neighbor needs my ghosts for it to send its boundaries to me
         if(decision==REFINE)
         for(int i=0; i<NUM_NEIGHBORS; i++){
-            if(!nbr_exists[i]){//send the ghost layer
+            if(!nbr_exists[i] && nbr_decision[i]!=REFINE){//send the ghost layer; dont send if the neighbors decision is refine because in that case we
+                                                        //already sent the ghost layer in the loop above
                 if(i==LEFT){
                     for(int j=1; j<=block_height; j++)
                         left_edge[j-1] = u[index(1,j)];

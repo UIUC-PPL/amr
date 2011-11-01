@@ -65,6 +65,12 @@ module Advection{
             DECISION child_nbr_decision[];
 	};
 
+
+        group PerProcessorChare{
+            entry PerProcessorChare();
+
+        };
+
         array [QuadIndex] Advection{
             entry Advection();
             entry Advection(double, double, double, double);

@@ -254,3 +254,7 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
         
         ChildDataMsg(int cnum, double myt, double mydt, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };
+
+class PerProcessorChare : public CBase_PerProcessorChare{
+    PerProcessorChare();
+};

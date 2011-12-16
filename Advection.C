@@ -47,8 +47,6 @@ double *delu2, *delu3, *delu4;
 
 PerProcessorChare::PerProcessorChare(){
     delu = new double**[2];
-    ckoussorCharePerProcessorChare totalsize << ", " << packetSize << endl;
-
 }
 
 InitRefineMsg::InitRefineMsg(double dx, double dy, double myt, double mydt, double xmin, double  ymin, int iterations, double *refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision){
@@ -180,22 +178,22 @@ void Advection::advection(){
     
     //logFile << "In Adfvection2" << std::endl;
     logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;
-    for(int i=0; i<block_width+2; i++){
-        for(int j=0; j<block_height+2; j++){
-            rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-            if(i==block_width/2)
-                u[index(i, block_height+1-j)] = 2;
-            else u[index(i, block_height+1-j)] = 1;
-        }
-    }
     /*for(int i=0; i<block_width+2; i++){
         for(int j=0; j<block_height+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-            if(rsq <= radius*radius)
-                u[index(i, block_height+1-j)] = 2;
+            if(i==block_width/2)
+                u[index(i, block_height+1-j)] = 1;
             else u[index(i, block_height+1-j)] = 1;
         }
     }*/
+    for(int i=0; i<block_width+2; i++){
+        for(int j=0; j<block_height+2; j++){
+            rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
+            if(rsq <= radius*radius)
+                u[index(i, block_height+1-j)] = 1;
+            else u[index(i, block_height+1-j)] = 1;
+        }
+    }
 #if 1
     for(int i=0; i<block_height; i++){
         for(int j=0; j<block_width; j++)
@@ -957,8 +955,8 @@ void Advection::iterate() {
             ckout << thisIndex.getIndexString() << " now terminating" << endl;
             logFile << thisIndex.getIndexString() << " now terminating" << std::endl;
             CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
-            contribute();
-            thisProxy(thisIndex.getParent()).done();
+            //contribute();
+            //thisProxy(thisIndex.getParent()).done();
             return;
         }
 
@@ -968,7 +966,7 @@ void Advection::iterate() {
              if ((myt + mydt) >= tmax )
                  mydt = tmax - myt;
              
-	     if(iterations%5==0 && iterations<19){//iterations%5==0){//time to check need for refinement/coarsening
+	     if(iterations%5==0){// && iterations<19){//iterations%5==0){//time to check need for refinement/coarsening
 	     	/*This computation phase can be tested for correctness by running 
 	     	extreme cases - like everyone wants to refine, 
 	     	everyone wants to derefine, nobody wants to do anything */
@@ -1020,7 +1018,7 @@ DECISION Advection::getGranularityDecision(){
 	else 
 	    return STAY;
     }
-
+/*
     double delx, dely, dely_f, ndim=2, ndim2=ndim*ndim;
     delx = 0.5*dx;
     dely = 0.5*dy;
@@ -1120,7 +1118,7 @@ DECISION Advection::getGranularityDecision(){
     	return REFINE;  
     }
     else return STAY;
-
+    */
 
 }
 
@@ -1142,10 +1140,6 @@ void Advection::resetMeshRestructureData(){
 
     /*Phase2 resetting*/
     hasInitiatedPhase2 = false;
-    for(int i=0; i<NUM_NEIGHBORS; i++)
-        nbr_dataSent[i]=false;
-
-    hasReceived.empty();
     hasAllocatedMemory=false;
 }
 
@@ -1399,6 +1393,11 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
     hasReceived.clear();//clear it up to track the ghosts layered required for restructure
+    for(int i=0; i<NUM_NEIGHBORS; i++)
+        nbr_dataSent[i]=false;
+
+    imsg=0;
+
     logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;
     CmiMemoryCheck();
     hasInitiatedPhase1 = false; //reset this for the next MeshRestructure Phase for a Parent

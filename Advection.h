@@ -256,5 +256,6 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
 };
 
 class PerProcessorChare : public CBase_PerProcessorChare{
-    PerProcessorChare();
+    public:
+        PerProcessorChare();
 };

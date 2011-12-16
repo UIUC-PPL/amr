@@ -107,7 +107,7 @@ module Advection{
             };
             
             entry void getGhostsAndRefine(){
-                atomic "initialize imsg"{
+                /*atomic "initialize imsg"{
                     imsg=0;
                     for(set<int>::iterator itr=hasReceived.begin(); itr!=hasReceived.end(); itr++){
                         if(*itr <= 3)
@@ -115,7 +115,7 @@ module Advection{
                         else 
                             imsg += 0.5;
                     }
-                }
+                }*/
                 for(;imsg<4;){
                     when 
                         receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
@@ -133,10 +133,14 @@ module Advection{
             //happens in doPhase2()
             entry void receiveRefGhosts(int ,int, int width, double u[width]);
             entry void getAndSendGhost(){
+                atomic{
+                    logFile << "getAndSendGhost called" << endl;
+                }
                 when
                     receiveRefGhosts[iterations] (int iter, int dir, int width, double u1[width])
 
                 atomic "interpolate and send"{
+
                     process(iter, dir, width, u1);
                     sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
                 }

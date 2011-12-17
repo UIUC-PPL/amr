@@ -1,3 +1,9 @@
+#ifdef LOGGER
+#define VB(x) x
+#else
+#define VB(x)
+#endif
+
 #include "Constants.h"
 #include "QuadIndex.h"
 #include "pup_stl.h"

@@ -96,7 +96,7 @@ module Advection{
                         receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
 
                     atomic "process ghosts" {
-                        logFile << thisIndex.getIndexString() << " process: " << iter << ", " << dir << ", " << width << ", " << sender.getIndexString() << ", " << tag << std::endl;
+                        VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", " << dir << ", " << width << ", " << sender.getIndexString() << ", " << tag << std::endl;)
                         process(iter, dir, width, u1);
                         sendReadyData();
                     }
@@ -122,11 +122,11 @@ module Advection{
                     atomic "save ghosts"{
                         process(iter, dir, width, u1);
                         sendReadyData2RefiningNeighbors();
-                        logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;
+                        VB(logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;)
                     }
                 }
                 atomic "refine"{
-                    logFile << thisIndex.getIndexString() << " now refining " << std::endl;
+                    VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;)
                     refine();
                 }
             };
@@ -134,7 +134,7 @@ module Advection{
             entry void receiveRefGhosts(int ,int, int width, double u[width]);
             entry void getAndSendGhost(){
                 atomic{
-                    logFile << "getAndSendGhost called" << endl;
+                    VB(logFile << "getAndSendGhost called" << endl;)
                 }
                 when
                     receiveRefGhosts[iterations] (int iter, int dir, int width, double u1[width])

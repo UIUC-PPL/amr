@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstring>
 #include <queue>
+#include "charm++.h"
+#include "trace-projections.h"
 #include <boost/assign/list_of.hpp>
 #include "boost/filesystem.hpp"
 
@@ -139,7 +141,6 @@ Main:: Main(CkArgMsg* m){
         qtree[qindex].insert(xmin, xmax, ymin, ymax);
      }
      qtree[qindex].doneInserting();
-
      CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
      qtree.ckSetReductionClient(cb);//sets the default callback for the array
      for(int i=0; i < num_chares; i++){
@@ -191,6 +192,7 @@ Main:: Main(CkArgMsg* m){
 }
 
 void Main::terminate(){
+    flushTraceLog();
     ckout << "simulation time: " << CmiWallTimer() - start_time << " s" << endl;
     CkExit();
 }

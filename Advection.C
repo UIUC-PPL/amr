@@ -11,6 +11,7 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
+#include "trace-projections.h"
 #include "Main.h"
 //#include <algorithm>
 extern CProxy_Main mainProxy;
@@ -190,7 +191,7 @@ void Advection::advection(){
         for(int j=0; j<block_height+2; j++){
             rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
             if(rsq <= radius*radius)
-                u[index(i, block_height+1-j)] = 1;
+                u[index(i, block_height+1-j)] = 2;
             else u[index(i, block_height+1-j)] = 1;
         }
     }
@@ -954,9 +955,11 @@ void Advection::iterate() {
         if(iterations==max_iterations){
             ckout << thisIndex.getIndexString() << " now terminating" << endl;
             logFile << thisIndex.getIndexString() << " now terminating" << std::endl;
-            CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
-            //contribute();
-            //thisProxy(thisIndex.getParent()).done();
+            flushTraceLog();
+            //CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
+            contribute();
+            if(thisIndex.getDepth()!=min_depth)
+                thisProxy(thisIndex.getParent()).done();
             return;
         }
 
@@ -1132,7 +1135,7 @@ void Advection::resetMeshRestructureData(){
 
     for(int i=0; i<NUM_CHILDREN; i++)
         child_decision[i]=INV;
-
+    logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;
     parentHasAlreadyMadeDecision=false;
     hasReceivedParentDecision=false;
     hasCommunicatedSTAY=false;
@@ -1238,11 +1241,17 @@ void Advection::communicatePhase1Msgs(){
 void Advection::informParent(int childNum, DECISION dec){//Will be called from two contexts: 
                                                         //a) If the parent is a grandparent and also have children that are leaves
                                                         //b) when a child sends REFINE/STAY message to the parent
+    if(!hasReset){
+        hasReset=true;
+        resetMeshRestructureData();
+    }
+    logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << std::endl;
     if(dec==REFINE){
         child_isRefined[childNum]=true;
         isGrandParent = true;
     }
     if(parentHasAlreadyMadeDecision==false){
+        logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;
         parentHasAlreadyMadeDecision=true;
 	//tell rest of the children which are not refined
 	for(int i=0 ;i<NUM_CHILDREN; i++){
@@ -1496,8 +1505,10 @@ void Advection::doPhase2(){
         getGhostsAndRefine();
     }
     
-    if((decision==STAY) || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision))
+    if((decision==STAY) || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision)){
+        logFile << "calling doStep after QD on myself:" << isRefined << ", " << isGrandParent << ", " << parentHasAlreadyMadeDecision<< endl;
         CkStartQD(CkIndex_Advection::doStep(), &thishandle);
+    }
 
     //Update the Status of Your Neighbors
     if(decision == STAY){
@@ -1549,6 +1560,7 @@ void Advection::doPhase2(){
         isRefined = false;
     }
     //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
+    logFile << "setting parentHasAlreadyMadeDecision to false" << endl;
     parentHasAlreadyMadeDecision=false;
     hasReset=false;
 }

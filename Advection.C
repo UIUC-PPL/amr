@@ -942,10 +942,10 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     else return STAY;*/
     
-    if(xc <= 0.33){
+    if(xc <= 0.10){
         return REFINE;
     }
-    else if (xc <= 0.66){
+    else if (xc <= 0.66 || thisIndex.getDepth()==min_depth){
         return STAY;
     }
     else return DEREFINE;
@@ -1106,7 +1106,6 @@ void Advection::doMeshRestructure(){
                 if(dec==STAY || dec==REFINE)
                     decision=dec;
             }
-            ckout << thisIndex.getIndexString() << " decision: " << decision << ", iteration = " << iterations << endl;
             VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;)
             //initiate Phase1 of the computation
             if(decision==REFINE && !hasCommunicatedREFINE){

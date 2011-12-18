@@ -887,9 +887,9 @@ void Advection::iterate() {
             VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;)
             flushTraceLog();
             CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
-            contribute();
-            if(thisIndex.getDepth()!=min_depth)
-                thisProxy(thisIndex.getParent()).done();
+            //contribute();
+            //if(thisIndex.getDepth()!=min_depth)
+              //  thisProxy(thisIndex.getParent()).done();
             return;
         }
 

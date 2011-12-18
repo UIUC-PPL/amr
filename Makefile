@@ -3,9 +3,11 @@ BOOST_ROOT = $(HOME)/boost
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
 
+REVNUM  = $(shell git --git-dir=.git rev-parse HEAD)
+
 CXX=$(CHARMC)
 
-CPPFLAGS += -I$(BOOSTINC)
+CPPFLAGS += -I$(BOOSTINC) -DAMR_REVISION=$(REVNUM)
 LDFLAGS += -L$(BOOSTLIB)
 
 OBJS = QuadIndex.o Advection.o

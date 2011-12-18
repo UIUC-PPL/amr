@@ -36,6 +36,13 @@ int max_iterations;
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
 
+#ifndef AMR_REVISION
+    #define AMR_REVISION Unknown
+#endif
+#define _QUOTEIT(x) #x
+#define INQUOTES(x) _QUOTEIT(x)
+
+const char amrRevision[] = INQUOTES(AMR_REVISION);
 
 CkArrayID a;
 
@@ -65,6 +72,7 @@ char* decimal_to_binary_string(int num, int len){
 double start_time, end_time;
 
 Main:: Main(CkArgMsg* m){
+    ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
     initUtils();
     mainProxy = thisProxy;

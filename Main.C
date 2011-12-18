@@ -141,7 +141,8 @@ Main:: Main(CkArgMsg* m){
         qtree[qindex].insert(xmin, xmax, ymin, ymax);
      }
      qtree[qindex].doneInserting();
-     CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
+     //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
+     CkCallback *cb = new CkCallback(CkCallback::ckExit);
      qtree.ckSetReductionClient(cb);//sets the default callback for the array
      for(int i=0; i < num_chares; i++){
         char* str = decimal_to_binary_string(i, 2*depth);

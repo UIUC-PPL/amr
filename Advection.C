@@ -96,7 +96,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax){
     sprintf(fname, "log/%s.log", thisIndex.getIndexString());
     VB(logFile.open(fname);)
     
-    srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
+    //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
     CBase_Advection();
     this->exists = true;
@@ -381,7 +381,7 @@ void Advection::begin_iteration(void) {
     iterations++;
     char fname[100];
     sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString(), iterations);
-    outFile.open(fname);
+    VB(outFile.open(fname);)
     VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;)
 
     for(int i=0; i<3*NUM_NEIGHBORS; i++)
@@ -854,7 +854,6 @@ void Advection::compute_and_iterate(){
             logFile << std::endl;
     }
     logFile << std::endl;
-#endif
     
     //outFile << "coordinates: " << xc << ", " << yc << std::endl;
     //outFile << dx << ", " << dy << std::endl;
@@ -868,6 +867,7 @@ void Advection::compute_and_iterate(){
     }
     outFile.flush();
     outFile.close();
+#endif
 
     iterate();
 }
@@ -887,9 +887,9 @@ void Advection::iterate() {
             VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;)
             flushTraceLog();
             CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
-            /*contribute();
+            contribute();
             if(thisIndex.getDepth()!=min_depth)
-                thisProxy(thisIndex.getParent()).done();*/
+                thisProxy(thisIndex.getParent()).done();
             return;
         }
 
@@ -941,6 +941,14 @@ DECISION Advection::getGranularityDecision(){
     /*if(strcmp(thisIndex.getIndexString(),"0111")==0)
         return REFINE;
     else return STAY;*/
+    
+    if(xc <= 0.33){
+        return REFINE;
+    }
+    else if (xc <= 0.66){
+        return STAY;
+    }
+    else return DEREFINE;
 
     if(rand()%5==0){
         return REFINE;
@@ -1098,6 +1106,7 @@ void Advection::doMeshRestructure(){
                 if(dec==STAY || dec==REFINE)
                     decision=dec;
             }
+            ckout << thisIndex.getIndexString() << " decision: " << decision << ", iteration = " << iterations << endl;
             VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;)
             //initiate Phase1 of the computation
             if(decision==REFINE && !hasCommunicatedREFINE){
@@ -1675,7 +1684,7 @@ Advection::Advection(InitRefineMsg* msg){
     sprintf(fname, "log/%s.log", thisIndex.getIndexString());
 
     VB(logFile.open(fname);)
-    srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
+    //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
 //Called as a result of refinement of parent
     VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;)

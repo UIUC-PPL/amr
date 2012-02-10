@@ -881,11 +881,11 @@ void Advection::done(){
             thisProxy(thisIndex.getParent()).done();
     }
 }
+
 void Advection::iterate() {
         if(iterations==max_iterations){
             ckout << thisIndex.getIndexString() << " now terminating" << endl;
             VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;)
-            flushTraceLog();
             CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
             //contribute();
             //if(thisIndex.getDepth()!=min_depth)
@@ -942,13 +942,20 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     else return STAY;*/
     
-    if(xc <= 0.10){
+    /*if(xc <= 0.10){
         return REFINE;
     }
     else if (xc <= 0.66 || thisIndex.getDepth()==min_depth){
         return STAY;
     }
-    else return DEREFINE;
+    else return DEREFINE;*/
+
+    for(int j=1; j<=block_height; j++)
+        for(int i=1; i<=block_width; i++){
+            if(u[index(i,j)]-u[index(i-1,j)]>0.33)
+                return REFINE;
+        }
+    return STAY;
 
     if(rand()%5==0){
         return REFINE;
@@ -1106,7 +1113,7 @@ void Advection::doMeshRestructure(){
                 if(dec==STAY || dec==REFINE)
                     decision=dec;
             }
-            VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;)
+            ckout << thisIndex.getIndexString() << " decision = " << decision << ", iteration = " << iterations << endl;
             //initiate Phase1 of the computation
             if(decision==REFINE && !hasCommunicatedREFINE){
                 hasCommunicatedREFINE=true;

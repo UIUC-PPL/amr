@@ -17,15 +17,15 @@ all: advection
 advection: $(OBJS)
 	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -lboost_filesystem -tracemode projections
 
-Main.decl.h advection.decl.h: advection.ci
+Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci
 
-Advection.o: advection.decl.h
+Advection.o: Advection.decl.h
 QuadIndex.o: 
 Main.o: Main.decl.h
 
-test: all
-	./charmrun advetion +p4 10
+test: advection
+	./charmrun ./$< +p4 10 10 10
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun

@@ -124,11 +124,11 @@ module Advection{
           process(iter, dir, width, u1);
           sendReadyData2RefiningNeighbors();
           VB(logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString()
-                     << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;)
+             << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;);
             }
       }
       atomic "refine"{
-        VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;);
           refine();
       }
     };
@@ -136,7 +136,7 @@ module Advection{
     entry void receiveRefGhosts(int ,int, int width, double u[width]);
     entry void getAndSendGhost(){
       atomic{
-        VB(logFile << "getAndSendGhost called" << endl;)
+        VB(logFile << "getAndSendGhost called" << endl;);
           }
       when receiveRefGhosts[iterations] (int iter, int dir, int width,
                                          double u1[width]) atomic "interpolate and send"{

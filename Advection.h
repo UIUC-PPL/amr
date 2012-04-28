@@ -1,7 +1,7 @@
 #ifdef LOGGER
-#define VB(x) x
+#define VB(x) do { x } while(false)
 #else
-#define VB(x)
+#define VB(x) do { } while(false)
 #endif
 
 #include "Constants.h"

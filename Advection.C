@@ -96,7 +96,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax) {
   has_terminated=false;
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString());
-  VB(logFile.open(fname);)
+  VB(logFile.open(fname););
     
     //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
@@ -137,17 +137,17 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax) {
   this->xmin = xc*nx*dx;
   this->ymin = yc*ny*dy;
 
-  VB(logFile << "xmin: " << this->xmin << ", ymin: " << this->ymin << std::endl;)
+  VB(logFile << "xmin: " << this->xmin << ", ymin: " << this->ymin << std::endl;);
 
     advection();
 }
     
 void Advection::printState(){
   QuadIndex qindex = thisIndex;
-  VB(logFile << "Printing Status of Node " << qindex.getIndexString() << std::endl;)
+  VB(logFile << "Printing Status of Node " << qindex.getIndexString() << std::endl;);
     VB(logFile << "exists: " << exists << std::endl;
        logFile << "isRefined: " << isRefined << std::endl;
-       logFile << "nbr_exists: ";)
+       logFile << "nbr_exists: ";);
 #ifdef LOGGER
     for(int j=0; j<NUM_NEIGHBORS; j++)
       logFile << nbr_exists[j] << ", ";
@@ -182,7 +182,7 @@ void Advection::advection(){
   double rsq;
     
   //logFile << "In Adfvection2" << std::endl;
-  VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;)
+  VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
     /*for(int i=0; i<block_width+2; i++){
       for(int j=0; j<block_height+2; j++){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -212,7 +212,7 @@ void Advection::advection(){
 #endif
   char fname[100];
   sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString(), iterations);
-  VB(outFile.open(fname);)
+  VB(outFile.open(fname););
 
 #ifdef LOGGER
 
@@ -233,7 +233,7 @@ void Advection::advection(){
 
 //added for array migration - see how 2D arrays can be packed
 void Advection::pup(PUP::er &p){
-  VB(logFile << "In PUP" << std::endl;)
+  VB(logFile << "In PUP" << std::endl;);
     CBase_Advection::pup(p);
   __sdag_pup(p);
 
@@ -286,7 +286,7 @@ void Advection::pup(PUP::er &p){
 }
     
 Advection::~Advection(){
-  VB(logFile << "In Destructor" << std::endl;)
+  VB(logFile << "In Destructor" << std::endl;);
     delete [] u;
   delete [] u2;
   delete [] u3;
@@ -303,7 +303,7 @@ Advection::~Advection(){
 void Advection::sendGhost(int dir, bool which=0){
   if(nbr_exists[dir] && !nbr_isRefined[dir]){
     int val = rand();
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;)
+    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;);
       if(dir==LEFT){
         thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], block_height, left_edge, thisIndex, val);
       }
@@ -319,61 +319,61 @@ void Advection::sendGhost(int dir, bool which=0){
   }
   else if(!nbr_exists[dir]){
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;)
+    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
       if(dir==LEFT){
         for(int j=1; j<=block_height; j+=2){
           left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
-          VB(logFile << left_edge[j/2] << "\t";)
+          VB(logFile << left_edge[j/2] << "\t";);
             }
-        VB(logFile << std::endl;)
+        VB(logFile << std::endl;);
           if(!which)
             thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge, thisIndex, rand());
           else
             thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge);
 
-        VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), LEFT) << std::endl;)
+          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), LEFT) << std::endl;);
           }
       else if(dir==RIGHT){
         for(int j=1; j<=block_height; j+=2){
           right_edge[j/2] = (u[index(block_width-1,j)] + u[index(block_width,j)] + u[index(block_width-1,j+1)] +u[index(block_width, j+1)])/4;
-          VB(logFile << right_edge[j/2] << "\t";)
+          VB(logFile << right_edge[j/2] << "\t";);
             }
-        VB(logFile << std::endl;)
-          VB(logFile <<  map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;)
+        VB(logFile << std::endl;);
+        VB(logFile <<  map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;);
           if(!which)
             thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge, thisIndex, rand());
           else
             thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge);
 
-        VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;)
+          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;);
           }
       else if(dir==UP){
         for(int i=1; i<=block_width; i+=2){
           top_edge[i/2] = (u[index(i,1)] + u[index(i,2)] + u[index(i+1,1)] + u[index(i+1,2)])/4;
-          VB(logFile << top_edge[i/2] << "\t";)
+          VB(logFile << top_edge[i/2] << "\t";);
             }
-        VB(logFile << std::endl;)
+        VB(logFile << std::endl;);
           if(!which)
             thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge, thisIndex, rand());
           else
             thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge);
-        VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), UP) << std::endl;)
+          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), UP) << std::endl;);
           }
       else if(dir==DOWN){
         for(int i=1; i<=block_width; i+=2){
           bottom_edge[i/2] = (u[index(i,block_height-1)] + u[index(i,block_height)] + u[index(i+1,block_height-1)] + u[index(i+1,block_height)])/4;
-          VB(logFile << bottom_edge[i/2] << "\t";)
+          VB(logFile << bottom_edge[i/2] << "\t";);
             }
-        VB(logFile << std::endl;)
+        VB(logFile << std::endl;);
           if(!which)
             thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge, thisIndex, rand());
           else
             thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge);
 
-        VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), DOWN) << std::endl;)
+          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), DOWN) << std::endl;);
           }
   }else{
-    VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;)
+    VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);
       }
 }
 
@@ -383,8 +383,8 @@ void Advection::begin_iteration(void) {
   iterations++;
   char fname[100];
   sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString(), iterations);
-  VB(outFile.open(fname);)
-    VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;)
+  VB(outFile.open(fname););
+  VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
 
     for(int i=0; i<3*NUM_NEIGHBORS; i++)
       nbr_dataSent[i]=false;
@@ -408,8 +408,8 @@ void Advection::begin_iteration(void) {
   for(int i=0; i<NUM_NEIGHBORS; i++){
     sendGhost(i);
   }
-  VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;)
-    }
+  VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);;
+}
 template<class T>
 void Advection::print_Array(T* array, int size, int row_size){
 #ifdef LOGGER
@@ -423,15 +423,15 @@ void Advection::print_Array(T* array, int size, int row_size){
 
 void Advection::process(int iter, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
-  VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iter << ", " << iterations << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iter << ", " << iterations << std::endl;);
     for(int i=0; i<size; i++){
-      VB(logFile << gh[i] << '\t';)
+      VB(logFile << gh[i] << '\t';);
         }
-  VB(logFile << std::endl;)
+    VB(logFile << std::endl;);
     switch(dir){
     case LEFT:
       imsg++;
-      VB(logFile << "Received From Left" << std::endl;)
+      VB(logFile << "Received From Left" << std::endl;);
         hasReceived.insert(LEFT);
       for(int i=0; i<size; i++)
         u[index(0,i+1)] = gh[i];
@@ -440,7 +440,7 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 
     case RIGHT:
       imsg++;
-      VB(logFile << "Received From RIGHT" << std::endl;)
+      VB(logFile << "Received From RIGHT" << std::endl;);
         hasReceived.insert(RIGHT);
       for(int i=0; i<size; i++)
         u[index(block_width+1,i+1)] = gh[i];
@@ -449,19 +449,18 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 
     case UP:
       imsg++;
-      VB(logFile << "Received From UP" << std::endl;)
+      VB(logFile << "Received From UP" << std::endl;);
         hasReceived.insert(UP);
       for(int i=0; i<size; i++){
         u[index(i+1,0)] = gh[i];
         //u[block_height+1][i+1]=gh[i];
-        VB(logFile << gh[i] << "\t";
-           logFile << std::endl;)
+        VB(logFile << gh[i] << "\t" << std::endl;);
           }
       break;
 
     case DOWN:
       imsg++;
-      VB(logFile << "Received From Down" << std::endl;)
+      VB(logFile << "Received From Down" << std::endl;);
         hasReceived.insert(DOWN);
       for(int i=0; i<size; i++)
         u[index(i+1,block_height+1)] = gh[i];
@@ -675,7 +674,7 @@ void Advection::interpolateAndSend(int NBR){
     int val=rand();
     thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge,
                                       thisIndex, rand());
-    VB(logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;)
+    VB(logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;);
 #ifdef LOGGER
       for(int i=0; i<block_width; i++){
         logFile << bottom_edge[i] << '\t';
@@ -888,7 +887,7 @@ void Advection::done(){
 void Advection::iterate() {
   if(iterations==max_iterations){
     ckout << thisIndex.getIndexString() << " now terminating" << endl;
-    VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;)
+    VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
       CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
     //contribute();
     //if(thisIndex.getDepth()!=min_depth)
@@ -907,7 +906,7 @@ void Advection::iterate() {
         extreme cases - like everyone wants to refine, 
         everyone wants to derefine, nobody wants to do anything */
       hasInitiatedPhase1=false;
-      VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;)
+      VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
         doMeshRestructure();
     }
     else{
@@ -1083,7 +1082,7 @@ void Advection::resetMeshRestructureData(){
 
   for(int i=0; i<NUM_CHILDREN; i++)
     child_decision[i]=INV;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;)
+  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;);
     parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
   hasCommunicatedSTAY=false;
@@ -1107,7 +1106,7 @@ void Advection::doMeshRestructure(){
       /*Done Resetting Old Data*/
       /* It is possible that some Message has alreasdy been processed
          MeshRestructure Phase was called*/
-      VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;)
+      VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
         if(decision==INV)
           decision = getGranularityDecision();
         else if(decision==REFINE);
@@ -1155,7 +1154,7 @@ void Advection::communicatePhase1Msgs(){
 
     for(int i=0; i<NUM_NEIGHBORS; i++){
       if(nbr_exists[i] && !nbr_isRefined[i]){
-        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
           thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i],decision);//Since Phase1Msgs are only refinement messages
       }
       //just send your direction w.r.t. to the receiving neighbor
@@ -1163,15 +1162,15 @@ void Advection::communicatePhase1Msgs(){
         //Get Corresponding Children of the neighbor
         QuadIndex q1, q2;
         getChildren(nbr[i], SENDER_DIR[i], q1, q2);
-        VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;)
-          VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
+        VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
                     
                     
           thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision);
         thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision);
       }
       else{//send to the parent of the non-existing neighbor
-        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
           thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision);
       }
     }
@@ -1193,13 +1192,13 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
     hasReset=true;
     resetMeshRestructureData();
   }
-  VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << std::endl;);
     if(dec==REFINE){
       child_isRefined[childNum]=true;
       isGrandParent = true;
     }
   if(parentHasAlreadyMadeDecision==false){
-    VB(logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;)
+    VB(logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;);
       parentHasAlreadyMadeDecision=true;
     //tell rest of the children which are not refined
     for(int i=0 ;i<NUM_CHILDREN; i++){
@@ -1215,7 +1214,7 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
 }
 
 void Advection::recvParentDecision(){
-  VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
     if(!hasReset){
       hasReset=true;
       resetMeshRestructureData();
@@ -1274,13 +1273,13 @@ void Advection::recvParentDecision(){
   }*/
 
 void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are either REFINE or STAY messages
-  VB(logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; )
+  VB(logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; );
     if(!hasReset){
       hasReset=true;
       resetMeshRestructureData();
     }
   if(nbr_decision[dir]!=REFINE){
-    VB(logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;)
+    VB(logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;);
       nbr_decision[dir]=dec;
   }
 
@@ -1300,12 +1299,12 @@ void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are eithe
       if(dec==REFINE){// I am going to refine
         decision =REFINE;
         hasCommunicatedREFINE=true;
-        VB(logFile << thisIndex.getIndexString() << " has changed its decision to REFINE" << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " has changed its decision to REFINE" << std::endl;);
           communicatePhase1Msgs();
       }else if(dec==STAY){//dec can be either REFINE or STAY
         decision=dec;
                 
-        VB(logFile << thisIndex.getIndexString() << " decision\'s now is STAY" << std::endl;)
+        VB(logFile << thisIndex.getIndexString() << " decision\'s now is STAY" << std::endl;);
           if(decision==STAY && !hasCommunicatedSTAY){
             hasCommunicatedSTAY=true;
             communicatePhase1Msgs();
@@ -1355,19 +1354,19 @@ void Advection::doPhase2(){
 
   imsg=0;
 
-  VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
     CmiMemoryCheck();
   hasInitiatedPhase1 = false; //reset this for the next MeshRestructure Phase for a Parent
   if(isRefined){
     decision=INV;
   }
-  VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
     //Update the decision of your neighbors
     if(decision==STAY || decision==REFINE || decision==DEREFINE)
       for(int i=0; i<NUM_NEIGHBORS; i++){
         if(nbr_decision[i]==INV){
           //CmiMemoryCheck();
-          VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;)
+          VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;);
             if((nbr_exists[i] && !nbr_isRefined[i])||!nbr_exists[i])
               nbr_decision[i]= DEREFINE;
             else {//when neighbor exists and is refined
@@ -1434,34 +1433,34 @@ void Advection::doPhase2(){
     //Get Data From the Children and extrapolate it
   }
   else if(decision==DEREFINE && !isRefined){//send data to the parent
-    VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;)
+    VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
       size_t sz = ((block_height)*(block_width))/4;
     ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) ChildDataMsg(thisIndex.getChildNum(), myt, mydt, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
 
     thisProxy(parent).recvChildData(msg);
     //deallocate all your memory and destroy yourself
-    VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;)
+    VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
       thisProxy(thisIndex).ckDestroy();
-    VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;)
+      VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
       //this->~Advection();
       }
   else if(decision==REFINE){
-    VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;)
+    VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
       getGhostsAndRefine();
   }
     
   if((decision==STAY) || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision)){
-    VB(logFile << "calling doStep after QD on myself:" << isRefined << ", " << isGrandParent << ", " << parentHasAlreadyMadeDecision<< endl;)
+    VB(logFile << "calling doStep after QD on myself:" << isRefined << ", " << isGrandParent << ", " << parentHasAlreadyMadeDecision<< endl;);
       CkStartQD(CkIndex_Advection::doStep(), &thishandle);
   }
 
   //Update the Status of Your Neighbors
   if(decision == STAY){
-    VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;)
+    VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
       for(int i=0; i<NUM_NEIGHBORS; i++){
         if(!nbr_exists[i]){
           if(nbr_decision[i]==DEREFINE){
-            VB(logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;)
+            VB(logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;);
               CkExit();
           }
           else if(nbr_decision[i]==REFINE){
@@ -1505,14 +1504,14 @@ void Advection::doPhase2(){
     isRefined = false;
   }
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;)
+  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
     parentHasAlreadyMadeDecision=false;
   hasReset=false;
 }
 
 void Advection::recvChildData(ChildDataMsg *msg){
-  VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;)
-    VB(logFile << thisIndex.getIndexString() << " received data from Child " << msg->childNum << " for coarsening" << std::endl;)
+  VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << " received data from Child " << msg->childNum << " for coarsening" << std::endl;);
     myt = msg->myt;
   mydt = msg->mydt;
   iterations = msg->iterations;
@@ -1539,19 +1538,19 @@ void Advection::recvChildData(ChildDataMsg *msg){
     st_j=block_height/2+1;end_j=block_height;
   }
   else{
-    VB(logFile << "Error: recvChildData(ChildDataMsg*) received " << msg->childNum << "as ChildNum" <<std::endl;)
+    VB(logFile << "Error: recvChildData(ChildDataMsg*) received " << msg->childNum << "as ChildNum" <<std::endl;);
       CkExit();
   }
-  VB(logFile << "Check Memory 1" << thisIndex.getIndexString() << std::endl;)
+  VB(logFile << "Check Memory 1" << thisIndex.getIndexString() << std::endl;);
 
     int ctr=0;
   for(int j=st_j; j<=end_j; j++){
     for(int i=st_i; i<=end_i; i++){
       u[index(i,j)]=msg->child_u[ctr];
-      VB(logFile << msg->child_u[ctr] << ", " << u[index(i,j)] << "\t";)
+      VB(logFile << msg->child_u[ctr] << ", " << u[index(i,j)] << "\t";);
         ctr++;
     }
-    VB(logFile << std::endl;)
+    VB(logFile << std::endl;);
       }
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
@@ -1654,7 +1653,7 @@ void Advection::refine(){
     
   //Interpolate the data and give it to the children when they are initialized
   // boundaries of the children will have to be sent by the neighbor
-  VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;)
+  VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
     double sx, sy, s;
   size_t sz = (block_width)*(block_height); 
   double *refined_u = new double[sz];
@@ -1680,7 +1679,7 @@ void Advection::refine(){
   thisProxy(thisIndex.getChild("11")).insert(msg);
   thisProxy.doneInserting();
   //delete [] refined_u;
-  VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
 
 Advection::Advection(InitRefineMsg* msg){
@@ -1692,11 +1691,11 @@ Advection::Advection(InitRefineMsg* msg){
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString());
 
-  VB(logFile.open(fname);)
+  VB(logFile.open(fname););
     //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
 //Called as a result of refinement of parent
-    VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;)
+  VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);
     CBase_Advection();
   this->exists = true;
   this->isRefined = false;
@@ -1718,7 +1717,7 @@ Advection::Advection(InitRefineMsg* msg){
     2. if it is refined ask the neighbor if it is refined.
   */
   for(int dir=0; dir<NUM_NEIGHBORS; dir++){
-    VB(logFile << thisIndex.getIndexString() << " neighbor in direction " << dir << " is " << nbr[dir].getIndexString() << std::endl;)
+    VB(logFile << thisIndex.getIndexString() << " neighbor in direction " << dir << " is " << nbr[dir].getIndexString() << std::endl;);
       if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are same
         nbr_exists[dir]=true;
         nbr_isRefined[dir]=false;
@@ -1733,12 +1732,12 @@ Advection::Advection(InitRefineMsg* msg){
             nbr_exists[dir]=true;
             //check for the decision of the neighbors sent by parent
             nbr_isRefined[dir]=false;
-            VB(logFile << thisIndex.getQuadI() << std::endl;)
+            VB(logFile << thisIndex.getQuadI() << std::endl;);
                     
-              VB(logFile << thisIndex.getIndexString() << " nbr in direction " << getNbrDir(thisIndex.getQuadI(), dir) << " has decision = " << msg->parent_nbr_decision[getNbrDir(thisIndex.getQuadI(), dir)] << std::endl;)
+            VB(logFile << thisIndex.getIndexString() << " nbr in direction " << getNbrDir(thisIndex.getQuadI(), dir) << " has decision = " << msg->parent_nbr_decision[getNbrDir(thisIndex.getQuadI(), dir)] << std::endl;);
               if(msg->parent_nbr_decision[getNbrDir(thisIndex.getQuadI(), dir)]==REFINE){
                 nbr_isRefined[dir]=true;
-                VB(logFile << thisIndex.getIndexString() << " setting " << dir << " to refined" << std::endl;)
+                VB(logFile << thisIndex.getIndexString() << " setting " << dir << " to refined" << std::endl;);
                   }
           }
           else{
@@ -1770,7 +1769,7 @@ Advection::Advection(InitRefineMsg* msg){
   ny = array_width/(num_chare_rows);
 
 
-  VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;)
+  VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
 
     thisIndex.getCoordinates(xc, yc);
   iterations = msg->iterations;

@@ -71,7 +71,9 @@ module Advection{
 
         };
 
-        array [QuadIndex] Advection{
+        include "terminator.hpp";
+
+        array [QuadIndex] Advection {
             entry Advection();
             entry Advection(double, double, double, double);
             entry Advection(InitRefineMsg*);
@@ -150,5 +152,9 @@ module Advection{
             entry void free_memory();
             entry void doPhase2();
             entry void recvChildData(ChildDataMsg*);
+
+            // For termination detection
+            entry void needAck(QuadIndex predecessor, unsigned int count);
+            entry void gotAck(unsigned int count);
         };
 };

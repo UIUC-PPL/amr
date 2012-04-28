@@ -111,7 +111,8 @@ inline const char* map_child(int child){
 
 class ChildDataMsg;
 
-class Advection: public CBase_Advection{
+class Advection: public CBase_Advection,
+  public TerminationChare<CProxy_Advection, QuadIndex> {
 Advection_SDAG_CODE
     public:
         
@@ -233,6 +234,8 @@ Advection_SDAG_CODE
 
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);
+
+        void rootTerminated() { }
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{

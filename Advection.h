@@ -97,7 +97,7 @@ int inline wrap(int item, int max_size){
     return item%max_size;
 }
 
-inline char* map_child(int child){
+inline const char* map_child(int child){
     if(child == LEFT_UP || child == UP_LEFT)
         return "01";
     else if(child == LEFT_DOWN || child==DOWN_LEFT)

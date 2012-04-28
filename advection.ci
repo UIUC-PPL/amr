@@ -1,160 +1,158 @@
 mainmodule Main{
 
-	readonly CProxy_Main mainProxy;
-        readonly int block_height;
-        readonly int block_width;
+  readonly CProxy_Main mainProxy;
+  readonly int block_height;
+  readonly int block_width;
 
-        readonly int array_height;
-        readonly int array_width;
+  readonly int array_height;
+  readonly int array_width;
 
-        readonly int num_chare_rows;
-        readonly int num_chare_cols;
+  readonly int num_chare_rows;
+  readonly int num_chare_cols;
         
-        readonly int min_depth;
-        readonly int max_depth;
+  readonly int min_depth;
+  readonly int max_depth;
 
-	readonly int nframe;
+  readonly int nframe;
 
-	readonly double xctr;
-        readonly double yctr;
-        readonly double radius;
+  readonly double xctr;
+  readonly double yctr;
+  readonly double radius;
         
-        readonly double v;
+  readonly double v;
 
-        readonly double ap;
-        readonly double an;
-        readonly double tmax;
-        readonly double dt;
-        readonly double cfl;
+  readonly double ap;
+  readonly double an;
+  readonly double tmax;
+  readonly double dt;
+  readonly double cfl;
 
-        readonly map<string, DIR> nbrDirectionMap;
-        readonly map<DIR, DIR> reverse_dir_map;
+  readonly map<string, DIR> nbrDirectionMap;
+  readonly map<DIR, DIR> reverse_dir_map;
 
-        readonly int max_iterations;
+  readonly int max_iterations;
 
-        mainchare Main{
-            entry Main(CkArgMsg *m);
-            entry void printTreeInformation(CkVec<QuadIndex>);
-            entry void terminate();
-        };
+  mainchare Main{
+    entry Main(CkArgMsg *m);
+    entry void printTreeInformation(CkVec<QuadIndex>);
+    entry void terminate();
+  };
 
-        extern module Advection;
+  extern module Advection;
 };
 
 module Advection{
 
-        message InitRefineMsg {
-	    double dx;
-	    double dy;
-	    double myt;
-	    double mydt;
-            double refined_u[];
-            bool parent_nbr_exists[];
-            bool parent_nbr_isRefined[];
-            DECISION parent_nbr_decision[];
-        };
+  message InitRefineMsg {
+    double dx;
+    double dy;
+    double myt;
+    double mydt;
+    double refined_u[];
+    bool parent_nbr_exists[];
+    bool parent_nbr_isRefined[];
+    DECISION parent_nbr_decision[];
+  };
 
-	message ChildDataMsg{
-	    int childNum;
-            int iterations;
-            double myt;
-            double mydt;
-	    double child_u[];
-            bool child_nbr_exists[];
-            bool child_nbr_isRefined[];
-            DECISION child_nbr_decision[];
-	};
+  message ChildDataMsg{
+    int childNum;
+    int iterations;
+    double myt;
+    double mydt;
+    double child_u[];
+    bool child_nbr_exists[];
+    bool child_nbr_isRefined[];
+    DECISION child_nbr_decision[];
+  };
 
 
-        group PerProcessorChare{
-            entry PerProcessorChare();
+  group PerProcessorChare{
+    entry PerProcessorChare();
 
-        };
+  };
 
-        include "terminator.hpp";
+  include "terminator.hpp";
 
-        array [QuadIndex] Advection {
-            entry Advection();
-            entry Advection(double, double, double, double);
-            entry Advection(InitRefineMsg*);
-            entry void printState();
+  array [QuadIndex] Advection {
+    entry Advection();
+    entry Advection(double, double, double, double);
+    entry Advection(InitRefineMsg*);
+    entry void printState();
 
-            entry void receiveGhosts(int iter, int dir, int width, double u[width], QuadIndex sender, int tag);
-            entry void begin_iteration();
-            entry void informParent(int, DECISION);
-            entry void recvParentDecision();
-            //entry void recvNeighborDecision(DIR);
-            //entry void recvStatusUpdateFromParent(int);
-            entry void exchangePhase1Msg(int, DECISION);
-            entry void doMeshRestructure();
-            entry void done();
-            entry void doStep(){
-                atomic "begin iteration"{
-                    //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
-                    begin_iteration();
-                }
-                for(imsg = 0; imsg < 4;) {
-                    when 
-                        receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
-
-                    atomic "process ghosts" {
-                        VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", " << dir << ", " << width << ", " << sender.getIndexString() << ", " << tag << std::endl;)
-                        process(iter, dir, width, u1);
-                        sendReadyData();
-                    }
-                }
-                atomic "doWork" {
-                    compute_and_iterate();
-                }
-            };
+    entry void receiveGhosts(int iter, int dir, int width, double u[width], QuadIndex sender, int tag);
+    entry void begin_iteration();
+    entry void informParent(int, DECISION);
+    entry void recvParentDecision();
+    //entry void recvNeighborDecision(DIR);
+    //entry void recvStatusUpdateFromParent(int);
+    entry void exchangePhase1Msg(int, DECISION);
+    entry void doMeshRestructure();
+    entry void done();
+    entry void doStep(){
+      atomic "begin iteration"{
+        //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
+        begin_iteration();
+      }
+      for(imsg = 0; imsg < 4;) {
+        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
+                                        QuadIndex sender, int tag) atomic "process ghosts" {
+          VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
+                     << dir << ", " << width << ", " << sender.getIndexString() << ", "
+                     << tag << std::endl;);
+          process(iter, dir, width, u1);
+          sendReadyData();
+        }
+      }
+      atomic "doWork" {
+        compute_and_iterate();
+      }
+    };
             
-            entry void getGhostsAndRefine(){
-                /*atomic "initialize imsg"{
-                    imsg=0;
-                    for(set<int>::iterator itr=hasReceived.begin(); itr!=hasReceived.end(); itr++){
-                        if(*itr <= 3)
-                            imsg++;
-                        else 
-                            imsg += 0.5;
-                    }
-                }*/
-                for(;imsg<4;){
-                    when 
-                        receiveGhosts[iterations] (int iter, int dir, int width, double u1[width], QuadIndex sender, int tag)
-                    atomic "save ghosts"{
-                        process(iter, dir, width, u1);
-                        sendReadyData2RefiningNeighbors();
-                        VB(logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString() << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;)
-                    }
-                }
-                atomic "refine"{
-                    VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;)
-                    refine();
-                }
-            };
-            //happens in doPhase2()
-            entry void receiveRefGhosts(int ,int, int width, double u[width]);
-            entry void getAndSendGhost(){
-                atomic{
-                    VB(logFile << "getAndSendGhost called" << endl;)
-                }
-                when
-                    receiveRefGhosts[iterations] (int iter, int dir, int width, double u1[width])
+    entry void getGhostsAndRefine(){
+      /*atomic "initialize imsg"{
+        imsg=0;
+        for(set<int>::iterator itr=hasReceived.begin(); itr!=hasReceived.end(); itr++){
+        if(*itr <= 3)
+        imsg++;
+        else 
+        imsg += 0.5;
+        }
+        }*/
+      for(;imsg<4;) {
+        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
+                                        QuadIndex sender, int tag) atomic "save ghosts" {
+          process(iter, dir, width, u1);
+          sendReadyData2RefiningNeighbors();
+          VB(logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString()
+                     << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;)
+            }
+      }
+      atomic "refine"{
+        VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;)
+          refine();
+      }
+    };
+    //happens in doPhase2()
+    entry void receiveRefGhosts(int ,int, int width, double u[width]);
+    entry void getAndSendGhost(){
+      atomic{
+        VB(logFile << "getAndSendGhost called" << endl;)
+          }
+      when receiveRefGhosts[iterations] (int iter, int dir, int width,
+                                         double u1[width]) atomic "interpolate and send"{
+        process(iter, dir, width, u1);
+        sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
+      }
+    };
 
-                atomic "interpolate and send"{
+    //for LiveViz
+    entry void requestNextFrame(liveVizRequestMsg *m);
+    entry void free_memory();
+    entry void doPhase2();
+    entry void recvChildData(ChildDataMsg*);
 
-                    process(iter, dir, width, u1);
-                    sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
-                }
-            };
-            //for LiveViz
-            entry void requestNextFrame(liveVizRequestMsg *m);
-            entry void free_memory();
-            entry void doPhase2();
-            entry void recvChildData(ChildDataMsg*);
-
-            // For termination detection
-            entry void needAck(QuadIndex predecessor, unsigned int count);
-            entry void gotAck(unsigned int count);
-        };
+    // For termination detection
+    entry void needAck(QuadIndex predecessor, unsigned int count);
+    entry void gotAck(unsigned int count);
+  };
 };

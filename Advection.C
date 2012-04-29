@@ -88,7 +88,10 @@ void Advection::mem_allocate_all(){
   mem_allocate(bottom_edge, block_width);
 }
 
-Advection::Advection(double xmin, double xmax, double ymin, double ymax) {
+Advection::Advection(double xmin, double xmax, double ymin, double ymax)
+  : AdvTerm(thisProxy, thisIndex, true)
+{
+  ckout << thisIndex.getIndexString() << " created" << endl;
 //Constructor for the Initial Grid Zones
   __sdag_init();
   usesAtSync = CmiTrue;
@@ -888,7 +891,7 @@ void Advection::iterate() {
   if(iterations==max_iterations){
     ckout << thisIndex.getIndexString() << " now terminating" << endl;
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-      CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
+    CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
     //contribute();
     //if(thisIndex.getDepth()!=min_depth)
     //  thisProxy(thisIndex.getParent()).done();
@@ -1094,7 +1097,7 @@ void Advection::resetMeshRestructureData(){
 }
 
 void Advection::doMeshRestructure(){
-  if(!hasInitiatedPhase1){
+  if(!hasInitiatedPhase1) {
     hasInitiatedPhase1=true;
 
     if(!hasReset){
@@ -1129,17 +1132,30 @@ void Advection::doMeshRestructure(){
       // Think of a better way to do this because right now as many as 
       // number of unrefined children are informing the parent about the
       // start of the restructure phase while only one of them need to do so
-      if(parent!=thisIndex)
+      if(parent!=thisIndex) {
         thisProxy(parent).doMeshRestructure();
+        terminator->msgSent(parent);
+      }
     }
     else if(isGrandParent && !parentHasAlreadyMadeDecision){
       informParent(-1, INV);
     }
 
     //Wait for Quiescence
-        
-    CkStartQD(CkIndex_Advection::doPhase2(), &thishandle);
+    terminator->doneSending();
+    terminator->msgProcessed();
+    CkStartQD(CkIndex_Advection::phase1Done(), &thishandle);
   }
+}
+
+void Advection::phase1Done() {
+  ckout << thisIndex.getIndexString() << " signaled by QD" << endl;
+  contribute(CkCallback(CkIndex_Advection::doPhase2(), thisProxy));
+}
+
+void Advection::rootTerminated() {
+  ckout << thisIndex.getIndexString() << " Detected termination" << endl;
+  //contribute(CkCallback(CkIndex_Advection::doPhase2(), thisProxy));
 }
 
 /***** PHASE1 FUNCTIONS****/
@@ -1156,6 +1172,7 @@ void Advection::communicatePhase1Msgs(){
       if(nbr_exists[i] && !nbr_isRefined[i]){
         VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
           thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i],decision);//Since Phase1Msgs are only refinement messages
+          terminator->msgSent(nbr[i]);
       }
       //just send your direction w.r.t. to the receiving neighbor
       else if(nbr_exists[i] && nbr_isRefined[i]){
@@ -1166,12 +1183,15 @@ void Advection::communicatePhase1Msgs(){
         VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
                     
                     
-          thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision);
+        thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision);
         thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision);
+        terminator->msgSent(q1);
+        terminator->msgSent(q2);
       }
       else{//send to the parent of the non-existing neighbor
         VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
-          thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision);
+        thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision);
+        terminator->msgSent(nbr[i].getParent());
       }
     }
   }
@@ -1182,6 +1202,7 @@ void Advection::communicatePhase1Msgs(){
   //If my DECISION is to stay or to REFINE, tell the parent
   if((decision == REFINE || decision == STAY) && (parent!=thisIndex)){
     thisProxy(parent).informParent(thisIndex.getChildNum(), decision);
+    terminator->msgSent(parent);
   }
 }
 
@@ -1202,14 +1223,22 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
       parentHasAlreadyMadeDecision=true;
     //tell rest of the children which are not refined
     for(int i=0 ;i<NUM_CHILDREN; i++){
-      if(i!=childNum && !child_isRefined[i])
+      if(i!=childNum && !child_isRefined[i]) {
         thisProxy(thisIndex.getChild(i)).recvParentDecision();
+        terminator->msgSent(thisIndex.getChild(i));
+      }
     }
     //now tell the neighbors that I am Not Going to Derefine
     /*for(int i=0; i<NUM_NEIGHBORS; i++){//all the neighbors must be existing as I am a Parent
       CkAssert(nbr_exists[i]);
       thisProxy(nbr[i]).recvNeighborDecision(SENDER_DIR[i]);
       }*/
+  }
+
+  // Was called as an entry method, not as a local method
+  if (dec == INV) {
+    terminator->doneSending();
+    terminator->msgProcessed();
   }
 }
 
@@ -1227,8 +1256,10 @@ void Advection::recvParentDecision(){
       hasCommunicatedSTAY=true;
       communicatePhase1Msgs();
     }
-
   }
+
+  terminator->doneSending();
+  terminator->msgProcessed();
 }
 
 /*void Advection::recvNeighborDecision(DIR dir){
@@ -1274,13 +1305,13 @@ void Advection::recvParentDecision(){
 
 void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are either REFINE or STAY messages
   VB(logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; );
-    if(!hasReset){
-      hasReset=true;
-      resetMeshRestructureData();
-    }
+  if(!hasReset){
+    hasReset=true;
+    resetMeshRestructureData();
+  }
   if(nbr_decision[dir]!=REFINE){
     VB(logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;);
-      nbr_decision[dir]=dec;
+    nbr_decision[dir]=dec;
   }
 
     
@@ -1316,6 +1347,9 @@ void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are eithe
       }
     }
   }
+
+  terminator->msgProcessed();
+  terminator->doneSending();
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)
@@ -1348,6 +1382,7 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+  cout <<  " starting phase 2" << std::endl;
   hasReceived.clear();//clear it up to track the ghosts layered required for restructure
   for(int i=0; i<NUM_NEIGHBORS; i++)
     nbr_dataSent[i]=false;
@@ -1682,10 +1717,13 @@ void Advection::refine(){
   VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
 
-Advection::Advection(InitRefineMsg* msg){
+Advection::Advection(InitRefineMsg* msg)
+  : AdvTerm(thisProxy, thisIndex, true)
+{
+  ckout << thisIndex.getIndexString() << " created 2" << endl;
   __sdag_init();
   usesAtSync=CmiTrue;
-
+  contribute(CkCallback(CkIndex_Advection::doPhase2(), thisProxy));
   has_terminated=false;
 
   char fname[100];

@@ -111,8 +111,10 @@ inline const char* map_child(int child){
 
 class ChildDataMsg;
 
+typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;
+
 class Advection: public CBase_Advection,
-  public TerminationChare<CProxy_Advection, QuadIndex> {
+  public AdvTerm {
 Advection_SDAG_CODE
     public:
         
@@ -182,8 +184,12 @@ Advection_SDAG_CODE
         /*Constructors*/
         Advection(double, double, double, double);
         Advection(InitRefineMsg*);
-        Advection(){advection();}
-        Advection(CkMigrateMessage* m) {__sdag_init();}
+  Advection() : AdvTerm(thisProxy, thisIndex, true) {advection(); 
+      ckout << thisIndex.getIndexString() << " created 3" << endl;
+  }
+  Advection(CkMigrateMessage* m) : AdvTerm(thisProxy, thisIndex, true) {__sdag_init();
+  ckout << thisIndex.getIndexString() << " created 4" << endl;
+}
         
         void advection();// common function for initialization
 
@@ -216,6 +222,7 @@ Advection_SDAG_CODE
         //void recvNeighborDecision(DIR);
         //void recvStatusUpdateFromParent(int);
         void exchangePhase1Msg(int, DECISION);
+  void phase1Done();
 
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
@@ -235,7 +242,7 @@ Advection_SDAG_CODE
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);
 
-        void rootTerminated() { }
+  void rootTerminated();
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{

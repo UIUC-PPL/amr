@@ -16,4 +16,5 @@ class Main:public CBase_Main{
         void printTreeInformation(CkVec<QuadIndex>);
         void initUtils();
         void terminate();
+        void startRunning();
 };

@@ -148,19 +148,14 @@ Main:: Main(CkArgMsg* m){
     qindex = *new QuadIndex(str);
     qtree[qindex].insert(xmin, xmax, ymin, ymax);
   }
-  qtree[qindex].doneInserting();
+  qtree.doneInserting();
+  //CkStartQD(CkCallback(CkCallback::ckExit));
+  CkStartQD(CkCallback(CkIndex_Main::startRunning(), thisProxy));
 
   //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
-  CkCallback *cb = new CkCallback(CkCallback::ckExit);
+  CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
   qtree.ckSetReductionClient(cb);//sets the default callback for the array
 
-  for(int i=0; i < num_chares; i++){
-    char* str = decimal_to_binary_string(i, 2*depth);
-    qindex = *new QuadIndex(str);
-    qtree[qindex].doStep();
-  }
-     
-  double start_time = CmiWallTimer();
   //CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
   /*queue<QuadIndex> q;
     q.push("");
@@ -200,6 +195,19 @@ Main:: Main(CkArgMsg* m){
     qtree[qindex].doStep();
     }*/
   /*qtree[qindex].doStep();*/
+}
+
+void Main::startRunning() {
+  qtree.doStep();
+
+#if 0
+  QuadIndex qindex;
+  for(int i=0; i < num_chares; i++){
+    char* str = decimal_to_binary_string(i, 2*min_depth);
+    qindex = QuadIndex(str);
+    qtree[qindex].doStep();
+  }
+#endif
 }
 
 void Main::terminate(){

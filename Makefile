@@ -25,7 +25,7 @@ QuadIndex.o:
 Main.o: Main.decl.h
 
 test: advection
-	./charmrun ./$< +p4 10 10 10
+	./charmrun ++local ./$< +p4 64 4 12
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun

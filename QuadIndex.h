@@ -76,6 +76,13 @@ public:
 
     DIR getSiblingDirection(QuadIndex) const;
     void getSiblingInDirection(DIR, int&, int&) const;
+
+    bool operator<(const QuadIndex& rhs) const {
+      if (nbits < rhs.nbits) return true;
+      if (nbits > rhs.nbits) return false;
+      if (bitVector < rhs.bitVector) return true;
+      return false;
+    }
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {

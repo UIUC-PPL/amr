@@ -36,6 +36,7 @@ mainmodule Main{
     entry Main(CkArgMsg *m);
     entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
+    entry void startRunning();
   };
 
   extern module Advection;
@@ -88,9 +89,12 @@ module Advection{
     entry void exchangePhase1Msg(int, DECISION);
     entry void doMeshRestructure();
     entry void done();
+    entry void startStep();
     entry void doStep(){
+      atomic { contribute(); }
+      when startStep()
       atomic "begin iteration"{
-        //ckout << "doStep called on " << thisIndex.getIndexString() << endl; 
+        ckout << "doStep called on " << thisIndex.getIndexString() << endl;
         begin_iteration();
       }
       for(imsg = 0; imsg < 4;) {
@@ -107,6 +111,7 @@ module Advection{
         compute_and_iterate();
       }
     };
+    entry void phase1Done();
             
     entry void getGhostsAndRefine(){
       /*atomic "initialize imsg"{

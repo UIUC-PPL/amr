@@ -94,6 +94,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   ckout << thisIndex.getIndexString() << " created" << endl;
 //Constructor for the Initial Grid Zones
   __sdag_init();
+
   usesAtSync = CmiTrue;
 
   has_terminated=false;
@@ -103,7 +104,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
     
     //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
-    CBase_Advection();
   this->exists = true;
   this->isRefined = false;
     
@@ -891,7 +891,7 @@ void Advection::iterate() {
   if(iterations==max_iterations){
     ckout << thisIndex.getIndexString() << " now terminating" << endl;
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-    CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
+    contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
     //contribute();
     //if(thisIndex.getDepth()!=min_depth)
     //  thisProxy(thisIndex.getParent()).done();
@@ -1734,7 +1734,6 @@ Advection::Advection(InitRefineMsg* msg)
 
 //Called as a result of refinement of parent
   VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);
-    CBase_Advection();
   this->exists = true;
   this->isRefined = false;
 

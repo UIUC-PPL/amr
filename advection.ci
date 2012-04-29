@@ -89,10 +89,7 @@ module Advection{
     entry void exchangePhase1Msg(int, DECISION);
     entry void doMeshRestructure();
     entry void done();
-    entry void startStep();
     entry void doStep(){
-      atomic { contribute(); }
-      when startStep()
       atomic "begin iteration"{
         ckout << "doStep called on " << thisIndex.getIndexString() << endl;
         begin_iteration();
@@ -134,7 +131,7 @@ module Advection{
       }
       atomic "refine"{
         VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;);
-          refine();
+        refine();
       }
     };
     //happens in doPhase2()

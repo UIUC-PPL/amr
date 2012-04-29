@@ -149,12 +149,12 @@ Main:: Main(CkArgMsg* m){
     qtree[qindex].insert(xmin, xmax, ymin, ymax);
   }
   qtree.doneInserting();
-  //CkStartQD(CkCallback(CkCallback::ckExit));
+
   CkStartQD(CkCallback(CkIndex_Main::startRunning(), thisProxy));
 
   //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
-  CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
-  qtree.ckSetReductionClient(cb);//sets the default callback for the array
+  //CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
+  //qtree.ckSetReductionClient(cb);//sets the default callback for the array
 
   //CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
   /*queue<QuadIndex> q;
@@ -198,20 +198,13 @@ Main:: Main(CkArgMsg* m){
 }
 
 void Main::startRunning() {
+  //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+  start_time = CkWallTimer();
   qtree.doStep();
-
-#if 0
-  QuadIndex qindex;
-  for(int i=0; i < num_chares; i++){
-    char* str = decimal_to_binary_string(i, 2*min_depth);
-    qindex = QuadIndex(str);
-    qtree[qindex].doStep();
-  }
-#endif
 }
 
 void Main::terminate(){
-  ckout << "simulation time: " << CmiWallTimer() - start_time << " s" << endl;
+  ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
   CkExit();
 }
 

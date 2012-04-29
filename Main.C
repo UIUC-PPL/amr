@@ -30,7 +30,7 @@ int block_height;
 int block_width;
 
 int min_depth, max_depth;
-int max_iterations;
+int max_iterations, refine_frequency;
 
 
 #define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
@@ -71,7 +71,7 @@ char* decimal_to_binary_string(int num, int len){
 
 double start_time, end_time;
 
-Main:: Main(CkArgMsg* m){
+Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
   initUtils();
@@ -110,6 +110,7 @@ Main:: Main(CkArgMsg* m){
   io_tnext = 0;
   nframe = 20;
   io_tout = tmax/nframe;
+  refine_frequency = 5;
 
   //call colormap
   dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;

@@ -31,6 +31,7 @@ mainmodule Main{
   readonly map<DIR, DIR> reverse_dir_map;
 
   readonly int max_iterations;
+  readonly int refine_frequency;
 
   mainchare Main{
     entry Main(CkArgMsg *m);

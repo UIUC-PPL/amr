@@ -97,9 +97,7 @@ module Advection{
 
     entry void rootTerminated();
     entry void startRemesh() {
-      if (!hasInitiatedPhase1) {
         atomic "doMeshRestructure" {
-          hasInitiatedPhase1 = true;
           //CkPrintf("%s in phase 1a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           doMeshRestructure();
           terminator->doneSending();
@@ -114,16 +112,10 @@ module Advection{
           resetTerminator(true);
           doPhase2();
         }
-      }
-      else atomic {
-        CkPrintf("%s repeat startRemesh iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-        terminator->msgProcessed();
-      }
     };
     // Separated for newly created chares from refinement
     entry  [reductiontarget] void phase2Done() {
       atomic {
-        hasInitiatedPhase1=false;
         //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
         //fflush(stdout);
         if (shouldDestroy) thisProxy[thisIndex].ckDestroy();
@@ -133,8 +125,8 @@ module Advection{
           } else {
             iterations += refine_frequency;
             //CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-            contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-            //startRemesh();
+            //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+            startRemesh();
           }
         }
       }

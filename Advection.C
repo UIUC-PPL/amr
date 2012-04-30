@@ -958,9 +958,8 @@ void Advection::iterate() {
         everyone wants to derefine, nobody wants to do anything */
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
 //      CkPrintf("%s in long phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-      hasInitiatedPhase1 = false;
-      contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-      //startRemesh();
+      //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+      startRemesh();
     }
     else {
       doStep();

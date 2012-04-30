@@ -996,13 +996,13 @@ DECISION Advection::getGranularityDecision(){
     return REFINE;
     else return STAY;*/
     
-  /*if(xc <= 0.10){
+  if(xc <= 0.10){
     return REFINE;
     }
     else if (xc <= 0.66 || thisIndex.getDepth()==min_depth){
     return STAY;
     }
-    else return DEREFINE;*/
+    else return DEREFINE;
 
   for(int j=1; j<=block_height; j++)
     for(int i=1; i<=block_width; i++){

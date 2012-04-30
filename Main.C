@@ -134,7 +134,10 @@ Main::Main(CkArgMsg* m){
   CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
            CkNumPes(), array_width, array_height);
 
-  qtree = CProxy_Advection::ckNew();
+  CProxy_AdvMap map = CProxy_AdvMap::ckNew();
+  CkArrayOptions opts;
+  opts.setMap(map);
+  qtree = CProxy_Advection::ckNew(opts);
 
   //save the total number of worker chares we have in this simulation
   num_chares = num_chare_rows*num_chare_cols;
@@ -237,4 +240,17 @@ void Main::printTreeInformation(CkVec<QuadIndex> list){
     qtree[qindex].printState();
   }   
 }
+
+
+struct AdvMap : public CBase_AdvMap
+{
+  AdvMap() { }
+
+  int procNum(int arrayHdl, const CkArrayIndex& i) {
+    const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());
+    return (idx.bitVector >> (sizeof(unsigned int)*8 - idx.nbits)) % CkNumPes();
+  }
+};
+
+
 #include "Main.def.h"

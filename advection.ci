@@ -41,6 +41,10 @@ mainmodule Main{
     entry [reductiontarget] void kickPhase2();
   };
 
+  group AdvMap : CkArrayMap {
+    entry void AdvMap();
+  };
+
   extern module Advection;
 };
 

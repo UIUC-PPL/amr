@@ -1614,7 +1614,6 @@ void Advection::doPhase2(){
   if (decision != REFINE) {
     //CkPrintf("%s nonrefine phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
     //    fflush(stdout);
-    thisProxy[thisIndex].startPhase2();
     contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
   } else {
     //CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
@@ -1803,7 +1802,6 @@ void Advection::refine(){
   // terminator->msgSent(child11);
   //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);
-  thisProxy[thisIndex].startPhase2();
   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
 
   //delete [] refined_u;
@@ -1936,8 +1934,6 @@ Advection::Advection(InitRefineMsg* msg)
   delete msg;
 
   //terminator->msgProcessed();
-
-  thisProxy[thisIndex].startPhase2();
 
   //CkPrintf("%s child phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);

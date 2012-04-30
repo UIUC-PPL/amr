@@ -202,7 +202,7 @@ Main::Main(CkArgMsg* m){
 }
 
 void Main::startRunning() {
-  CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+  //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
   start_time = CkWallTimer();
   qtree.doStep();
 }

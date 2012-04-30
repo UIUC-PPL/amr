@@ -98,7 +98,7 @@ module Advection{
     entry void rootTerminated();
     entry void startRemesh() {
       if (!hasInitiatedPhase1) {
-        atomic "foo" {
+        atomic "doMeshRestructure" {
           hasInitiatedPhase1 = true;
           //CkPrintf("%s in phase 1a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           doMeshRestructure();

@@ -145,7 +145,7 @@ Main::Main(CkArgMsg* m){
   QuadIndex qindex;
   for(int i=0; i < num_chares; i++){
     char* str = decimal_to_binary_string(i, 2*depth);
-    ckout << str << endl;
+    //ckout << str << endl;
     qindex = QuadIndex(str);
     qtree[qindex].insert(xmin, xmax, ymin, ymax);
   }
@@ -205,7 +205,7 @@ void Main::startRunning() {
 }
 
 void Main::kickPhase2() {
-  CkPrintf("Main kicking phase 2 done\n");
+  //CkPrintf("Main kicking phase 2 done\n");
   fflush(stdout);
   qtree.phase2Done();
 }

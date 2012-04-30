@@ -91,7 +91,7 @@ void Advection::mem_allocate_all(){
 Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   : AdvTerm(thisProxy, thisIndex, true)
 {
-  ckout << thisIndex.getIndexString().c_str() << " created" << endl;
+  //ckout << thisIndex.getIndexString().c_str() << " created" << endl;
 //Constructor for the Initial Grid Zones
   __sdag_init();
 
@@ -961,7 +961,7 @@ void Advection::iterate() {
         extreme cases - like everyone wants to refine, 
         everyone wants to derefine, nobody wants to do anything */
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      CkPrintf("%s in long phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+//      CkPrintf("%s in long phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
       hasInitiatedPhase1 = false;
       contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
       //startRemesh();
@@ -1151,7 +1151,7 @@ void Advection::resetMeshRestructureData(){
 }
 
 void Advection::doMeshRestructure(){
-  CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
+  //CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
 
   if(!hasReset){
     hasReset=true;
@@ -1171,7 +1171,7 @@ void Advection::doMeshRestructure(){
       if(dec==STAY || dec==REFINE)
         decision=dec;
     }
-    ckout << thisIndex.getIndexString().c_str() << " decision = " << decision << ", iteration = " << iterations << endl;
+    //ckout << thisIndex.getIndexString().c_str() << " decision = " << decision << ", iteration = " << iterations << endl;
     //initiate Phase1 of the computation
     if(decision==REFINE && !hasCommunicatedREFINE){
       hasCommunicatedREFINE=true;
@@ -1186,17 +1186,17 @@ void Advection::doMeshRestructure(){
     // number of unrefined children are informing the parent about the
     // start of the restructure phase while only one of them need to do so
     if(parent!=thisIndex) {
-      CkPrintf("%s -> %s startRemesh %d\n", thisIndex.getIndexString().c_str(),
-               parent.getIndexString().c_str(), iterations);
+      //CkPrintf("%s -> %s startRemesh %d\n", thisIndex.getIndexString().c_str(),
+      //parent.getIndexString().c_str(), iterations);
       //thisProxy(parent).startRemesh();
       //terminator->msgSent(parent);
     }
   }
   else if(isGrandParent && !parentHasAlreadyMadeDecision){
-    CkPrintf("%s was a grandparent %d\n", thisIndex.getIndexString().c_str(), iterations);
+    //CkPrintf("%s was a grandparent %d\n", thisIndex.getIndexString().c_str(), iterations);
     informParent(-1, INV);
   } else {
-    CkPrintf("%s was a parent %d\n", thisIndex.getIndexString().c_str(), iterations);
+    //CkPrintf("%s was a parent %d\n", thisIndex.getIndexString().c_str(), iterations);
     //thisProxy[thisIndex].startRemesh();
   }
 }
@@ -1437,7 +1437,7 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
-  cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
+  //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   hasReceived.clear();//clear it up to track the ghosts layered required for restructure
   for(int i=0; i<NUM_NEIGHBORS; i++)
     nbr_dataSent[i]=false;
@@ -1530,7 +1530,7 @@ void Advection::doPhase2(){
       }
   }
 
-  CkPrintf("%s middle of phase 2 %d\n", thisIndex.getIndexString().c_str(), iterations);
+  //CkPrintf("%s middle of phase 2 %d\n", thisIndex.getIndexString().c_str(), iterations);
 
   if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
     //Get Data From the Children and extrapolate it
@@ -1617,12 +1617,12 @@ void Advection::doPhase2(){
   hasReset=false;
 
   if (decision != REFINE) {
-    CkPrintf("%s nonrefine phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-        fflush(stdout);
+    //CkPrintf("%s nonrefine phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+    //    fflush(stdout);
     thisProxy[thisIndex].startPhase2();
     contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
   } else {
-    CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
+    //CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
   }  
 }
 
@@ -1806,8 +1806,8 @@ void Advection::refine(){
   // terminator->msgSent(child01);
   // terminator->msgSent(child10);
   // terminator->msgSent(child11);
-  CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-  fflush(stdout);
+  //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+  //fflush(stdout);
   thisProxy[thisIndex].startPhase2();
   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
 
@@ -1818,7 +1818,7 @@ void Advection::refine(){
 Advection::Advection(InitRefineMsg* msg)
   : AdvTerm(thisProxy, thisIndex, true), CBase_Advection()
 {
-  ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
+  //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
   isActive = true;
   hasReset = false;
@@ -1944,8 +1944,8 @@ Advection::Advection(InitRefineMsg* msg)
 
   thisProxy[thisIndex].startPhase2();
 
-  CkPrintf("%s child phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-  fflush(stdout);
+  //CkPrintf("%s child phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+  //fflush(stdout);
 
   //call Quiesence detection to begin next iteration*/
   //CkStartQD(CkIndex_Advection::doStep(), &thishandle);

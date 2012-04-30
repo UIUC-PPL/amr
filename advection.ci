@@ -99,17 +99,17 @@ module Advection{
       if (!hasInitiatedPhase1) {
         atomic "foo" {
           hasInitiatedPhase1 = true;
-          CkPrintf("%s in phase 1a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          //CkPrintf("%s in phase 1a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           doMeshRestructure();
           terminator->doneSending();
           terminator->msgProcessed();
         }
         when rootTerminated() atomic {
-          CkPrintf("%s in phase 1b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          //CkPrintf("%s in phase 1b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           contribute(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
         }
         when phase1Done() atomic {
-          CkPrintf("%s in phase 2a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          //CkPrintf("%s in phase 2a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           doPhase2();
         }
       }
@@ -121,7 +121,7 @@ module Advection{
     // Separated for newly created chares from refinement
     entry void startPhase2() {
       atomic {
-        CkPrintf("%s in phase 2d iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        //CkPrintf("%s in phase 2d iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
         fflush(stdout);
         //contribute(CkCallback(CkReductionTarget(Main, kickPhase2), mainProxy));
         //contribute(CkCallback(CkIndex_Advection::phase2Done(NULL), thisProxy));
@@ -129,15 +129,15 @@ module Advection{
       when phase2Done() atomic {
         resetTerminator(true);
         hasInitiatedPhase1=false;
-        CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
         fflush(stdout);
         if (shouldDestroy) thisProxy[thisIndex].ckDestroy();
         else {
           if (!isRefined) {
             thisProxy[thisIndex].doStep();
           } else {
-            iterations += 5;//refine_frequency;
-            CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+            iterations += refine_frequency;
+            //CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
             contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
             //startRemesh();
           }
@@ -147,7 +147,7 @@ module Advection{
 
     entry void doStep(){
       atomic "begin iteration"{
-        ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
+        //ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
         iterations++;
         begin_iteration();
       }
@@ -183,14 +183,14 @@ module Advection{
                                         QuadIndex sender, int tag) atomic "save ghosts" {
           process(iter, dir, width, u1);
           sendReadyData2RefiningNeighbors();
-          cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
-                << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << "\n";
+          //cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
+          //<< " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << "\n";
           //terminator->doneSending();
           //terminator->msgProcessed();
         }
       }
       atomic "refine"{
-        cout << thisIndex.getIndexString() << " now refining\n";
+        //cout << thisIndex.getIndexString() << " now refining\n";
         refine();
         //terminator->doneSending();
         //terminator->msgProcessed(); // For the self-message that triggered this

@@ -111,6 +111,7 @@ module Advection{
         }
         when phase1Done() atomic {
           //CkPrintf("%s in phase 2a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          resetTerminator(true);
           doPhase2();
         }
       }
@@ -122,7 +123,6 @@ module Advection{
     // Separated for newly created chares from refinement
     entry  [reductiontarget] void phase2Done() {
       atomic {
-        resetTerminator(true);
         hasInitiatedPhase1=false;
         //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
         //fflush(stdout);

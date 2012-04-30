@@ -1206,11 +1206,6 @@ void Advection::phase1DoneQD() {
   //contribute(CkCallback(CkIndex_Advection::doPhase2(), thisProxy));
 }
 
-void Advection::rootTerminated2() {
-  ckout << thisIndex.getIndexString().c_str() << " Detected termination in iteration "
-        << iterations << " phase ";
-}
-
 /***** PHASE1 FUNCTIONS****/
 void Advection::communicatePhase1Msgs(){
     

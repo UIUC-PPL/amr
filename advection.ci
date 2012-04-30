@@ -38,7 +38,6 @@ mainmodule Main{
     entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
     entry void startRunning();
-    entry [reductiontarget] void kickPhase2();
   };
 
   group AdvMap : CkArrayMap {
@@ -127,7 +126,6 @@ module Advection{
       atomic {
         //CkPrintf("%s in phase 2d iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
         fflush(stdout);
-        //contribute(CkCallback(CkReductionTarget(Main, kickPhase2), mainProxy));
         //contribute(CkCallback(CkIndex_Advection::phase2Done(NULL), thisProxy));
       }
       when phase2Done() atomic {

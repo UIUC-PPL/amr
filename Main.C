@@ -207,12 +207,6 @@ void Main::startRunning() {
   qtree.doStep();
 }
 
-void Main::kickPhase2() {
-  //CkPrintf("Main kicking phase 2 done\n");
-  fflush(stdout);
-  qtree.phase2Done();
-}
-
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
   CkExit();

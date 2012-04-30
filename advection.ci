@@ -38,6 +38,7 @@ mainmodule Main{
     entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
     entry void startRunning();
+    entry [reductiontarget] void kickPhase2();
   };
 
   extern module Advection;
@@ -88,11 +89,66 @@ module Advection{
     //entry void recvNeighborDecision(DIR);
     //entry void recvStatusUpdateFromParent(int);
     entry void exchangePhase1Msg(int, DECISION);
-    entry void doMeshRestructure();
+    //entry void doMeshRestructure();
     entry void done();
+
+    entry void rootTerminated();
+    entry [reductiontarget] void phase2Done();
+    //entry void phase2bDone();
+    entry void startRemesh() {
+      if (!hasInitiatedPhase1) {
+        atomic "foo" {
+          hasInitiatedPhase1 = true;
+          CkPrintf("%s in phase 1a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          doMeshRestructure();
+          terminator->doneSending();
+          terminator->msgProcessed();
+        }
+        when rootTerminated() atomic {
+          CkPrintf("%s in phase 1b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          contribute(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
+        }
+        when phase1Done() atomic {
+          CkPrintf("%s in phase 2a iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+          doPhase2();
+        }
+      }
+      else atomic {
+          CkPrintf("%s repeat startRemesh iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        terminator->msgProcessed();
+      }
+    };
+    // Separated for newly created chares from refinement
+    entry void startPhase2() {
+      atomic {
+        CkPrintf("%s in phase 2d iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        fflush(stdout);
+        //contribute(CkCallback(CkReductionTarget(Main, kickPhase2), mainProxy));
+        //contribute(CkCallback(CkIndex_Advection::phase2Done(NULL), thisProxy));
+      }
+      when phase2Done() atomic {
+        resetTerminator(true);
+        hasInitiatedPhase1=false;
+        CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        fflush(stdout);
+        if (shouldDestroy) thisProxy[thisIndex].ckDestroy();
+        else {
+          if (!isRefined) {
+            thisProxy[thisIndex].doStep();
+          } else {
+            iterations += 5;//refine_frequency;
+            CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+            contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+            //startRemesh();
+          }
+        }
+      }
+    };
+
     entry void doStep(){
       atomic "begin iteration"{
-        ckout << "doStep called on " << thisIndex.getIndexString() << endl;
+        ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
+        iterations++;
         begin_iteration();
       }
       for(imsg = 0; imsg < 4;) {
@@ -107,6 +163,7 @@ module Advection{
       }
       atomic "doWork" {
         compute_and_iterate();
+        iterate();
       }
     };
     entry void phase1Done();
@@ -126,25 +183,32 @@ module Advection{
                                         QuadIndex sender, int tag) atomic "save ghosts" {
           process(iter, dir, width, u1);
           sendReadyData2RefiningNeighbors();
-          VB(logFile << "In getGHostsAndRefine: " << thisIndex.getIndexString()
-             << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << std::endl;);
-            }
+          cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
+                << " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << "\n";
+          //terminator->doneSending();
+          //terminator->msgProcessed();
+        }
       }
       atomic "refine"{
-        VB(logFile << thisIndex.getIndexString() << " now refining " << std::endl;);
+        cout << thisIndex.getIndexString() << " now refining\n";
         refine();
+        //terminator->doneSending();
+        //terminator->msgProcessed(); // For the self-message that triggered this
       }
     };
     //happens in doPhase2()
     entry void receiveRefGhosts(int ,int, int width, double u[width]);
     entry void getAndSendGhost(){
       atomic{
-        VB(logFile << "getAndSendGhost called" << endl;);
-          }
+        VB(logFile << "getAndSendGhost called" << endl;); 
+        //terminator->msgProcessed(); // For the self-message that triggered this
+      }
       when receiveRefGhosts[iterations] (int iter, int dir, int width,
                                          double u1[width]) atomic "interpolate and send"{
         process(iter, dir, width, u1);
         sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
+        //terminator->doneSending();
+        //terminator->msgProcessed();
       }
     };
 

@@ -162,13 +162,17 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
 }
     
     // returns the Index String
-char* QuadIndex::getIndexString() const{
-    char* str = new char[nbits+1];
-    int i;
-    for(i=0; i<nbits; i++){
-        str[i] = (bitVector & (1<<(bits_per_int - 1 - i)))>0?49:48;
+string QuadIndex::getIndexString() const{
+  //char* str = new char[nbits+1];
+  //int i;
+    string str;
+
+    CkAssert(bitVector != 548329052);
+    CkAssert(nbits != 548329052);
+    for(int i=0; i<nbits; i++){
+        str += (bitVector & (1<<(bits_per_int - 1 - i)))>0?49:48;
     }
-    str[i]='\0';
+    //str[i]='\0';
     return str;
 }
     
@@ -213,21 +217,16 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
 }
     
 QuadIndex QuadIndex::getParent() const{
-    char* myIndexString = new char[nbits+1];
-    memcpy(myIndexString, getIndexString(), nbits);
-    myIndexString[nbits-2]='\0';//Make it a parent Index String
-    char* parentIndex = myIndexString;
+    string myIndexString = getIndexString();
+    myIndexString.resize(nbits-2);
 
-    return *new QuadIndex(parentIndex);
+    return QuadIndex(myIndexString.c_str());
 }
 
 QuadIndex QuadIndex::getChild(const char* child_num) const{
-    char* str = new char[nbits+3];
-    str[nbits+2]='\0';
-    memcpy(str, getIndexString(), nbits);
-    str[nbits]='\0';
-    strcat(str, child_num);
-    return *new QuadIndex(str);
+  string str = getIndexString();
+  str += child_num;
+  return QuadIndex(str.c_str());
 }
     
 QuadIndex QuadIndex::getChild(int idx) const{
@@ -261,22 +260,20 @@ int QuadIndex::getChildNum() const{
 }
 
 char* QuadIndex::getQuadC() const{
-    char* index = getIndexString();
+    string index = getIndexString();
     char* quad = new char[3];
-    int len = strlen(index);
-    memcpy(quad, index + len -2, 2);
+    quad[0] = index[index.size()-2];
+    quad[1] = index[index.size()-1];
     quad[2] = 0;
-    delete [] index;
     return quad;
 }
 
 int QuadIndex::getQuadI() const{
-    char* index = getIndexString();
-    char* quad = new char[3];
-    int len = strlen(index);
-    memcpy(quad, index + len -2, 2);
+    string index = getIndexString();
+    char quad[3];
+    quad[0] = index[index.size()-2];
+    quad[1] = index[index.size()-1];
     quad[2] = 0;
-    delete [] index;
     if(strcmp(quad, "00")==0) return 0;
     else if(strcmp(quad, "01")==0)return 1;
     else if(strcmp(quad, "10")==0)return 2;

@@ -146,7 +146,7 @@ Main::Main(CkArgMsg* m){
   for(int i=0; i < num_chares; i++){
     char* str = decimal_to_binary_string(i, 2*depth);
     ckout << str << endl;
-    qindex = *new QuadIndex(str);
+    qindex = QuadIndex(str);
     qtree[qindex].insert(xmin, xmax, ymin, ymax);
   }
   qtree.doneInserting();
@@ -199,9 +199,15 @@ Main::Main(CkArgMsg* m){
 }
 
 void Main::startRunning() {
-  //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+  CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
   start_time = CkWallTimer();
   qtree.doStep();
+}
+
+void Main::kickPhase2() {
+  CkPrintf("Main kicking phase 2 done\n");
+  fflush(stdout);
+  qtree.phase2Done();
 }
 
 void Main::terminate(){

@@ -17,4 +17,5 @@ class Main:public CBase_Main{
         void initUtils();
         void terminate();
         void startRunning();
+        void kickPhase2();
 };

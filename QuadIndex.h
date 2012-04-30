@@ -1,3 +1,4 @@
+#include <string>
 
 const int bits_per_int = 8*sizeof(int);
 
@@ -45,14 +46,14 @@ public:
     }
     
     bool operator ==(QuadIndex qidx) const{
-        if(nbits==qidx.nbits && strcmp(getIndexString(), qidx.getIndexString())==0)
+        if(nbits==qidx.nbits && getIndexString() == qidx.getIndexString())
             return true;
         return false;
     }
 
     void getCoordinates(int&, int&)const;
     void getPhysicalCoordinates(int &x, int &y) const;
-    char* getIndexString() const;
+    std::string getIndexString() const;
     inline int getDepth() const{
         return nbits/2;
     }

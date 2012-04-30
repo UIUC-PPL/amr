@@ -66,29 +66,28 @@ int inline getNbrDir(int quad, int dir){
 }
 
 inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
-    char* str = new char[1000];
-    strcpy(str, myIndex.getIndexString());
+  string str = myIndex.getIndexString();
+  string q1str = str, q2str = str;
+
     if(dir==LEFT){
-        q1 = *new QuadIndex(strcat(str, "01"));
-        strcpy(str, myIndex.getIndexString());
-        q2 = *new QuadIndex(strcat(str, "10"));
+        q1str += "01";
+        q2str += "10";
     }
     else if(dir==RIGHT){
-        q1 = *new QuadIndex(strcat(str, "00"));
-        strcpy(str, myIndex.getIndexString());
-        q2 = *new QuadIndex(strcat(str, "11"));
+        q1str += "00";
+        q2str += "11";
     }
     else if(dir==UP){
-        q1 = *new QuadIndex(strcat(str, "01"));
-        strcpy(str, myIndex.getIndexString());
-        q2 = *new QuadIndex(strcat(str, "00"));
+        q1str += "01";
+        q2str += "00";
     }
     else if(dir==DOWN){
-        q1 = *new QuadIndex(strcat(str, "10"));
-        strcpy(str, myIndex.getIndexString());
-        q2 = *new QuadIndex(strcat(str, "11"));
+        q1str += "10";
+        q2str += "11";
     }
-    delete [] str;
+
+    q1 = QuadIndex(q1str.c_str());
+    q2 = QuadIndex(q2str.c_str());
     return;
 }
 
@@ -167,7 +166,8 @@ Advection_SDAG_CODE
         double *top_edge;
         double *bottom_edge;
 
-        int iterations;
+        int iterations, cycle;
+        bool isActive, shouldDestroy;
         
         double up;
         double un;
@@ -177,6 +177,7 @@ Advection_SDAG_CODE
 
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
+        QuadIndex getRefinedNeighbor(int NBR);
 
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
@@ -185,10 +186,10 @@ Advection_SDAG_CODE
         Advection(double, double, double, double);
         Advection(InitRefineMsg*);
   Advection() : AdvTerm(thisProxy, thisIndex, true) {advection(); 
-      ckout << thisIndex.getIndexString() << " created 3" << endl;
+          ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
   }
   Advection(CkMigrateMessage* m) : AdvTerm(thisProxy, thisIndex, true) {__sdag_init();
-  ckout << thisIndex.getIndexString() << " created 4" << endl;
+  ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
 }
         
         void advection();// common function for initialization
@@ -222,13 +223,15 @@ Advection_SDAG_CODE
         //void recvNeighborDecision(DIR);
         //void recvStatusUpdateFromParent(int);
         void exchangePhase1Msg(int, DECISION);
-  void phase1Done();
+        void phase1DoneQD();
 
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
         void sendReadyData();
         void sendReadyData2RefiningNeighbors();
-        void sendGhost(int,bool);
+        // Returns whether a message was sent
+        bool sendGhost(int,bool);
+        QuadIndex lastSent;
         void doPhase2();
 
         void recvChildData(ChildDataMsg*);
@@ -242,7 +245,7 @@ Advection_SDAG_CODE
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);
 
-  void rootTerminated();
+        void rootTerminated2();
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{

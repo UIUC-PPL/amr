@@ -945,10 +945,6 @@ void Advection::iterate() {
     return;
   }
 
-  CkAssert(myt != 548353288);
-  CkAssert(mydt != 548353288);
-  CkAssert(tmax != 548353288);
-
   myt = myt+mydt;
   if(myt < tmax){
     mydt = min(dx,dy)/v * cfl;
@@ -1271,8 +1267,6 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
       parentHasAlreadyMadeDecision=true;
     //tell rest of the children which are not refined
     for(int i=0 ;i<NUM_CHILDREN; i++){
-      CkAssert(childNum != 4327895);
-      CkAssert(child_isRefined[i] != 4327895);
       if(i!=childNum && !child_isRefined[i]) {
         thisProxy(thisIndex.getChild(i)).recvParentDecision();
         terminator->msgSent(thisIndex.getChild(i));

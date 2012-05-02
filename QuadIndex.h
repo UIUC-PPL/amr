@@ -87,7 +87,7 @@ public:
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {
-private:
+public:
     QuadIndex *idx;
     
 public:

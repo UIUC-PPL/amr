@@ -242,6 +242,16 @@ struct AdvMap : public CBase_AdvMap
 
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());
+    unsigned long ret = CkHashFunction_default(&idx.bitVector, sizeof(idx.bitVector)) % CkNumPes();
+    srand48(idx.bitVector >> (sizeof(unsigned int)*8 - idx.nbits));
+    for (int i = 0; i < 1000; ++i) lrand48();
+
+    ret = int(drand48() * CkNumPes()) % CkNumPes();
+    //    CkPrintf("%d Asked for location of %u %s, got %lu\n", CkMyPe(), idx.bitVector, idx.getIndexString().c_str(), ret);
+
+
+      return ret;
+
     return (idx.bitVector >> (sizeof(unsigned int)*8 - idx.nbits)) % CkNumPes();
   }
 };

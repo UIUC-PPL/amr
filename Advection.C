@@ -935,8 +935,8 @@ void Advection::done(){
 }
 
 void Advection::iterate() {
-  if(iterations==max_iterations){
-    ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
+  if(iterations >= max_iterations){
+    //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
     contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
     //contribute();
@@ -1607,7 +1607,7 @@ void Advection::doPhase2(){
   if (decision != REFINE) {
     //CkPrintf("%s nonrefine phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
     //    fflush(stdout);
-    contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
+//     contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
   } else {
     //CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
   }  
@@ -1795,7 +1795,7 @@ void Advection::refine(){
   // //terminator->msgSent(child11);
   //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);
-  contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
+//   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
 
   //delete [] refined_u;
   VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;

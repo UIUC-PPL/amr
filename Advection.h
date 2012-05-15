@@ -236,7 +236,7 @@ Advection_SDAG_CODE
         void recvChildData(ChildDataMsg*);
         void interpolateAndSend(int);
         void refine();
-        void interpolate(double*, double*, int, int, int, int);
+        void interpolate(double*, vector<double>&, int, int, int, int);
         
         template<class T>
         void print_Array(T*,int,int);
@@ -258,7 +258,7 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
 
         InitRefineMsg(){};
         InitRefineMsg(double dx, double dy, double myt, double mydt, double xmin, double ymin, int iterations, 
-                        double *refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
+                        vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 
 class ChildDataMsg: public CMessage_ChildDataMsg{

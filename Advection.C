@@ -52,7 +52,7 @@ PerProcessorChare::PerProcessorChare(){
 
 InitRefineMsg::InitRefineMsg(double dx, double dy, double myt, double mydt,
                              double xmin, double  ymin, int iterations_,
-                             double *refined_u, bool *nbr_exists,
+                             vector<double>& refined_u, bool *nbr_exists,
                              bool *nbr_isRefined, DECISION *nbr_decision) {
   this->dx = dx;
   this->dy = dy;
@@ -61,7 +61,7 @@ InitRefineMsg::InitRefineMsg(double dx, double dy, double myt, double mydt,
   this->xmin = xmin;
   this->ymin = ymin;
   this->iterations = iterations_;
-  memcpy(this->refined_u, refined_u, sizeof(double)*block_height*block_width);
+  memcpy(this->refined_u, &refined_u[0], sizeof(double)*block_height*block_width);
   memcpy(this->parent_nbr_exists, nbr_exists, sizeof(bool)*NUM_NEIGHBORS);
   memcpy(this->parent_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
   memcpy(this->parent_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
@@ -1730,7 +1730,7 @@ void Advection::requestNextFrame(liveVizRequestMsg *m){
 }
 #define index_l(i,j)  (int)((j)*(block_width) + i)
 
-void Advection::interpolate(double *u, double *refined_u, int xstart, int xend, int ystart, int yend){
+void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, int xend, int ystart, int yend){
   double sx, sy;
   int m=1, n=1;
   for(int i=xstart; i<=xend; i++){
@@ -1758,7 +1758,7 @@ void Advection::refine(){
   VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
     double sx, sy, s;
   size_t sz = (block_width)*(block_height); 
-  double *refined_u = new double[sz];
+  vector<double> refined_u(sz);
 
   QuadIndex child01 = thisIndex.getChild("01"), child00 = thisIndex.getChild("00"),
     child10 = thisIndex.getChild("10"), child11 = thisIndex.getChild("11");
@@ -1793,7 +1793,6 @@ void Advection::refine(){
   //fflush(stdout);
 //   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
 
-  //delete [] refined_u;
   VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
 

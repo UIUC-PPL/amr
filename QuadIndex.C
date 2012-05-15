@@ -185,7 +185,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int range = std::pow(2.0, (double)depth);
         int yc = (y+1)%range;
         int xc = x;
-        return *new QuadIndex(xc, yc, depth);
+        return QuadIndex(xc, yc, depth);
     }
     else if(dir==DOWN){
         int x, y;
@@ -194,7 +194,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int range = std::pow(2.0, (double)depth);
         int yc = (y==0)?(range-1):y-1;
         int xc = x;
-        return *new QuadIndex(xc, yc, depth);
+        return QuadIndex(xc, yc, depth);
     }
     else if(dir==LEFT){
         int x, y;
@@ -203,7 +203,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int range = std::pow(2.0, (double)depth);
         int yc = y;
         int xc = (x==0)?(range-1):x-1;
-        return *new QuadIndex(xc, yc, depth);
+        return QuadIndex(xc, yc, depth);
     }
     else if(dir==RIGHT){
        int x, y;
@@ -212,7 +212,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
         int range = std::pow(2.0, (double)depth);
         int yc = y;
         int xc = (x+1)%range;
-        return *new QuadIndex(xc, yc, depth);
+        return QuadIndex(xc, yc, depth);
     }
 }
     

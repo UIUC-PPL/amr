@@ -120,7 +120,6 @@ Advection_SDAG_CODE
         ofstream logFile;
         ofstream outFile;
         //tree information
-        bool exists;
         bool isRefined;
         bool isGrandParent;
         int depth;

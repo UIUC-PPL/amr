@@ -106,7 +106,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
     
     //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
-  this->exists = true;
   this->isRefined = false;
     
   for(int dir=UP; dir<=RIGHT; ++dir)
@@ -247,7 +246,6 @@ void Advection::pup(PUP::er &p){
     CBase_Advection::pup(p);
   __sdag_pup(p);
 
-  p|exists;
   p|isRefined;
   for(int i=0; i<NUM_NEIGHBORS; i++){
     p|nbr_exists[i];
@@ -1821,7 +1819,6 @@ Advection::Advection(InitRefineMsg* msg)
 
 //Called as a result of refinement of parent
   VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);
-  this->exists = true;
   this->isRefined = false;
 
   for(int dir=UP; dir<=RIGHT; ++dir)

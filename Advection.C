@@ -126,8 +126,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
     nbr_dataSent[i]=false;
   }
     
-  hasReceived = *new set<int>();
-    
   int xc, yc;
   thisIndex.getCoordinates(xc, yc);
 
@@ -1875,7 +1873,6 @@ Advection::Advection(InitRefineMsg* msg)
   }
 
   //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
-  hasReceived = *new set<int>();
   hasReset=false;
   dx = msg->dx;
   dy = msg->dy;

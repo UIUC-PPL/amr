@@ -311,24 +311,22 @@ bool Advection::sendGhost(int dir, bool which=0){
   if(nbr_exists[dir] && !nbr_isRefined[dir]){
     int val = rand();
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;);
-      if(dir==LEFT){
-        thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], block_height, left_edge, thisIndex, val);
-      }
-      else if(dir==RIGHT){
-        thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], block_height, right_edge, thisIndex, val);
-      }
-      else if (dir==UP){
-        thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir],  block_width, &u[index(1,1)], thisIndex, val);
-      }
-      else if(dir==DOWN){
-        thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir],  block_width, &u[index(1, block_height)], thisIndex, val);
-      }
-      else {
-        CkPrintf("noop send\n");
-        return false;
-      }
-      lastSent = nbr[dir];
-      return true;
+
+    int count;
+    double* boundary;
+    switch (dir) {
+    case LEFT:  count = block_height; boundary = left_edge;                  break;
+    case RIGHT: count = block_height; boundary = right_edge;                 break;
+    case UP:    count = block_width;  boundary = &u[index(1, 1)];            break;
+    case DOWN:  count = block_width;  boundary = &u[index(1, block_height)]; break;
+    default:
+      CkPrintf("noop send\n");
+      return false;
+    };
+    thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary,
+                                        thisIndex, val);
+    lastSent = nbr[dir];
+    return true;
   }
 
   if(!nbr_exists[dir]) {

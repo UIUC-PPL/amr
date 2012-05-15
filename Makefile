@@ -20,9 +20,9 @@ advection: $(OBJS)
 Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci
 
-Advection.o: Advection.decl.h
+Advection.o: Advection.h Advection.decl.h
 QuadIndex.o: 
-Main.o: Main.decl.h
+Main.o: Main.h Advection.h Main.decl.h
 
 test: advection
 	./charmrun ++local ./$< +p4 64 4 12

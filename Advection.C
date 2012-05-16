@@ -308,12 +308,13 @@ Advection::~Advection(){
 }
 
 bool Advection::sendGhost(int dir, bool which=0){
+  int count;
+  double* boundary;
+
   if(nbr_exists[dir] && !nbr_isRefined[dir]){
     int val = rand();
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;);
 
-    int count;
-    double* boundary;
     switch (dir) {
     case LEFT:  count = block_height; boundary = left_edge;                  break;
     case RIGHT: count = block_height; boundary = right_edge;                 break;
@@ -331,65 +332,43 @@ bool Advection::sendGhost(int dir, bool which=0){
 
   if(!nbr_exists[dir]) {
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
+    int sender_direction = map_nbr(thisIndex.getQuadI(), dir);
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
-      if(dir==LEFT) {
-        for(int j=1; j<=block_height; j+=2){
-          left_edge[j/2] = (u[index(1,j)] + u[index(2,j)] + u[index(1,j+1)] +u[index(2,j+1)])/4;
-          VB(logFile << left_edge[j/2] << "\t";);
-            }
-        VB(logFile << std::endl;);
-          if(!which)
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge, thisIndex, rand());
-          else
-            thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), LEFT), block_height/2, left_edge);
 
-          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), LEFT) << std::endl;);
-          }
-      else if(dir==RIGHT){
-        for(int j=1; j<=block_height; j+=2) {
-          right_edge[j/2] = (u[index(block_width-1,j)] + u[index(block_width,j)] + u[index(block_width-1,j+1)] +u[index(block_width, j+1)])/4;
-          VB(logFile << right_edge[j/2] << "\t";);
-            }
-        VB(logFile << std::endl;);
-        VB(logFile <<  map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;);
-          if(!which)
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge, thisIndex, rand());
-          else
-            thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), RIGHT), block_height/2, right_edge);
+    // We're sending to a less-refined neighbor, so down-sample groups
+    // of 4 points along the relevant boundary.
+    //
+    // x,  y  |  x+1,  y
+    // -------+----------
+    // x, y+1 |  x+1, y+1
+    int k, fixed_dim;
+    int *x, *y;
+    switch (dir) {
+    case LEFT: case RIGHT: count = block_height/2; x = &fixed_dim; y = &k; break;
+    case UP: case DOWN:    count = block_width/2;  y = &fixed_dim; x = &k; break;
+    default:
+      CkPrintf("noop send\n");
+      return false;
+    }
+    switch (dir) {
+    case LEFT:  boundary = left_edge;   fixed_dim = 1;                break;
+    case RIGHT: boundary = right_edge;  fixed_dim = block_width - 1;  break;
+    case UP:    boundary = top_edge;    fixed_dim = 1;                break;
+    case DOWN:  boundary = bottom_edge; fixed_dim = block_height - 1; break;
+    }
+    for (k = 1; k <= 2*count; k += 2) {
+      boundary[k/2] = (u[index(*x, *y)] + u[index(*x+1, *y)] + u[index(*x, *y+1)] + u[index(*x+1, *y+1)] )/ 4;
+      VB(logFile << boundary[j/2] << "\t";);
+    }
+    VB(logFile << std::endl;);
 
-          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), RIGHT) << std::endl;);
-          }
-      else if(dir==UP){
-        for(int i=1; i<=block_width; i+=2){
-          top_edge[i/2] = (u[index(i,1)] + u[index(i,2)] + u[index(i+1,1)] + u[index(i+1,2)])/4;
-          VB(logFile << top_edge[i/2] << "\t";);
-            }
-        VB(logFile << std::endl;);
-          if(!which)
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge, thisIndex, rand());
-          else
-            thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), UP), block_width/2, top_edge);
-          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), UP) << std::endl;);
-          }
-      else if(dir==DOWN){
-        for(int i=1; i<=block_width; i+=2){
-          bottom_edge[i/2] = (u[index(i,block_height-1)] + u[index(i,block_height)] + u[index(i+1,block_height-1)] + u[index(i+1,block_height)])/4;
-          VB(logFile << bottom_edge[i/2] << "\t";);
-            }
-        VB(logFile << std::endl;);
-          if(!which)
-            thisProxy(receiver).receiveGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge, thisIndex, rand());
-          else
-            thisProxy(receiver).receiveRefGhosts(iterations, map_nbr(thisIndex.getQuadI(), DOWN), block_width/2, bottom_edge);
+    if (which)
+      thisProxy(receiver).receiveRefGhosts(iterations, sender_direction, count, boundary);
+    else
+      thisProxy(receiver).receiveGhosts   (iterations, sender_direction, count, boundary, thisIndex, rand());
 
-          VB(logFile << ", " << map_nbr(thisIndex.getQuadI(), DOWN) << std::endl;);
-          }
-      else {
-        CkPrintf("noop send\n");
-        return false;
-      }
-       lastSent = receiver;
-      return true;
+    lastSent = receiver;
+    return true;
   }
 
   VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);

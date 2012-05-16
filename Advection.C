@@ -425,11 +425,13 @@ void Advection::process(int iter, int dir, int size, double gh[]){
       VB(logFile << gh[i] << '\t';);
         }
     VB(logFile << std::endl;);
+
+    hasReceived.insert(dir);
+
     switch(dir){
     case LEFT:
       imsg++;
       VB(logFile << "Received From Left" << std::endl;);
-        hasReceived.insert(LEFT);
       for(int i=0; i<size; i++)
         u[index(0,i+1)] = gh[i];
       //u[i+1][0] = gh[i];
@@ -438,7 +440,6 @@ void Advection::process(int iter, int dir, int size, double gh[]){
     case RIGHT:
       imsg++;
       VB(logFile << "Received From RIGHT" << std::endl;);
-        hasReceived.insert(RIGHT);
       for(int i=0; i<size; i++)
         u[index(block_width+1,i+1)] = gh[i];
       //u[i+1][block_width+1]=gh[i];
@@ -447,7 +448,6 @@ void Advection::process(int iter, int dir, int size, double gh[]){
     case UP:
       imsg++;
       VB(logFile << "Received From UP" << std::endl;);
-        hasReceived.insert(UP);
       for(int i=0; i<size; i++){
         u[index(i+1,0)] = gh[i];
         //u[block_height+1][i+1]=gh[i];
@@ -458,7 +458,6 @@ void Advection::process(int iter, int dir, int size, double gh[]){
     case DOWN:
       imsg++;
       VB(logFile << "Received From Down" << std::endl;);
-        hasReceived.insert(DOWN);
       for(int i=0; i<size; i++)
         u[index(i+1,block_height+1)] = gh[i];
       //u[0][i+1]=gh[i];
@@ -466,7 +465,6 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 
     case LEFT_UP:
       imsg+=0.5;
-      hasReceived.insert(LEFT_UP);
       for(int i=0; i<size; i++)
         u[index(0,i+1)] = gh[i];
             
@@ -474,49 +472,42 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 
     case LEFT_DOWN:
       imsg+=0.5;
-      hasReceived.insert(LEFT_DOWN);
       for(int i=0; i<size; i++)
         u[index(0,block_height/2+i+1)] = gh[i];
       break;
 
     case RIGHT_UP:
       imsg+=0.5;
-      hasReceived.insert(RIGHT_UP);
       for(int i=0; i<size; i++)
         u[index(block_width+1, i+1)]=gh[i];
       break;
 
     case RIGHT_DOWN:
       imsg+=0.5;
-      hasReceived.insert(RIGHT_DOWN);
       for(int i=0; i<size; i++)
         u[index(block_width+1, block_height/2+i+1)]=gh[i];
       break;
 
     case UP_LEFT:
       imsg+=0.5;
-      hasReceived.insert(UP_LEFT);
       for(int i=0; i<size; i++)
         u[index(i+1, 0)]=gh[i];
       break;
 
     case UP_RIGHT:
       imsg+=0.5;
-      hasReceived.insert(UP_RIGHT);
       for(int i=0; i<size; i++)
         u[index(block_width/2+i+1,0)]=gh[i];
       break;
 
     case DOWN_LEFT:
       imsg+=0.5;
-      hasReceived.insert(DOWN_LEFT);
       for(int i=0; i<size; i++)
         u[index(i+1,block_height+1)]=gh[i];
       break;
 
     case DOWN_RIGHT:
       imsg+=0.5;
-      hasReceived.insert(DOWN_RIGHT);
       for(int i=0; i<size; i++)
         u[index(block_width/2+i+1,block_height+1)]=gh[i];
       break;

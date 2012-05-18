@@ -1587,7 +1587,7 @@ void Advection::recvChildData(ChildDataMsg *msg){
         ctr++;
     }
     VB(logFile << std::endl;);
-      }
+  }
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
   int c1, c2;
@@ -1674,9 +1674,9 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
       sx = (-u[index(i-1,j)]+u[index(i+1,j)])/(2*dx);
       sy = (-u[index(i,j-1)]+u[index(i,j+1)])/(2*dy);
 
-      refined_u[index_l(2*(m-1), 2*(n-1))] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
-      refined_u[index_l(2*(m-1)+1, 2*(n-1))] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
-      refined_u[index_l(2*(m-1), 2*(n-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
+      refined_u[index_l(2*(m-1),   2*(n-1))  ] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
+      refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
+      refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
       refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx*(dx/4) + sy*(dy/4);
       n++;
     }

@@ -307,6 +307,42 @@ Advection::~Advection(){
   delete [] bottom_edge;
 }
 
+struct boundary_iterator {
+  double *u;
+  int x, y, dx, dy;
+
+  inline double downSample() {
+    return (u[index(x, y)]   + u[index(x+1, y)] +
+            u[index(x, y+1)] + u[index(x+1, y+1)]) / 4;
+  }
+  inline double& operator*() {
+    return u[index(x, y)];
+  }
+  inline boundary_iterator& operator++() {
+    x += dx;
+    y += dy;
+    return *this;
+  }
+  inline bool operator!=(const boundary_iterator& rhs) {
+    CkAssert(u == rhs.u);
+    return x != rhs.x || y != rhs.y;
+  }
+  inline bool operator==(const boundary_iterator& rhs) {
+    CkAssert(u == rhs.u);
+    return x == rhs.x && y == rhs.y;
+  }
+  inline boundary_iterator operator+(int offset) {
+    boundary_iterator ret = *this;
+    ret.x += dx * offset;
+    ret.y += dy * offset;
+    return ret;
+  }
+  boundary_iterator(double* u_, int x_, int dx_, int y_, int dy_)
+    : u(u_), x(x_), y(y_), dx(dx_), dy(dy_)
+  { }
+  boundary_iterator() {}
+};
+
 bool Advection::sendGhost(int dir, bool which=0){
   int count;
   double* boundary;
@@ -335,32 +371,25 @@ bool Advection::sendGhost(int dir, bool which=0){
     int sender_direction = map_nbr(thisIndex.getQuadI(), dir);
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
 
-    // We're sending to a less-refined neighbor, so down-sample groups
-    // of 4 points along the relevant boundary.
-    //
-    // x,  y  |  x+1,  y
-    // -------+----------
-    // x, y+1 |  x+1, y+1
-    int k, fixed_dim;
-    int *x, *y;
-    switch (dir) {
-    case LEFT: case RIGHT: count = block_height/2; x = &fixed_dim; y = &k; break;
-    case UP: case DOWN:    count = block_width/2;  y = &fixed_dim; x = &k; break;
+    boundary_iterator begin, end;
+    switch(dir) {
+    case UP:    begin = boundary_iterator(u, 1,               2, 1,                0); boundary = top_edge;    count = block_width/2; break;
+    case DOWN:  begin = boundary_iterator(u, 1,               2, block_height - 1, 0); boundary = bottom_edge; count = block_width/2; break;
+    case LEFT:  begin = boundary_iterator(u, 1,               0, 1,                2); boundary = left_edge;   count = block_height/2; break;
+    case RIGHT: begin = boundary_iterator(u, block_width - 1, 0, 1,                2); boundary = right_edge;  count = block_height/2; break;
     default:
       CkPrintf("noop send\n");
       return false;
     }
-    switch (dir) {
-    case LEFT:  boundary = left_edge;   fixed_dim = 1;                break;
-    case RIGHT: boundary = right_edge;  fixed_dim = block_width - 1;  break;
-    case UP:    boundary = top_edge;    fixed_dim = 1;                break;
-    case DOWN:  boundary = bottom_edge; fixed_dim = block_height - 1; break;
-    }
-    for (k = 1; k <= 2*count; k += 2) {
-      boundary[k/2] = (u[index(*x, *y)] + u[index(*x+1, *y)] + u[index(*x, *y+1)] + u[index(*x+1, *y+1)] )/ 4;
-      VB(logFile << boundary[j/2] << "\t";);
+    end = begin + count;
+
+    int k = 1;
+    for (; begin != end; ++k, ++begin) {
+      boundary[k] = begin.downSample();
+      VB(logFile << boundary[k] << "\t";);
     }
     VB(logFile << std::endl;);
+    CkAssert(k-1 == count);
 
     if (which)
       thisProxy(receiver).receiveRefGhosts(iterations, sender_direction, count, boundary);
@@ -418,7 +447,7 @@ void Advection::print_Array(T* array, int size, int row_size){
 #endif
 }
 
-void Advection::process(int iter, int dir, int size, double gh[]){
+void Advection::process(int iteration, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
   VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iter << ", " << iterations << std::endl;);
     for(int i=0; i<size; i++){
@@ -428,93 +457,32 @@ void Advection::process(int iter, int dir, int size, double gh[]){
 
     hasReceived.insert(dir);
 
+    boundary_iterator iter;
+
+    if (dir <= RIGHT)
+      imsg += 1;
+    else
+      imsg += 0.5;
+
     switch(dir){
-    case LEFT:
-      imsg++;
-      VB(logFile << "Received From Left" << std::endl;);
-      for(int i=0; i<size; i++)
-        u[index(0,i+1)] = gh[i];
-      //u[i+1][0] = gh[i];
-      break;
-
-    case RIGHT:
-      imsg++;
-      VB(logFile << "Received From RIGHT" << std::endl;);
-      for(int i=0; i<size; i++)
-        u[index(block_width+1,i+1)] = gh[i];
-      //u[i+1][block_width+1]=gh[i];
-      break;
-
-    case UP:
-      imsg++;
-      VB(logFile << "Received From UP" << std::endl;);
-      for(int i=0; i<size; i++){
-        u[index(i+1,0)] = gh[i];
-        //u[block_height+1][i+1]=gh[i];
-        VB(logFile << gh[i] << "\t" << std::endl;);
-          }
-      break;
-
-    case DOWN:
-      imsg++;
-      VB(logFile << "Received From Down" << std::endl;);
-      for(int i=0; i<size; i++)
-        u[index(i+1,block_height+1)] = gh[i];
-      //u[0][i+1]=gh[i];
-      break;
-
-    case LEFT_UP:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(0,i+1)] = gh[i];
-            
-      break;
-
-    case LEFT_DOWN:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(0,block_height/2+i+1)] = gh[i];
-      break;
-
-    case RIGHT_UP:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(block_width+1, i+1)]=gh[i];
-      break;
-
-    case RIGHT_DOWN:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(block_width+1, block_height/2+i+1)]=gh[i];
-      break;
-
-    case UP_LEFT:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(i+1, 0)]=gh[i];
-      break;
-
-    case UP_RIGHT:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(block_width/2+i+1,0)]=gh[i];
-      break;
-
-    case DOWN_LEFT:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(i+1,block_height+1)]=gh[i];
-      break;
-
-    case DOWN_RIGHT:
-      imsg+=0.5;
-      for(int i=0; i<size; i++)
-        u[index(block_width/2+i+1,block_height+1)]=gh[i];
-      break;
-
+    case UP:         iter = boundary_iterator(u, 1,                 1, 0,                  0); break;
+    case UP_LEFT:    iter = boundary_iterator(u, 1,                 1, 0,                  0); break;
+    case UP_RIGHT:   iter = boundary_iterator(u, block_width/2 + 1, 1, 0,                  0); break;
+    case DOWN:       iter = boundary_iterator(u, 1,                 1, block_height   + 1, 0); break;
+    case DOWN_LEFT:  iter = boundary_iterator(u, 1,                 1, block_height   + 1, 0); break;
+    case DOWN_RIGHT: iter = boundary_iterator(u, block_width/2 + 1, 1, block_height   + 1, 0); break;
+    case LEFT:       iter = boundary_iterator(u, 0,                 0, 1,                  1); break;
+    case LEFT_UP:    iter = boundary_iterator(u, 0,                 0, 1,                  1); break;
+    case LEFT_DOWN:  iter = boundary_iterator(u, 0,                 0, block_height/2 + 1, 1); break;
+    case RIGHT:      iter = boundary_iterator(u, block_width   + 1, 0, 1,                  1); break;
+    case RIGHT_UP:   iter = boundary_iterator(u, block_width   + 1, 0, 1,                  1); break;
+    case RIGHT_DOWN: iter = boundary_iterator(u, block_width   + 1, 0, block_height/2 + 1, 1); break;
     default:
       CkAbort("ERROR\n");
     }
+
+    for(int i=0; i<size; ++i, ++iter)
+      *iter = gh[i];
 }
 
 void Advection::sendReadyData2RefiningNeighbors(){

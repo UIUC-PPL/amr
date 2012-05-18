@@ -14,14 +14,28 @@ extern map<char*, DIR> nbrDirectionMap;
 extern map<DIR, DIR> reverse_dir_map;
 
 /*constructor
-__________
-|    |    |
-|_01_|_00_|        
-|    |    |
-|_10_|_11_|
 
-This is how quadrants are defined
-*/
+This is how quadrants are defined, based on quadrants of the Cartesian
+plane with the origin at the center of a block
+
+               __________
+              |    |    |
+              |_01_|_00_|
+              |    |    |
+              |_10_|_11_|
+(x_min, y_min)
+
+This is how the data in the block is indexed, relative to the
+quadrants of data that refinement will send to children:
+
+               ----x---->
+     |   (0,0) __________
+     |        |    |    |
+     y        |_01_|_00_|
+     |        |    |    |
+     v        |_10_|_11_|
+
+ */
 QuadIndex::QuadIndex(const char* index){
     nbits = strlen(index);
     bitVector=0;

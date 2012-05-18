@@ -237,7 +237,7 @@ Advection_SDAG_CODE
         void interpolateAndSend(int);
         void refine();
         void interpolate(double*, vector<double>&, int, int, int, int);
-        
+        void refineChild(const char* sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
         template<class T>
         void print_Array(T*,int,int);
 

@@ -1685,6 +1685,21 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
   }
 }
 
+void Advection::refineChild(const char* sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin) {
+  QuadIndex child = thisIndex.getChild(sChild);
+
+  size_t sz = (block_width)*(block_height);
+  vector<double> refined_u(sz);
+
+  interpolate(u, refined_u, xstart, xend, ystart, yend);
+
+  InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
+    InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+
+  thisProxy(child).insert(msg);
+  //terminator->msgSent(child);
+}
+
 void Advection::refine(){
   //Spawn The four children and give them the data
   //Assuming we already have the new boundary data
@@ -1692,39 +1707,14 @@ void Advection::refine(){
   //Interpolate the data and give it to the children when they are initialized
   // boundaries of the children will have to be sent by the neighbor
   VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
-    double sx, sy, s;
-  size_t sz = (block_width)*(block_height); 
-  vector<double> refined_u(sz);
 
-  QuadIndex child01 = thisIndex.getChild("01"), child00 = thisIndex.getChild("00"),
-    child10 = thisIndex.getChild("10"), child11 = thisIndex.getChild("11");
+  refineChild("01", 1,               block_width/2, 1,                block_height/2, xmin,           ymin+(ny*dy)/2);
+  refineChild("00", block_width/2+1, block_width,   1,                block_height/2, xmin+(nx*dx)/2, ymin+(ny*dy)/2);
+  refineChild("10", 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
+  refineChild("11", block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
 
-
-  interpolate(u, refined_u, 1, block_width/2, 1, block_height/2);
-  //initialize the child
-  InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin+(ny*dy)/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-  thisProxy(child01).insert(msg);
-
-  interpolate(u, refined_u, block_width/2+1, block_width, 1, block_height/2);
-  //initialize the child
-  msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+(nx*dx)/2, ymin+(ny*dy)/2, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-  thisProxy(child00).insert(msg);
-
-  interpolate(u, refined_u, 1, block_width/2, block_height/2+1, block_height);
-  //init the child
-  msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-  thisProxy(child10).insert(msg);
-
-  interpolate(u, refined_u, block_width/2+1, block_width, block_height/2+1, block_height);
-  //init the child
-  msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)InitRefineMsg(dx/2, dy/2, myt, mydt, xmin+(nx*dx)/2, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-  thisProxy(child11).insert(msg);
   thisProxy.doneInserting();
 
-  // //terminator->msgSent(child00);
-  // //terminator->msgSent(child01);
-  // //terminator->msgSent(child10);
-  // //terminator->msgSent(child11);
   //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);
 //   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));

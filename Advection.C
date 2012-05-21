@@ -315,6 +315,10 @@ struct boundary_iterator {
     return (u[index(x, y)]   + u[index(x+1, y)] +
             u[index(x, y+1)] + u[index(x+1, y+1)]) / 4;
   }
+  inline double left()  {    return u[index(x-1, y)];  }
+  inline double right() {    return u[index(x+1, y)];  }
+  inline double up()    {    return u[index(x, y+1)];  }
+  inline double down()  {    return u[index(x, y-1)];  }
   inline double& operator*() {
     return u[index(x, y)];
   }
@@ -618,9 +622,18 @@ QuadIndex Advection::getRefinedNeighbor(int NBR) {
   }
   return receiver;
 }
+
+int Advection::getSourceDirection(int NBR) {
+  switch (NBR) {
+  case UP:    case UP_RIGHT:   case UP_LEFT:    return DOWN;
+  case DOWN:  case DOWN_RIGHT: case DOWN_LEFT:  return UP;
+  case LEFT:  case LEFT_UP:    case LEFT_DOWN:  return RIGHT;
+  case RIGHT: case RIGHT_UP:   case RIGHT_DOWN: return LEFT;
+  default: CkAbort("Trying to send in an unknown direction");
+  }
+}
     
-void Advection::interpolateAndSend(int NBR){
-  double sx, sy;
+void Advection::interpolateAndSend(int NBR) {
   if(NBR==UP){
     interpolateAndSend(UP_LEFT);
     interpolateAndSend(UP_RIGHT);
@@ -643,163 +656,48 @@ void Advection::interpolateAndSend(int NBR){
   }
 
   QuadIndex receiver = getRefinedNeighbor(NBR);
+  double *boundary, *out;
+  boundary_iterator in, end;
+  int count;
+  int p = 1, m = -1;
+  int x1, x2, y1, y2;
 
-  if(NBR==DOWN_LEFT){
-    for(int i=0; i<block_width/2; i++){
-      sx = (u[index(i,block_height)]-u[index(i+2, block_height)])/(2*dx);
-      sy = (u[index(i+1, block_height-1)] - u[index(i+1, block_height+1)])/(2*dy);
-
-      bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] + sx*(dx/4) - sy*(dy/4);
-      bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] - sx*(dx/4) - sy*(dy/4);
-    }
-    receiver = nbr[DOWN].getChild(map_child(UP_LEFT));
-    int val=rand();
-    thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge,
-                                      thisIndex, rand());
-    VB(logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;);
-#ifdef LOGGER
-      for(int i=0; i<block_width; i++){
-        logFile << bottom_edge[i] << '\t';
-      }
-    logFile << std::endl;
-#endif
+  switch(NBR) {
+  case UP_LEFT:    boundary = top_edge;    count = block_width;  in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
+  case UP_RIGHT:   boundary = top_edge;    count = block_width;  in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
+  case DOWN_LEFT:  boundary = bottom_edge; count = block_width;  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
+  case DOWN_RIGHT: boundary = bottom_edge; count = block_width;  in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
+  case LEFT_UP:    boundary = left_edge;   count = block_height; in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; break;
+  case LEFT_DOWN:  boundary = left_edge;   count = block_height; in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; break;
+  case RIGHT_UP:   boundary = right_edge;  count = block_height; in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; break;
+  case RIGHT_DOWN: boundary = right_edge;  count = block_height; in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; break;
+  default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
-  else if(NBR==DOWN_RIGHT){
-    for(int i=block_width/2; i< block_width; i++){
-      sx = (u[index(i,block_height)]-u[index(i+2, block_height)])/(2*dx);
-      sy = (u[index(i+1, block_height-1)] - u[index(i+1, block_height+1)])/(2*dy);
+  out = boundary;
+  end = in + count/2;
 
-      bottom_edge[wrap(2*i, block_width)] = u[index(i+1,block_height)] + sx*(dx/4) - sy*(dy/4);
-      bottom_edge[wrap(2*i+1, block_width)] = u[index(i+1, block_height)] - sx*(dx/4) - sy*(dy/4);
-    }
+  for (; in != end; ++in) {
+    double sx = (in.left() - in.right()) / 8;
+    // Possible inversion in definitions of up/down
+    double sy = (in.up()   - in.down())  / 8;
 
-    receiver = nbr[DOWN].getChild(map_child(UP_RIGHT));
-    thisProxy(receiver).receiveGhosts(iterations, UP, block_width, bottom_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_width; i++){
-      logFile << bottom_edge[i] << '\t';
-    }
-    logFile << std::endl;
-#endif
+    *out++ = *in + x1*sx + y1*sy;
+    *out++ = *in + x2*sx + y2*sy;
   }
-  else if(NBR==RIGHT_UP){
+
 #ifdef LOGGER
-    for(int j=0; j<block_height+2; j++){
-      for(int i=0; i<3; i++)
-        logFile << u[index(block_width-1+i, j)] << "\t";
-      logFile << std::endl;
-    }
-#endif
-    for(int i=0; i<block_height/2; i++){
-      sx = (u[index(block_width-1, i+1)] - u[index(block_width+1, i+1)])/(2*dx);
-      sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
-
-
-      right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) + sy*(dy/4);
-      right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) - sy*(dy/4);
-    }
-    receiver = nbr[RIGHT].getChild(map_child(LEFT_UP));//LEFT_UP child of the nieghbor
-    thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_height; i++){
-      logFile << right_edge[i] << '\t';
-    }
-    logFile << std::endl;
-#endif
+  for(int i=0; i<count; i++){
+    logFile << boundary[i] << '\t';
   }
-  else if(NBR==RIGHT_DOWN){
-    for(int i=block_height/2; i<block_height; i++){
-      sx = (u[index(block_width-1, i+1)] - u[index(block_width+1, i+1)])/(2*dx);
-      sy = (u[index(block_width, i)] - u[index(block_width, i+2)])/(2*dy);
-
-      right_edge[wrap(2*i, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) + sy*(dy/4);
-      right_edge[wrap(2*i+1, block_height)] = u[index(block_width, i+1)] - sx*(dx/4) - sy*(dy/4);
-    }
-    receiver = nbr[RIGHT].getChild(map_child(LEFT_DOWN));//LEFT_DOWN child of the neighbor
-    thisProxy(receiver).receiveGhosts(iterations, LEFT, block_height, right_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_height; i++){
-      logFile << right_edge[i] << '\t';
-    }
-    logFile << std::endl;
+  logFile << std::endl;
 #endif
-  }
-  else if(NBR==UP_LEFT){
-    for(int i=0; i<block_width/2; i++){
-      sx = (u[index(i,1)]-u[index(i+2,1)])/(2*dx);
-      sy = (u[index(i+1,0)]-u[index(i+1,2)])/(2*dy);
 
-      top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] + sx*(dx/4) + sy*(dy/4);
-      top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] - sx*(dx/4) + sy*(dy/4);
-    }
-    receiver = nbr[UP].getChild(map_child(DOWN_LEFT));
-    thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_width; i++){
-      logFile << top_edge[i] << '\t';
-    }
-    logFile << std::endl;
-#endif
-  }
-  else if(NBR==UP_RIGHT){
-    for(int i=block_width/2; i<block_width;i++){
-      sx = (u[index(i,1)]-u[index(i+2,1)])/(2*dx);
-      sy = (u[index(i+1,0)]-u[index(i+1,2)])/(2*dy);
-
-      top_edge[wrap(2*i, block_width)] = u[index(i+1, 1)] + sx*(dx/4) + sy*(dy/4);
-      top_edge[wrap(2*i+1, block_width)] = u[index(i+1, 1)] - sx*(dx/4) + sy*(dy/4);
-    }
-    receiver = nbr[UP].getChild(map_child(DOWN_RIGHT));
-    thisProxy(receiver).receiveGhosts(iterations, DOWN, block_width, top_edge, thisIndex, rand());
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_width; i++){
-      logFile << top_edge[i] << '\t';
-    }
-    logFile << std::endl;
-  }
-  else if(NBR==LEFT_UP){
-    for(int i=0; i<block_height/2; i++){
-      sx = (u[index(0, i+1)] - u[index(2,i+1)])/(2*dx);
-      sy = (u[index(1, i)] - u[index(1, i+2)])/(2*dy);
-
-      left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] + sx*(dx/4) + sy*(dy/4);
-      left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] + sx*(dx/4) - sy*(dy/4);
-    }
-    receiver = nbr[LEFT].getChild(map_child(RIGHT_UP));//LEFT_UP child of the nieghbor
-    thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_height; i++){
-      logFile << left_edge[i] << '\t';
-    }
-    logFile << std::endl;
-#endif
-  }
-  else if(NBR==LEFT_DOWN){
-    for(int i=block_height/2; i<block_height; i++){
-      sx = (u[index(0, i+1)] - u[index(2,i+1)])/(2*dx);
-      sy = (u[index(1, i)] - u[index(1, i+2)])/(2*dy);
-
-      left_edge[wrap(2*i, block_height)] = u[index(1,i+1)] + sx*(dx/4) + sy*(dy/4);
-      left_edge[wrap(2*i+1, block_height)] = u[index(1,i+1)] + sx*(dx/4) - sy*(dy/4);
-    }
-    receiver = nbr[LEFT].getChild(map_child(RIGHT_DOWN));//LEFT_DOWN child of the neighbor
-    thisProxy(receiver).receiveGhosts(iterations, RIGHT, block_height, left_edge, thisIndex, rand());
-#ifdef LOGGER
-    logFile << thisIndex.getIndexString() << " sending interpolated data to " << receiver.getIndexString() << std::endl;
-    for(int i=0; i<block_height; i++){
-      logFile << left_edge[i] << '\t';
-    }
-    logFile << std::endl;
-#endif
-  }
+  thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary, thisIndex, rand());
 
   ////terminator->msgSent(receiver);
-};
+
+  return;
+}
 
 void Advection::compute_and_iterate(){
   //logFile << "dt: " << dt << " ap:" << ap << " an:" << an << std::endl;

@@ -1588,13 +1588,13 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
   int m=1, n=1;
   for(int i=xstart; i<=xend; i++){
     for(int j=ystart; j<=yend; j++){
-      sx = (-u[index(i-1,j)]+u[index(i+1,j)])/(2*dx);
-      sy = (-u[index(i,j-1)]+u[index(i,j+1)])/(2*dy);
+      sx = (-u[index(i-1,j)]+u[index(i+1,j)]) / 8;
+      sy = (-u[index(i,j-1)]+u[index(i,j+1)]) / 8;
 
-      refined_u[index_l(2*(m-1),   2*(n-1))  ] = u[index(i,j)] - sx*(dx/4) - sy*(dy/4);
-      refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx*(dx/4) - sy*(dy/4);
-      refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx*(dx/4) + sy*(dy/4);
-      refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx*(dx/4) + sy*(dy/4);
+      refined_u[index_l(2*(m-1),   2*(n-1))  ] = u[index(i,j)] - sx - sy;
+      refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx - sy;
+      refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx + sy;
+      refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx + sy;
       n++;
     }
     m++;

@@ -347,8 +347,28 @@ struct boundary_iterator {
   boundary_iterator() {}
 };
 
+double* Advection::getGhostBuffer(int dir) {
+  switch (dir) {
+  case UP:    case UP_LEFT:   case UP_RIGHT:   return top_edge;
+  case DOWN:  case DOWN_LEFT: case DOWN_RIGHT: return bottom_edge;
+  case LEFT:  case LEFT_UP:   case LEFT_DOWN:  return left_edge;
+  case RIGHT: case RIGHT_UP:  case RIGHT_DOWN: return right_edge;
+  default: CkAbort("Asking for an unknown boundary");
+  }
+}
+
+int Advection::getGhostCount(int dir) {
+  switch (dir) {
+  case UP:    case UP_LEFT:   case UP_RIGHT:
+  case DOWN:  case DOWN_LEFT: case DOWN_RIGHT: return block_width;
+  case LEFT:  case LEFT_UP:   case LEFT_DOWN:
+  case RIGHT: case RIGHT_UP:  case RIGHT_DOWN: return block_height;
+  default: CkAbort("Asking for an unknown boundary's size");
+  }
+}
+
 bool Advection::sendGhost(int dir, bool which=0){
-  int count;
+  int count = getGhostCount(dir);
   double* boundary;
 
   if(nbr_exists[dir] && !nbr_isRefined[dir]){
@@ -356,10 +376,10 @@ bool Advection::sendGhost(int dir, bool which=0){
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;);
 
     switch (dir) {
-    case LEFT:  count = block_height; boundary = left_edge;                  break;
-    case RIGHT: count = block_height; boundary = right_edge;                 break;
-    case UP:    count = block_width;  boundary = &u[index(1, 1)];            break;
-    case DOWN:  count = block_width;  boundary = &u[index(1, block_height)]; break;
+    case LEFT:  boundary = left_edge;                  break;
+    case RIGHT: boundary = right_edge;                 break;
+    case UP:    boundary = &u[index(1, 1)];            break;
+    case DOWN:  boundary = &u[index(1, block_height)]; break;
     default:
       CkPrintf("noop send\n");
       return false;
@@ -373,14 +393,16 @@ bool Advection::sendGhost(int dir, bool which=0){
   if(!nbr_exists[dir]) {
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
     int sender_direction = map_nbr(thisIndex.getQuadI(), dir);
+    boundary = getGhostBuffer(dir);
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
+    count /= 2;
 
     boundary_iterator begin, end;
     switch(dir) {
-    case UP:    begin = boundary_iterator(u, 1,               2, 1,                0); boundary = top_edge;    count = block_width/2; break;
-    case DOWN:  begin = boundary_iterator(u, 1,               2, block_height - 1, 0); boundary = bottom_edge; count = block_width/2; break;
-    case LEFT:  begin = boundary_iterator(u, 1,               0, 1,                2); boundary = left_edge;   count = block_height/2; break;
-    case RIGHT: begin = boundary_iterator(u, block_width - 1, 0, 1,                2); boundary = right_edge;  count = block_height/2; break;
+    case UP:    begin = boundary_iterator(u, 1,               2, 1,                0); break;
+    case DOWN:  begin = boundary_iterator(u, 1,               2, block_height - 1, 0); break;
+    case LEFT:  begin = boundary_iterator(u, 1,               0, 1,                2); break;
+    case RIGHT: begin = boundary_iterator(u, block_width - 1, 0, 1,                2); break;
     default:
       CkPrintf("noop send\n");
       return false;
@@ -658,22 +680,22 @@ void Advection::interpolateAndSend(int NBR) {
   QuadIndex receiver = getRefinedNeighbor(NBR);
   double *boundary, *out;
   boundary_iterator in, end;
-  int count;
+  int count = getGhostCount(NBR);
   int p = 1, m = -1;
   int x1, x2, y1, y2;
 
   switch(NBR) {
-  case UP_LEFT:    boundary = top_edge;    count = block_width;  in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
-  case UP_RIGHT:   boundary = top_edge;    count = block_width;  in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
-  case DOWN_LEFT:  boundary = bottom_edge; count = block_width;  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
-  case DOWN_RIGHT: boundary = bottom_edge; count = block_width;  in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
-  case LEFT_UP:    boundary = left_edge;   count = block_height; in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; break;
-  case LEFT_DOWN:  boundary = left_edge;   count = block_height; in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; break;
-  case RIGHT_UP:   boundary = right_edge;  count = block_height; in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; break;
-  case RIGHT_DOWN: boundary = right_edge;  count = block_height; in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; break;
+  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
+  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
+  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
+  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; break;
+  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; break;
+  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; break;
+  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; break;
   default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
-  out = boundary;
+  out = boundary = getGhostBuffer(NBR);
   end = in + count/2;
 
   for (; in != end; ++in) {

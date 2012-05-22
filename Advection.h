@@ -178,6 +178,8 @@ Advection_SDAG_CODE
         void mem_allocate_all();
         QuadIndex getRefinedNeighbor(int NBR);
         int getSourceDirection(int NBR);
+        double* getGhostBuffer(int dir);
+        int getGhostCount(int dir);
 
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}

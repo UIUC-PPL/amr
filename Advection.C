@@ -307,14 +307,15 @@ Advection::~Advection(){
   delete [] bottom_edge;
 }
 
+inline double downSample(double* u, int x, int y) {
+  return (u[index(x, y)]   + u[index(x+1, y)] +
+          u[index(x, y+1)] + u[index(x+1, y+1)]) / 4;
+}
+
 struct boundary_iterator {
   double *u;
   int x, y, dx, dy;
 
-  inline double downSample() {
-    return (u[index(x, y)]   + u[index(x+1, y)] +
-            u[index(x, y+1)] + u[index(x+1, y+1)]) / 4;
-  }
   inline double left()  {    return u[index(x-1, y)];  }
   inline double right() {    return u[index(x+1, y)];  }
   inline double up()    {    return u[index(x, y+1)];  }
@@ -411,7 +412,7 @@ bool Advection::sendGhost(int dir, bool which=0){
 
     int k = 1;
     for (; begin != end; ++k, ++begin) {
-      boundary[k] = begin.downSample();
+      boundary[k] = downSample(u, begin.x, begin.y);
       VB(logFile << boundary[k] << "\t";);
     }
     VB(logFile << std::endl;);
@@ -1253,11 +1254,7 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
   for(int i=1; i<= block_width; i+=2){
     for(int j=1; j<=block_height; j+=2){
       int idx = index_c(i/2, j/2);
-      child_u[idx] = u[index(i,j)];
-      child_u[idx] += u[index(i+1,j)];
-      child_u[idx] += u[index(i, j+1)];
-      child_u[idx] += u[index(i+1,j+1)];
-      child_u[idx] /= 4;
+      child_u[idx] = downSample(u, i, j);
       //logFile << child_u[idx] << "\t";
     }
     //logFile << std::endl;

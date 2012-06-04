@@ -10,7 +10,6 @@
 using namespace std;
 using namespace boost::assign;
 
-extern map<char*, DIR> nbrDirectionMap;
 extern map<DIR, DIR> reverse_dir_map;
 
 /*constructor

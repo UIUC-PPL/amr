@@ -37,7 +37,6 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-extern map<string, DIR> nbrDirectionMap;
 extern map<DIR, DIR> reverse_dir_map;
 extern int max_iterations, refine_frequency;
 
@@ -148,7 +147,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 
     advection();
 }
-    
+
 void Advection::printState(){
   QuadIndex qindex = thisIndex;
   VB(logFile << "Printing Status of Node " << qindex.getIndexString() << std::endl;);

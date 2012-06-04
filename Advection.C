@@ -1199,7 +1199,11 @@ void Advection::recvParentDecision(){
   }
   }*/
 
-void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are either REFINE or STAY messages
+bool isDirectionSimple(int dir) {
+  return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
+}
+
+void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msgs are either REFINE or STAY messages
   VB(logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; );
   if(!hasReset){
     hasReset=true;
@@ -1207,29 +1211,28 @@ void Advection::exchangePhase1Msg(int dir, DECISION dec){//Phase1 Msgs are eithe
   }
   if(nbr_decision[dir]!=REFINE){
     VB(logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;);
-    nbr_decision[dir]=dec;
+    nbr_decision[dir] = remoteDecision;
   }
 
     
-  if(decision==DEREFINE || decision==STAY || decision==INV){//if decision was refine it would already have been 
+  if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
     //communicated and the neighbors decision cannot change my decision now
     //Now check if my Decision Changes Because of this Message
-    if(dir==LEFT||dir==RIGHT||dir==UP|dir==DOWN && dec==REFINE){
+    if(isDirectionSimple(dir) && remoteDecision == REFINE) {
       decision=STAY;
       if(!hasCommunicatedSTAY){
         hasCommunicatedSTAY=true;
         communicatePhase1Msgs();
       }
     }
-    else if(dir==LEFT_UP||dir==LEFT_DOWN||dir==RIGHT_UP||dir==RIGHT_DOWN||
-	    dir==UP_LEFT||dir==UP_RIGHT||dir==DOWN_LEFT||dir==DOWN_RIGHT){
-      if(dec==REFINE){// I am going to refine
-        decision =REFINE;
+    else if (!isDirectionSimple(dir)) {
+      if (remoteDecision == REFINE) {// I am going to refine
+        decision = REFINE;
         hasCommunicatedREFINE=true;
         VB(logFile << thisIndex.getIndexString() << " has changed its decision to REFINE" << std::endl;);
           communicatePhase1Msgs();
-      }else if(dec==STAY){//dec can be either REFINE or STAY
-        decision=dec;
+      }else if (remoteDecision == STAY) {//dec can be either REFINE or STAY
+        decision = remoteDecision;
                 
         VB(logFile << thisIndex.getIndexString() << " decision\'s now is STAY" << std::endl;);
           if(decision==STAY && !hasCommunicatedSTAY){

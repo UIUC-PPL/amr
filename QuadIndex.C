@@ -230,37 +230,16 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
     }
 }
     
-QuadIndex QuadIndex::getParent() const{
-    string myIndexString = getIndexString();
-    myIndexString.resize(nbits-2);
-
-    return QuadIndex(myIndexString.c_str());
+QuadIndex QuadIndex::getParent() const {
+  unsigned int shiftbits = 8*sizeof(bitVector) - (nbits - 2);
+  unsigned int newbv = (bitVector >> shiftbits) << shiftbits;
+  return QuadIndex(newbv, nbits - 2);
 }
 
-QuadIndex QuadIndex::getChild(const char* child_num) const{
-  string str = getIndexString();
-  str += child_num;
-  return QuadIndex(str.c_str());
-}
-    
-QuadIndex QuadIndex::getChild(int idx) const{
-    switch(idx){
-        case 0:
-            return getChild("00");
-            break;
-        case 1:
-            return getChild("01");
-            break;
-        case 2:
-            return getChild("10");
-            break;
-        case 3:
-            return getChild("11");
-            break;
-        default:
-            CkAbort("Error in getChild()");
-            break;
-    }
+QuadIndex QuadIndex::getChild(unsigned int idx) const {
+  CkAssert(idx <= 3);
+  return QuadIndex(bitVector | (idx << (8*sizeof(bitVector) - nbits - 2)),
+                   nbits + 2);
 }
 
 int QuadIndex::getChildNum() const{

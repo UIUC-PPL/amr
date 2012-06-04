@@ -1546,7 +1546,7 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
   }
 }
 
-void Advection::refineChild(const char* sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin) {
+void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin) {
   QuadIndex child = thisIndex.getChild(sChild);
 
   size_t sz = (block_width)*(block_height);
@@ -1569,10 +1569,10 @@ void Advection::refine(){
   // boundaries of the children will have to be sent by the neighbor
   VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
 
-  refineChild("01", 1,               block_width/2, 1,                block_height/2, xmin,           ymin+(ny*dy)/2);
-  refineChild("00", block_width/2+1, block_width,   1,                block_height/2, xmin+(nx*dx)/2, ymin+(ny*dy)/2);
-  refineChild("10", 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
-  refineChild("11", block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
+  refineChild(1, 1,               block_width/2, 1,                block_height/2, xmin,           ymin+(ny*dy)/2);
+  refineChild(0, block_width/2+1, block_width,   1,                block_height/2, xmin+(nx*dx)/2, ymin+(ny*dy)/2);
+  refineChild(2, 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
+  refineChild(3, block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
 
   thisProxy.doneInserting();
 

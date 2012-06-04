@@ -96,16 +96,16 @@ int inline wrap(int item, int max_size){
     return item%max_size;
 }
 
-inline const char* map_child(int child){
+inline int map_child(int child){
     if(child == LEFT_UP || child == UP_LEFT)
-        return "01";
+        return 1;
     else if(child == LEFT_DOWN || child==DOWN_LEFT)
-        return "10";
+        return 2;
     else if(child == DOWN_RIGHT || child==RIGHT_DOWN)
-        return "11";
+        return 3;
     else if(child == RIGHT_UP || child == UP_RIGHT)
-        return "00";
-    else return "-1";
+        return 0;
+    else return -1;
 }
 
 class ChildDataMsg;
@@ -242,7 +242,7 @@ Advection_SDAG_CODE
         void interpolateAndSend(int);
         void refine();
         void interpolate(double*, vector<double>&, int, int, int, int);
-        void refineChild(const char* sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
+        void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
         template<class T>
         void print_Array(T*,int,int);
 

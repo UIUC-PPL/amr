@@ -60,9 +60,8 @@ public:
 
     QuadIndex getNeighbor(int) const;
     QuadIndex getParent() const;
-    QuadIndex getChild(const char*)const;
 
-    QuadIndex getChild(int) const;
+    QuadIndex getChild(unsigned int) const;
     int getChildNum() const;
     char* getQuadC() const;
     int getQuadI() const;

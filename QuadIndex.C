@@ -192,42 +192,27 @@ string QuadIndex::getIndexString() const{
     
     
 QuadIndex QuadIndex::getNeighbor(int dir) const{
-    if(dir==UP){
-        int x, y;
-        getCoordinates(x, y);
-        int depth = nbits/2;
-        int range = std::pow(2.0, (double)depth);
-        int yc = (y+1)%range;
-        int xc = x;
-        return QuadIndex(xc, yc, depth);
-    }
-    else if(dir==DOWN){
-        int x, y;
-        getCoordinates(x, y);
-        int depth = nbits/2;
-        int range = std::pow(2.0, (double)depth);
-        int yc = (y==0)?(range-1):y-1;
-        int xc = x;
-        return QuadIndex(xc, yc, depth);
-    }
-    else if(dir==LEFT){
-        int x, y;
-        getCoordinates(x, y);
-        int depth = nbits/2;
-        int range = std::pow(2.0, (double)depth);
-        int yc = y;
-        int xc = (x==0)?(range-1):x-1;
-        return QuadIndex(xc, yc, depth);
-    }
-    else if(dir==RIGHT){
-       int x, y;
-        getCoordinates(x, y);
-        int depth = nbits/2;
-        int range = std::pow(2.0, (double)depth);
-        int yc = y;
-        int xc = (x+1)%range;
-        return QuadIndex(xc, yc, depth);
-    }
+  int depth = nbits / 2;
+  int range = 1 << depth;
+  int x, y, xc, yc;
+  getCoordinates(x, y);
+  if(dir==UP){
+    yc = (y+1)%range;
+    xc = x;
+  }
+  else if(dir==DOWN){
+    yc = (y==0)?(range-1):y-1;
+    xc = x;
+  }
+  else if(dir==LEFT){
+    yc = y;
+    xc = (x==0)?(range-1):x-1;
+  }
+  else if(dir==RIGHT){
+    yc = y;
+    xc = (x+1)%range;
+  }
+  return QuadIndex(xc, yc, depth);
 }
     
 QuadIndex QuadIndex::getParent() const {

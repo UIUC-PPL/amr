@@ -66,29 +66,17 @@ int inline getNbrDir(int quad, int dir){
 }
 
 inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
-  string str = myIndex.getIndexString();
-  string q1str = str, q2str = str;
+  int q1c, q2c;
+  switch (dir) {
+  case LEFT:  q1c = 1; q2c = 2; break;
+  case RIGHT: q1c = 0; q2c = 3; break;
+  case UP:    q1c = 1; q2c = 0; break;
+  case DOWN:  q1c = 2; q2c = 3; break;
+  }
 
-    if(dir==LEFT){
-        q1str += "01";
-        q2str += "10";
-    }
-    else if(dir==RIGHT){
-        q1str += "00";
-        q2str += "11";
-    }
-    else if(dir==UP){
-        q1str += "01";
-        q2str += "00";
-    }
-    else if(dir==DOWN){
-        q1str += "10";
-        q2str += "11";
-    }
-
-    q1 = QuadIndex(q1str.c_str());
-    q2 = QuadIndex(q2str.c_str());
-    return;
+  q1 = myIndex.getChild(q1c);
+  q2 = myIndex.getChild(q2c);
+  return;
 }
 
 

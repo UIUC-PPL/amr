@@ -7,8 +7,6 @@
 #include "boost/assign.hpp"
 #include "QuadIndex.h"
 
-using namespace std;
-
 /*constructor
 
 This is how quadrants are defined, based on quadrants of the Cartesian
@@ -172,10 +170,10 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
 }
     
     // returns the Index String
-string QuadIndex::getIndexString() const{
+std::string QuadIndex::getIndexString() const{
   //char* str = new char[nbits+1];
   //int i;
-    string str;
+    std::string str;
 
     CkAssert(bitVector != 548329052);
     CkAssert(nbits != 548329052);

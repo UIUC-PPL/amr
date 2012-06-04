@@ -63,7 +63,6 @@ public:
 
     QuadIndex getChild(unsigned int) const;
     int getChildNum() const;
-    char* getQuadC() const;
     int getQuadI() const;
     
     unsigned int getBitVector() const{ return bitVector;}
@@ -74,7 +73,6 @@ public:
         p|bitVector;
     }
 
-    DIR getSiblingDirection(QuadIndex) const;
     void getSiblingInDirection(DIR, int&, int&) const;
 
     bool operator<(const QuadIndex& rhs) const {

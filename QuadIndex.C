@@ -214,7 +214,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
   }
   return QuadIndex(xc, yc, depth);
 }
-    
+
 QuadIndex QuadIndex::getParent() const {
   unsigned int shiftbits = 8*sizeof(bitVector) - (nbits - 2);
   unsigned int newbv = (bitVector >> shiftbits) << shiftbits;
@@ -237,34 +237,8 @@ int QuadIndex::getChildNum() const{
     return 2*bit1+bit0;
 }
 
-char* QuadIndex::getQuadC() const{
-    string index = getIndexString();
-    char* quad = new char[3];
-    quad[0] = index[index.size()-2];
-    quad[1] = index[index.size()-1];
-    quad[2] = 0;
-    return quad;
-}
-
 int QuadIndex::getQuadI() const{
   return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
-}
-
-
-DIR QuadIndex::getSiblingDirection(QuadIndex nbr) const{
-    char* quad1 = getQuadC();
-    char* quad2 = nbr.getQuadC();
-
-    char* key = strcat(quad1, quad2);
-    delete [] quad2;
-    DIR dir;
-    if(this->getParent() == nbr.getParent())
-        dir = nbrDirectionMap.find(key)->second;
-    else
-        dir= reverse_dir_map[nbrDirectionMap.find(key)->second];
-
-    delete [] key;
-    return dir;
 }
 
 void QuadIndex::getSiblingInDirection(DIR dir, int &c1, int &c2) const{

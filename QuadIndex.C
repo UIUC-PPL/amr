@@ -3,8 +3,6 @@
 #include "math.h"
 #include "charm++.h"
 #include "Constants.h"
-#include <map>
-#include "boost/assign.hpp"
 #include "QuadIndex.h"
 
 /*constructor

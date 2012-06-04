@@ -247,15 +247,7 @@ char* QuadIndex::getQuadC() const{
 }
 
 int QuadIndex::getQuadI() const{
-    string index = getIndexString();
-    char quad[3];
-    quad[0] = index[index.size()-2];
-    quad[1] = index[index.size()-1];
-    quad[2] = 0;
-    if(strcmp(quad, "00")==0) return 0;
-    else if(strcmp(quad, "01")==0)return 1;
-    else if(strcmp(quad, "10")==0)return 2;
-    else return 3;
+  return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
 }
 
 

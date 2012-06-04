@@ -31,8 +31,6 @@ extern int min_depth, max_depth;
 #define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
 
 
-extern CkArrayID a;
-
 extern int nframe;
 extern double xctr, yctr, radius;
 extern double v;

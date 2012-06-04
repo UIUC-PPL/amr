@@ -43,8 +43,6 @@ int max_iterations, refine_frequency;
 
 const char amrRevision[] = INQUOTES(AMR_REVISION);
 
-CkArrayID a;
-
 int nframe;
 double xmin, xmax, ymin, ymax;
 double xctr, yctr, radius;

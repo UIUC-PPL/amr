@@ -122,8 +122,8 @@ Main::Main(CkArgMsg* m){
   yctr = 0.5;
   radius = 0.2;
 
-  ap = std::max(v, 0.0);
-  an = std::min(v, 0.0);
+  ap = max(v, 0.0);
+  an = min(v, 0.0);
   //ckout << "ap: " <<ap << endl;
   //ckout << "an: " <<an << endl;
 

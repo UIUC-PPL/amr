@@ -6,6 +6,7 @@
 #include <queue>
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,7 +14,7 @@ using namespace std;
 #include "liveViz.h"
 #include "trace-projections.h"
 #include "Main.h"
-//#include <algorithm>
+
 extern CProxy_Main mainProxy;
 
 extern int array_height;

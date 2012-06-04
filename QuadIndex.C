@@ -8,9 +8,6 @@
 #include "QuadIndex.h"
 
 using namespace std;
-using namespace boost::assign;
-
-extern map<DIR, DIR> reverse_dir_map;
 
 /*constructor
 

@@ -27,8 +27,6 @@ mainmodule Main{
   readonly double dt;
   readonly double cfl;
 
-  readonly map<DIR, DIR> reverse_dir_map;
-
   readonly int max_iterations;
   readonly int refine_frequency;
 

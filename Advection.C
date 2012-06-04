@@ -37,7 +37,6 @@ extern double xctr, yctr, radius;
 extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
-extern map<DIR, DIR> reverse_dir_map;
 extern int max_iterations, refine_frequency;
 
 #define index(i,j)  (int)((j)*(block_width+2) + i)

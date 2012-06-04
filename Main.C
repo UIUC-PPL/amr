@@ -10,7 +10,6 @@
 #include "boost/filesystem.hpp"
 
 using namespace std;
-using namespace boost::assign;
 
 #include "charm++.h"
 #include "liveViz.h"
@@ -52,7 +51,6 @@ double xctr, yctr, radius;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
-map<DIR, DIR> reverse_dir_map;
 
 char* decimal_to_binary_string(int num, int len){
   char* _ret = new char[len+1];
@@ -73,7 +71,7 @@ double start_time, end_time;
 Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
-  initUtils();
+
   mainProxy = thisProxy;
   boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
   boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
@@ -209,10 +207,6 @@ void Main::startRunning() {
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
   CkExit();
-}
-
-void Main::initUtils(){
-  reverse_dir_map = map_list_of (RIGHT, LEFT) (LEFT, RIGHT) (UP, DOWN) (DOWN, UP);
 }
 
 void Main::printTreeInformation(CkVec<QuadIndex> list){

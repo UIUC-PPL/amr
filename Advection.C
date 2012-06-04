@@ -512,60 +512,50 @@ void Advection::process(int iteration, int dir, int size, double gh[]){
       *iter = gh[i];
 }
 
+int simpleDirectionFromComplex(int dir) {
+  switch (dir) {
+  case UP_RIGHT:   case UP_LEFT:   return UP;
+  case DOWN_RIGHT: case DOWN_LEFT: return DOWN;
+  case LEFT_DOWN:  case LEFT_UP:   return LEFT;
+  case RIGHT_DOWN: case RIGHT_UP:  return RIGHT;
+  default: CkAbort("called on non-complex direction");
+  }
+}
+
+int cornerDirection(int dir) {
+  switch (dir) {
+  case RIGHT_UP:   return UP_RIGHT;
+  case RIGHT_DOWN: return DOWN_RIGHT;
+  case LEFT_UP:    return UP_LEFT;
+  case LEFT_DOWN:  return DOWN_LEFT;
+  case UP_LEFT:    return LEFT_UP;
+  case UP_RIGHT:   return RIGHT_UP;
+  case DOWN_LEFT:  return LEFT_DOWN;
+  case DOWN_RIGHT: return RIGHT_DOWN;
+  default: CkAbort("called on other direction");
+  }
+}
+
+bool Advection::hasReceivedFromDir(int dir) {
+  return hasReceived.find(dir) != hasReceived.end();
+}
+
+bool Advection::hasReceivedFromAroundCorner(int aroundCorner) {
+  return hasReceivedFromDir(aroundCorner) ||
+    hasReceivedFromDir(simpleDirectionFromComplex(aroundCorner));
+}
+
 void Advection::sendReadyData2RefiningNeighbors(){
   for(int i=NUM_NEIGHBORS; i<3*NUM_NEIGHBORS; i++) {
-    bool shouldSend = false;
-    if(nbr_decision[i]==REFINE && !nbr_dataSent[i]) {
-      if(i==RIGHT_UP){
-        if(hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
-           (hasReceived.find(UP_RIGHT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }
-      else if(i==RIGHT_DOWN){
-        if(hasReceived.find(RIGHT_DOWN)!=hasReceived.end() &&
-           (hasReceived.find(DOWN_RIGHT)!=hasReceived.end() || hasReceived.find(DOWN)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if (i==DOWN_RIGHT){
-        if(hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
-           (hasReceived.find(RIGHT_DOWN)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if(i==DOWN_LEFT){
-        if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
-           (hasReceived.find(LEFT_DOWN)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if(i==LEFT_DOWN){
-        if(hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
-           (hasReceived.find(DOWN_LEFT)!=hasReceived.end() || hasReceived.find(DOWN)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if(i==LEFT_UP){
-        if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
-           (hasReceived.find(UP_LEFT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if(i==UP_LEFT){
-        if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
-           (hasReceived.find(LEFT_UP)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }else if(i==UP_RIGHT){
-        if(hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
-           (hasReceived.find(RIGHT_UP)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end())){
-          shouldSend = true;
-        }
-      }
-      if (shouldSend) {
+    if(nbr_decision[i] == REFINE && !nbr_dataSent[i]) {
+      if (hasReceivedFromDir(i) &&
+          hasReceivedFromAroundCorner(cornerDirection(i))) {
         interpolateAndSend(i);
         nbr_dataSent[i]=true;
         ////terminator->msgSent(getRefinedNeighbor(i));
       }
     }
   }
-
 }
 
 void Advection::sendReadyData(){
@@ -575,75 +565,25 @@ void Advection::sendReadyData(){
   //not be sent here
   for(int i=0; i<NUM_NEIGHBORS; i++)
     if(nbr_isRefined[i] && !nbr_dataSent[i]) {
-      bool shouldSend = false;
-      if(i==RIGHT){
-        if( hasReceived.find(RIGHT_UP)!=hasReceived.end() &&
-            hasReceived.find(RIGHT_DOWN)!=hasReceived.end() &&
-            (hasReceived.find(UP_RIGHT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end()) &&
-            (hasReceived.find(DOWN_RIGHT) != hasReceived.end() || hasReceived.find(DOWN)!= hasReceived.end())
-          )
-        {
-          shouldSend = true;
-        }
+      int sidea, sideb, cornera, cornerb;
+      switch(i) {
+      case LEFT:  sidea   = LEFT_UP;    sideb   = LEFT_DOWN;
+                  cornera = UP_LEFT;    cornerb = DOWN_LEFT;  break;
+      case RIGHT: sidea   = RIGHT_UP;   sideb   = RIGHT_DOWN;
+                  cornera = UP_RIGHT;   cornerb = DOWN_RIGHT; break;
+      case UP:    sidea   = UP_RIGHT;   sideb   = UP_LEFT;
+                  cornera = RIGHT_UP;   cornerb = LEFT_UP;    break;
+      case DOWN:  sidea   = DOWN_RIGHT; sideb   = DOWN_LEFT;
+                  cornera = RIGHT_DOWN; cornerb = LEFT_DOWN;  break;
       }
-      else if(i==LEFT){
-        if(hasReceived.find(LEFT_UP)!=hasReceived.end() &&
-           hasReceived.find(LEFT_DOWN)!=hasReceived.end() &&
-           (hasReceived.find(UP_LEFT)!=hasReceived.end() || hasReceived.find(UP)!=hasReceived.end()) &&
-           (hasReceived.find(DOWN_LEFT) != hasReceived.end() || hasReceived.find(DOWN)!= hasReceived.end())
-          ){
-          shouldSend = true;
-        }
-      }
-      else if(i==UP){
-        if(hasReceived.find(UP_LEFT)!=hasReceived.end() &&
-           hasReceived.find(UP_RIGHT)!=hasReceived.end() &&
-           (hasReceived.find(RIGHT_UP)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end()) &&
-           (hasReceived.find(LEFT_UP)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())
-          ){
-          shouldSend = true;
-        }
-      }
-      else{ // if i==DOWN
-        if(hasReceived.find(DOWN_LEFT)!=hasReceived.end() &&
-           hasReceived.find(DOWN_RIGHT)!=hasReceived.end() &&
-           (hasReceived.find(RIGHT_DOWN)!=hasReceived.end() || hasReceived.find(RIGHT)!=hasReceived.end()) &&
-           (hasReceived.find(LEFT_DOWN)!=hasReceived.end() || hasReceived.find(LEFT)!=hasReceived.end())
-          ){
-          shouldSend = true;
-        }
-      }
-      if (shouldSend) {
+
+      if ( hasReceivedFromDir(sidea) && hasReceivedFromDir(sideb) &&
+           hasReceivedFromAroundCorner(cornera) && hasReceivedFromAroundCorner(cornerb)
+           ) {
         interpolateAndSend(i);
         nbr_dataSent[i]=true;
       }
     }
-  /*if(imsg==4)
-    compute_and_iterate();*/
-}
-
-QuadIndex Advection::getRefinedNeighbor(int NBR) {
-  QuadIndex receiver;
-  if(NBR==DOWN_LEFT){
-    receiver = nbr[DOWN].getChild(map_child(UP_LEFT));
-  } else if(NBR==DOWN_RIGHT) {
-    receiver = nbr[DOWN].getChild(map_child(UP_RIGHT));
-  } else if(NBR==RIGHT_UP) {
-    receiver = nbr[RIGHT].getChild(map_child(LEFT_UP));
-  } else if(NBR==RIGHT_DOWN){
-    receiver = nbr[RIGHT].getChild(map_child(LEFT_DOWN));
-  } else if(NBR==UP_LEFT){
-    receiver = nbr[UP].getChild(map_child(DOWN_LEFT));
-  } else if(NBR==UP_RIGHT){
-    receiver = nbr[UP].getChild(map_child(DOWN_RIGHT));
-  } else if(NBR==LEFT_UP){
-    receiver = nbr[LEFT].getChild(map_child(RIGHT_UP));
-  } else if(NBR==LEFT_DOWN){
-    receiver = nbr[LEFT].getChild(map_child(RIGHT_DOWN));
-  } else {
-    CkAbort("This only applies to refined neighbors");
-  }
-  return receiver;
 }
 
 int Advection::getSourceDirection(int NBR) {
@@ -678,22 +618,22 @@ void Advection::interpolateAndSend(int NBR) {
     return;
   }
 
-  QuadIndex receiver = getRefinedNeighbor(NBR);
   double *boundary, *out;
   boundary_iterator in, end;
   int count = getGhostCount(NBR);
   int p = 1, m = -1;
   int x1, x2, y1, y2;
+  int cdir; // child direction relative to this chare's neighboring uncle
 
   switch(NBR) {
-  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
-  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; break;
-  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
-  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; break;
-  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; break;
-  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; break;
-  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; break;
-  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; break;
+  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; cdir = DOWN_LEFT;  break;
+  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; cdir = DOWN_RIGHT; break;
+  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; cdir = UP_LEFT;    break;
+  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; cdir = UP_RIGHT;   break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; cdir = RIGHT_UP;   break;
+  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; cdir = RIGHT_DOWN; break;
+  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; cdir = LEFT_UP;    break;
+  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; cdir = LEFT_DOWN;  break;
   default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
   out = boundary = getGhostBuffer(NBR);
@@ -715,6 +655,7 @@ void Advection::interpolateAndSend(int NBR) {
   logFile << std::endl;
 #endif
 
+  QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(map_child(cdir));
   thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary, thisIndex, rand());
 
   ////terminator->msgSent(receiver);

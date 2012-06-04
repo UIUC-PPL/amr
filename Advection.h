@@ -130,6 +130,8 @@ Advection_SDAG_CODE
         bool nbr_isRefined[NUM_NEIGHBORS];
         bool nbr_dataSent[3*NUM_NEIGHBORS];
         set<int> hasReceived;
+        bool hasReceivedFromDir(int dir);
+        bool hasReceivedFromAroundCorner(int aroundCorner);
 
         /*Phase1 DataStructures*/
 	DECISION decision;

@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
-
+#include<limits>
 using namespace std;
 
 #include "charm++.h"
@@ -40,11 +40,32 @@ extern int max_iterations, refine_frequency;
 
 #define index(i,j)  (int)((j)*(block_width+2) + i)
 
+const int ndim=2;
+const int ndim2 = 4; //ndim*ndim
+
 double ***delu, ***delua;
-double *delu2, *delu3, *delu4;
+double delu2[ndim2], delu3[ndim2], delu4[ndim2];
+double delx, dely, dely_f;
+double refine_filter = 0.01;
+double error=0;
+double refine_cutoff=0.8, derefine_cutoff=0.2;
 
 PerProcessorChare::PerProcessorChare(){
-  delu = new double**[2];
+  delu = new double**[ndim];
+  delua = new double**[ndim];
+
+  delu[0] = new double*[block_height+2];
+  delu[1] = new double*[block_height+2];
+  delua[0] = new double*[block_height+2];
+  delua[1] = new double*[block_height+2];
+
+
+  for(int i=0; i<block_height+2; i++){
+      delu[0][i] = new double[block_width+2];
+      delu[1][i] = new double[block_width+2];
+      delua[0][i] = new double[block_width+2];
+      delua[1][i] = new double[block_width+2];
+  }
 }
 
 InitRefineMsg::InitRefineMsg(double dx, double dy, double myt, double mydt,
@@ -810,108 +831,99 @@ DECISION Advection::getGranularityDecision(){
     else 
       return STAY;
   }
-/*
-  double delx, dely, dely_f, ndim=2, ndim2=ndim*ndim;
-  delx = 0.5*dx;
-  dely = 0.5*dy;
-  double refine_filter = 0.01;
-  dely_f = dely;
-  double error=0;
-  double refine_cutoff=0.8, derfine_cutoff=0.2;
+    delx = 0.5/dx;
+    dely = 0.5/dy;
+    dely_f = dely;
+    error=0;
 
-  for(int i=1; i <= block_width; i++){
-  for(int j=1; j<=block_height; j++){
-  delu[1][i][j] = u[i+1][j] - u[i-1][j];
-  delu[1][i][j] = delu[1][i][j]*delx;
+    for(int i=1; i <= block_width; i++){
+        for(int j=1; j<=block_height; j++){
+            delu[0][i][j] = u[index(i+1, j)] - u[index(i-1,j)];
+            delu[0][i][j] = delu[0][i][j]*delx;
 
-  delua[1][i][j] = abs(u[i+1][j]) + abs(u[i-1][j]);
-  delua[1][i][j] = delua[1][i][j]*delx;
+            delua[0][i][j] = abs(u[index(i+1, j)]) + abs(u[index(i-1, j)]);
+            delua[0][i][j] = delua[0][i][j]*delx;
 
-  // d/dy
-  delu[2][i][j] = u[i][j+1] - u[i][j-1];
-  delu[2][i][j] = delu[2][i][j]*dely_f;
+            // d/dy
+            delu[1][i][j] = u[index(i, j+1)] - u[index(i, j-1)];
+            delu[1][i][j] = delu[1][i][j]*dely_f;
 
-  delua[2][i][j] = abs(u[i][j+1]) + abs(u[i][j-1]);
-  delua[2][i][j] = delua[2][i][j]*dely_f;
-
-  }
-  }
+            delua[1][i][j] = abs(u[index(i, j+1)]) + abs(u[index(i, j-1)]);
+            delua[1][i][j] = delua[1][i][j]*dely_f;
+        }
+    }
     
-  int istart=2, iend=block_width-1, jstart=2, jend=block_height-1;
-  for (i=istart;i<=iend;i++){
-  for (j=jstart;j<=jend;j++){
+    int istart=2, iend=block_width-1, jstart=2, jend=block_height-1;
+    for (int i=istart;i<=iend;i++){
+        for (int j=jstart;j<=jend;j++){
 
-  delu2[1] = delu[1][i+1][j] - delu[1][i-1][j];
-  delu2[1] = delu2[1]*delx;
+            delu2[0] = delu[0][i+1][j] - delu[0][i-1][j];
+            delu2[0] = delu2[0]*delx;
 
-  delu3[1] = abs(delux[1][i+1][j]) + abs(delux[1][i-1][j]);
-  delu3[1] = delu3[1]*delx;
+            delu3[0] = abs(delu[0][i+1][j]) + abs(delu[0][i-1][j]);
+            delu3[0] = delu3[0]*delx;
 
-  delu4[1] = delua[1][i+1][j] + delua[1][i-1][j];
-  delu4[1] = delu4[1]*delx;
+            delu4[0] = delua[0][i+1][j] + delua[0][i-1][j];
+            delu4[0] = delu4[0]*delx;
 
-  // d/dydx
-  delu2[2] = delu[1][i][j+1] - delu[1][i][j-1];
-  delu2[2] = delu2[2]*dely_f;
+            // d/dydx
+            delu2[1] = delu[0][i][j+1] - delu[0][i][j-1];
+            delu2[1] = delu2[1]*dely_f;
 
-  delu3[2] = abs(delu[1][i][j+1]) + abs(delu[1][i][j-1]);
-  delu3[2] = delu3[2]*dely_f;
+            delu3[1] = abs(delu[0][i][j+1]) + abs(delu[0][i][j-1]);
+            delu3[1] = delu3[1]*dely_f;
 
-  delu4[2] = delua[1][i][j+1] + delua[1][i][j-1];
-  delu4[2] = delu4[2]*dely_f;
+            delu4[1] = delua[0][i][j+1] + delua[0][i][j-1];
+            delu4[1] = delu4[1]*dely_f;
 
-  // d/dxdy
-  delu2[3] = delu[2][i+1][j] - delu[2][i-1][j]
-  delu2[3] = delu2[3]*delx;
+            // d/dxdy
+            delu2[2] = delu[1][i+1][j] - delu[1][i-1][j];
+            delu2[2] = delu2[2]*delx;
 
-  delu3[3] = abs(delu[2][i+1][j]) + abs(delu[2][i-1][j]);
-  delu3[3] = delu3[3]*delx;
+            delu3[2] = abs(delu[1][i+1][j]) + abs(delu[1][i-1][j]);
+            delu3[2] = delu3[2]*delx;
 
-  delu4[3] = delua[2][i+1][j] + delua[2][i-1][j];
-  delu4[3] = delu4[3]*delx;
+            delu4[2] = delua[1][i+1][j] + delua[1][i-1][j];
+            delu4[2] = delu4[2]*delx;
 
-  // d/dydy
-  delu2[4] = delu[2][i][j+1] - delux[2][i][j-1];
-  delu2[4] = delu2[4]*dely_f;
+            // d/dydy
+            delu2[3] = delu[1][i][j+1] - delu[1][i][j-1];
+            delu2[3] = delu2[3]*dely_f;
 
-  delu3[4] = abs(delu[2][i][j+1]) + abs(delu[2][i][j-1]);
-  delu3[4] = delu3[4]*dely_f;
+            delu3[3] = abs(delu[1][i][j+1]) + abs(delu[1][i][j-1]);
+            delu3[3] = delu3[3]*dely_f;
 
-  delu4[4] = delua[2][i][j+1] + delua[2][i][j-1];
-  delu4[4] = delu4[4]*dely_f;
+            delu4[3] = delua[1][i][j+1] + delua[1][i][j-1];
+            delu4[3] = delu4[3]*dely_f;
 		
-  // compute the error
+            // compute the error
+            double num = 0.;
+            double denom = 0.;
 
-  double num = 0.;
-  double denom = 0.;
+            for (int kk=1;kk<= ndim2; kk++){  // kk= 1, 2, 3, 4
+                num = num + pow(delu2[kk],2.);
+                denom = denom + pow(delu3[kk]+ (refine_filter*delu4[kk]),2);
+                // refine_filter is the epsilon in my writing sheet
+                // refine_filter = 0.01 by default
+            }
+              // compare the square of the error
+            if (denom == 0. && num != 0.){
+                error = std::numeric_limits<double>::max();
+            }else if (denom != 0.0){
+                error = std::max(error, num/denom);
+            }
 
-  for (int kk=1;kk<= ndim2; kk++){  // kk= 1, 2, 3, 4
-  num = num + pow(delu2[kk],2.);
-  denom = denom + pow(delu3[kk]+ (refine_filter*delu4[kk]),2);
-  // refine_filter is the epsilon in my writing sheet
-  // refine_filter = 0.01 by default
-  }
-  // compare the square of the error
-  if (denom == 0. && num != 0.){
-  error = std::numeric_limits<double>::max(); // not sure this fn exist in C
-					      // which means the largest number that is not infinity
-                                              }else if (denom != 0.0){
-                                              error = std::max(error, num/denom)
-                                              }
+        }
+    }
 
-                                              }
-                                              }
-
-                                              error = sqrt(error)
-                                              if(error < derefine_cutoff && thisIndex.getDepth() > min_depth){
-                                              return DEREFINE;
-                                              }
-                                              else if(error > refine_cutoff && thisIndex.getDepth() < max_depth){
-                                              return REFINE;  
-                                              }
-                                              else return STAY;
-*/
-
+    error = sqrt(error);
+    if(error < derefine_cutoff && thisIndex.getDepth() > min_depth){
+        return DEREFINE;
+    }
+    else if(error > refine_cutoff && thisIndex.getDepth() < max_depth){
+        return REFINE;  
+    }
+    else return STAY;
 }
 
 void Advection::resetMeshRestructureData(){

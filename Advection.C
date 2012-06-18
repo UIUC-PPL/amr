@@ -149,8 +149,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 void Advection::printState(){
   QuadIndex qindex = thisIndex;
   VB(logFile << "Printing Status of Node " << qindex.getIndexString() << std::endl;);
-    VB(logFile << "exists: " << exists << std::endl;
-       logFile << "isRefined: " << isRefined << std::endl;
+    VB(logFile << "isRefined: " << isRefined << std::endl;
        logFile << "nbr_exists: ";);
 #ifdef LOGGER
     for(int j=0; j<NUM_NEIGHBORS; j++)
@@ -473,7 +472,7 @@ void Advection::print_Array(T* array, int size, int row_size){
 
 void Advection::process(int iteration, int dir, int size, double gh[]){
 //printf("[%d] process %d %d\n", thisIndex, iter, dir);
-  VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iter << ", " << iterations << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iteration << ", " << iterations << std::endl;);
     for(int i=0; i<size; i++){
       VB(logFile << gh[i] << '\t';);
         }

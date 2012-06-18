@@ -98,10 +98,10 @@ inline int map_child(int child){
 
 class ChildDataMsg;
 
-typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;
+/*typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;*/
 
-class Advection: public CBase_Advection,
-  public AdvTerm {
+class Advection: public CBase_Advection/*,
+  public AdvTerm */{
 Advection_SDAG_CODE
     public:
         
@@ -177,10 +177,10 @@ Advection_SDAG_CODE
         /*Constructors*/
         Advection(double, double, double, double);
         Advection(InitRefineMsg*);
-  Advection() : AdvTerm(thisProxy, thisIndex, true) {advection(); 
+  Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{advection(); 
           ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
   }
-  Advection(CkMigrateMessage* m) : AdvTerm(thisProxy, thisIndex, true) {__sdag_init();
+  Advection(CkMigrateMessage* m) /*: AdvTerm(thisProxy, thisIndex, true) */{__sdag_init();
   ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
 }
         

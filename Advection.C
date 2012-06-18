@@ -86,7 +86,7 @@ void Advection::mem_allocate_all(){
 }
 
 Advection::Advection(double xmin, double xmax, double ymin, double ymax)
-  : AdvTerm(thisProxy, thisIndex, true)
+  /*: AdvTerm(thisProxy, thisIndex, true)*/
 {
   //ckout << thisIndex.getIndexString().c_str() << " created" << endl;
 //Constructor for the Initial Grid Zones
@@ -1581,7 +1581,7 @@ void Advection::refine(){
 }
 
 Advection::Advection(InitRefineMsg* msg)
-  : AdvTerm(thisProxy, thisIndex, true), CBase_Advection()
+  /*: AdvTerm(thisProxy, thisIndex, true), CBase_Advection()*/
 {
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();

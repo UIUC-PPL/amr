@@ -4,10 +4,6 @@
 #define VB(x) do { } while(false)
 #endif
 
-#include "Constants.h"
-#include "QuadIndex.h"
-#include "pup_stl.h"
-#include "Advection.decl.h"
 
 int inline map_nbr(int quad, int nbr){
     if(quad==0){

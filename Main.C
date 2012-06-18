@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstring>
 #include <queue>
+#include <set>
+#include <vector>
 #include "charm++.h"
 #include "trace-projections.h"
 #include <boost/assign/list_of.hpp>
@@ -13,6 +15,11 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
+#include "Constants.h"
+#include "QuadIndex.h"
+#include "Advection.decl.h"
+#include "Advection.h"
+#include "Main.decl.h"
 #include "Main.h"
 
 #include <algorithm>

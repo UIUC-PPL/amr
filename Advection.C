@@ -12,8 +12,15 @@ using namespace std;
 
 #include "charm++.h"
 #include "liveViz.h"
+#include "pup_stl.h"
 #include "trace-projections.h"
+
+#include "Constants.h"
+#include "QuadIndex.h"
+#include "Advection.decl.h"
+#include "Main.decl.h"
 #include "Main.h"
+#include "Advection.h"
 
 extern CProxy_Main mainProxy;
 

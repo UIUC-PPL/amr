@@ -1,6 +1,3 @@
-#include "Advection.h"
-#include "Main.decl.h"
-#include <vector>
 
 class Main:public CBase_Main{
 

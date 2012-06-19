@@ -139,6 +139,7 @@ Main::Main(CkArgMsg* m){
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
   opts.setMap(map);
+  CProxy_PerProcessorChare myGroup = CProxy_PerProcessorChare::ckNew();
   qtree = CProxy_Advection::ckNew(opts);
 
   //save the total number of worker chares we have in this simulation

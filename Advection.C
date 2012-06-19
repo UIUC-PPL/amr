@@ -814,7 +814,7 @@ DECISION Advection::getGranularityDecision(){
     return REFINE;
     else return STAY;*/
     
-  if(xc <= 0.10){
+ /*if(xc <= 0.10){
     return REFINE;
     }
     else if (xc <= 0.66 || thisIndex.getDepth()==min_depth){
@@ -837,7 +837,7 @@ DECISION Advection::getGranularityDecision(){
       return DEREFINE;	
     else 
       return STAY;
-  }
+  }*/
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;

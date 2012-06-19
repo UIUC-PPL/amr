@@ -651,14 +651,14 @@ void Advection::interpolateAndSend(int NBR) {
   double sx_r, sx_l, sy_u, sy_d;
   double sx1, sx2, sy1, sy2;
   switch(NBR) {
-  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = -1*sy_u; sy2 = -1*sy_u; cdir = DOWN_LEFT;  break;
-  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = -1*sy_u; sy2 = -1*sy_u; cdir = DOWN_RIGHT; break;
-  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = sy_d; sy2 = sy_d; cdir = UP_LEFT;    break;
-  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = sy_d; sy2 = sy_d; cdir = UP_RIGHT;   break;
-  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d; cdir = RIGHT_UP;   break;
-  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d; cdir = RIGHT_DOWN; break;
-  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = sx_r; sx2 = sx_r; sy1 = -1*sy_u; sy2 = sy_d; cdir = LEFT_UP;    break;
-  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = sx_r; sx2 = sx_r; sy1 = -1*sy_u; sy2 = sy_d; cdir = LEFT_DOWN;  break;
+  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r;    sy1 = -1*sy_u; sy2 = -1*sy_u;  cdir = DOWN_LEFT;  break;
+  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r;    sy1 = -1*sy_u; sy2 = -1*sy_u;  cdir = DOWN_RIGHT; break;
+  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r;    sy1 = sy_d;    sy2 = sy_d;     cdir = UP_LEFT;    break;
+  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r;    sy1 = sy_d;    sy2 = sy_d;     cdir = UP_RIGHT;   break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d;     cdir = RIGHT_UP;   break;
+  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d;     cdir = RIGHT_DOWN; break;
+  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = sx_r;    sx2 = sx_r;    sy1 = -1*sy_u; sy2 = sy_d;     cdir = LEFT_UP;    break;
+  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = sx_r;    sx2 = sx_r;    sy1 = -1*sy_u; sy2 = sy_d;     cdir = LEFT_DOWN;  break;
   default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
   out = boundary = getGhostBuffer(NBR);

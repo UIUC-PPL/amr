@@ -190,9 +190,9 @@ Main::Main(CkArgMsg* m){
     
     thisProxy.printTreeInformation(v);*/
   //setup - liveViz
-  /*CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
+  CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
     liveVizConfig cfg(liveVizConfig::pix_color, true);
-    liveVizInit(cfg, a, c);*/
+    liveVizInit(cfg, qtree, c);
       
   /*int size = q.size();
     ckout << "Size of Queue " << size << endl;

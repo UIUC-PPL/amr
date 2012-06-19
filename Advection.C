@@ -1521,7 +1521,7 @@ inline void Advection::setNbrStatus(int dir, ChildDataMsg* msg){
 
 void Advection::requestNextFrame(liveVizRequestMsg *m){
   if (isRefined){
-    liveVizDeposit(m,0,0,0,0,NULL, this);
+    liveVizDeposit(m, 0, 0, 0, 0, NULL, this);//submit a zero size array
   }
 
   int sy = yc;//thisIndex%num_chare_cols;
@@ -1571,7 +1571,6 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 
   InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
     InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-
   thisProxy(child).insert(msg);
   //terminator->msgSent(child);
 }

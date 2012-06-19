@@ -1232,11 +1232,10 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
   iterations=iter;
   myt=mt;
   mydt=mdt;
-  CmiMemoryCheck();//logFile << child_nbr_exists << ", " << child_nbr_isRefined << ", " << child_nbr_decision << std::endl;
+  //logFile << child_nbr_exists << ", " << child_nbr_isRefined << ", " << child_nbr_decision << std::endl;
   memcpy(child_nbr_exists, nbr_exists, sizeof(bool)*NUM_NEIGHBORS);
-  CmiMemoryCheck();//logFile << NUM_NEIGHBORS << std::endl;
+  //logFile << NUM_NEIGHBORS << std::endl;
   memcpy(child_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
-  CmiMemoryCheck();
   memcpy(child_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
 
 }

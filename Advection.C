@@ -392,7 +392,7 @@ int Advection::getGhostCount(int dir) {
   }
 }
 
-bool Advection::sendGhost(int dir, bool which=0){
+bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent during remeshing, which=1 - during normal course of iteration
   int count = getGhostCount(dir);
   double* boundary;
 
@@ -434,13 +434,13 @@ bool Advection::sendGhost(int dir, bool which=0){
     }
     end = begin + count;
 
-    int k = 1;
+    int k = 0;
     for (; begin != end; ++k, ++begin) {
       boundary[k] = downSample(u, begin.x, begin.y);
       VB(logFile << boundary[k] << "\t";);
     }
     VB(logFile << std::endl;);
-    CkAssert(k-1 == count);
+    CkAssert(k == count);
 
     if (which)
       thisProxy(receiver).receiveRefGhosts(iterations, sender_direction, count, boundary);
@@ -828,7 +828,7 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     }
   return STAY;
-
+    */
   if(rand()%5==0){
     return REFINE;
   }
@@ -837,7 +837,7 @@ DECISION Advection::getGranularityDecision(){
       return DEREFINE;	
     else 
       return STAY;
-  }*/
+  }
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;
@@ -922,7 +922,7 @@ DECISION Advection::getGranularityDecision(){
 
         }
     }
-
+    ckout << thisIndex.getIndexString().c_str() << " error: " << error << endl;
     error = sqrt(error);
     if(error < derefine_cutoff && thisIndex.getDepth() > min_depth){
         return DEREFINE;

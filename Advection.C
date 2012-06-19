@@ -19,8 +19,6 @@ using namespace std;
 #include "QuadIndex.h"
 #include "Main.decl.h"
 #include "Main.h"
-#include "Advection.decl.h"
-#include "Advection.h"
 
 extern CProxy_Main mainProxy;
 
@@ -57,6 +55,8 @@ double refine_filter = 0.01;
 double error=0;
 double refine_cutoff=0.8, derefine_cutoff=0.2;
 
+#include "Advection.decl.h"
+#include "Advection.h"
 PerProcessorChare::PerProcessorChare(){
   delu = new double**[ndim];
   delua = new double**[ndim];

@@ -143,7 +143,8 @@ Main::Main(CkArgMsg* m){
 
   //save the total number of worker chares we have in this simulation
   num_chares = num_chare_rows*num_chare_cols;
-  int depth = (int)(log(num_chares)/log(4));
+  double fdepth = (log(num_chares)/log(4));
+	int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
   max_depth = 100;
 

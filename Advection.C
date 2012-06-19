@@ -216,12 +216,12 @@ void Advection::advection(){
   VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
     /*for(int i=0; i<block_width+2; i++){
       for(int j=0; j<block_height+2; j++){
-      rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-      if(i==block_width/2)
-      u[index(i, block_height+1-j)] = 1;
-      else u[index(i, block_height+1-j)] = 1;
+        rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
+        if(i==block_width/2)
+            u[index(i, block_height+1-j)] = 2;
+        else u[index(i, block_height+1-j)] = 1;
       }
-      }*/
+    }*/
     for(int i=0; i<block_width+2; i++){
       for(int j=0; j<block_height+2; j++){
         rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -648,28 +648,31 @@ void Advection::interpolateAndSend(int NBR) {
   int p = 1, m = -1;
   int x1, x2, y1, y2;
   int cdir; // child direction relative to this chare's neighboring uncle
-
+  double sx_r, sx_l, sy_u, sy_d;
+  double sx1, sx2, sy1, sy2;
   switch(NBR) {
-  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; cdir = DOWN_LEFT;  break;
-  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); y1 = p; y2 = p; x1 = p; x2 = m; cdir = DOWN_RIGHT; break;
-  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; cdir = UP_LEFT;    break;
-  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); y1 = m; y2 = m; x1 = p; x2 = m; cdir = UP_RIGHT;   break;
-  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); x1 = p; x2 = p; y1 = p; y2 = m; cdir = RIGHT_UP;   break;
-  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); x1 = p; x2 = p; y1 = p; y2 = m; cdir = RIGHT_DOWN; break;
-  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); x1 = m; x2 = m; y1 = p; y2 = m; cdir = LEFT_UP;    break;
-  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); x1 = m; x2 = m; y1 = p; y2 = m; cdir = LEFT_DOWN;  break;
+  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = -1*sy_u; sy2 = -1*sy_u; cdir = DOWN_LEFT;  break;
+  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = -1*sy_u; sy2 = -1*sy_u; cdir = DOWN_RIGHT; break;
+  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = sy_d; sy2 = sy_d; cdir = UP_LEFT;    break;
+  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = -1*sx_l; sx2 = sx_r; sy1 = sy_d; sy2 = sy_d; cdir = UP_RIGHT;   break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d; cdir = RIGHT_UP;   break;
+  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = -1*sx_l; sx2 = -1*sx_l; sy1 = -1*sy_u; sy2 = sy_d; cdir = RIGHT_DOWN; break;
+  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = sx_r; sx2 = sx_r; sy1 = -1*sy_u; sy2 = sy_d; cdir = LEFT_UP;    break;
+  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = sx_r; sx2 = sx_r; sy1 = -1*sy_u; sy2 = sy_d; cdir = LEFT_DOWN;  break;
   default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
   out = boundary = getGhostBuffer(NBR);
   end = in + count/2;
 
   for (; in != end; ++in) {
-    double sx = (in.left() - in.right()) / 8;
+    sx_r = (in.right() - *in) / 4;
+    sx_l = (*in - in.left())/4;
     // Possible inversion in definitions of up/down
-    double sy = (in.up()   - in.down())  / 8;
+    sy_u = (*in - in.up())  / 4;
+    sy_d = (in.down() - *in)  / 4;
 
-    *out++ = *in + x1*sx + y1*sy;
-    *out++ = *in + x2*sx + y2*sy;
+    *out++ = *in + sx1 + sy1;
+    *out++ = *in + sx2 + sy2;
   }
 
 #ifdef LOGGER
@@ -690,6 +693,13 @@ void Advection::interpolateAndSend(int NBR) {
 void Advection::compute_and_iterate(){
   //logFile << "dt: " << dt << " ap:" << ap << " an:" << an << std::endl;
   //logFile << iterations << std::endl;
+  logFile << "entire u before updating" << std::endl;
+  for(int j=0; j<block_height+2; j++){
+      for(int i=0; i<block_width+2; i++)
+          logFile << u[index(i,j)] << "\t";
+        logFile << std::endl;
+  }
+
   for(int i=1; i<=block_width; i++){
     for(int j=1; j<=block_height; j++){
       up = (u[index(i+1,j)] - u[index(i,j)])/dx;
@@ -1543,17 +1553,20 @@ void Advection::requestNextFrame(liveVizRequestMsg *m){
 #define index_l(i,j)  (int)((j)*(block_width) + i)
 
 void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, int xend, int ystart, int yend){
-  double sx, sy;
+  double sx_l, sx_r, sy_u, sy_d;
   int m=1, n=1;
   for(int i=xstart; i<=xend; i++){
     for(int j=ystart; j<=yend; j++){
-      sx = (-u[index(i-1,j)]+u[index(i+1,j)]) / 8;
-      sy = (-u[index(i,j-1)]+u[index(i,j+1)]) / 8;
+      sx_l = (-u[index(i-1,j)]+u[index(i,j)]) / 4;
+      sx_r = (-u[index(i,j)]+u[index(i+1,j)]) / 4;
 
-      refined_u[index_l(2*(m-1),   2*(n-1))  ] = u[index(i,j)] - sx - sy;
-      refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx - sy;
-      refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx + sy;
-      refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx + sy;
+      sy_u = (-u[index(i,j-1)]+u[index(i,j)]) / 4;
+      sy_d = (-u[index(i,j)]+u[index(i,j+1)]) / 4;
+
+      refined_u[index_l(2*(m-1),   2*(n-1))  ] = u[index(i,j)] - sx_l - sy_u;
+      refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx_r - sy_u;
+      refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx_l + sy_d;
+      refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx_r + sy_d;
       n++;
     }
     m++;

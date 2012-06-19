@@ -2,7 +2,6 @@
 class Main:public CBase_Main{
 
     public:
-        CProxy_Advection qtree;
         int num_chares;
         int iterations;
 

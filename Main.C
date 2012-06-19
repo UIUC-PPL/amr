@@ -6,6 +6,7 @@
 #include <queue>
 #include <set>
 #include <vector>
+#include <algorithm>
 #include "charm++.h"
 #include "trace-projections.h"
 #include <boost/assign/list_of.hpp>
@@ -22,8 +23,7 @@ using namespace std;
 #include "Main.decl.h"
 #include "Main.h"
 
-#include <algorithm>
-
+CProxy_Advection qtree;
 CProxy_Main mainProxy;
 
 int array_height;

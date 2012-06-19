@@ -17,9 +17,9 @@ using namespace std;
 
 #include "Constants.h"
 #include "QuadIndex.h"
-#include "Advection.decl.h"
 #include "Main.decl.h"
 #include "Main.h"
+#include "Advection.decl.h"
 #include "Advection.h"
 
 extern CProxy_Main mainProxy;

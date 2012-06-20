@@ -838,7 +838,7 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     }
   return STAY;
-    */
+    
   if(rand()%5==0){
     return REFINE;
   }
@@ -847,7 +847,7 @@ DECISION Advection::getGranularityDecision(){
       return DEREFINE;	
     else 
       return STAY;
-  }
+  }*/
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;
@@ -874,62 +874,41 @@ DECISION Advection::getGranularityDecision(){
     for (int i=istart;i<=iend;i++){
         for (int j=jstart;j<=jend;j++){
 
-            delu2[0] = delu[0][i+1][j] - delu[0][i-1][j];
-            delu2[0] = delu2[0]*delx;
-
-            delu3[0] = abs(delu[0][i+1][j]) + abs(delu[0][i-1][j]);
-            delu3[0] = delu3[0]*delx;
-
-            delu4[0] = delua[0][i+1][j] + delua[0][i-1][j];
-            delu4[0] = delu4[0]*delx;
+            delu2[0] = (delu[0][i+1][j] - delu[0][i-1][j])*delx;
+            delu3[0] = (abs(delu[0][i+1][j]) + abs(delu[0][i-1][j]))*delx;
+            delu4[0] = (delua[0][i+1][j] + delua[0][i-1][j])*delx;
 
             // d/dydx
-            delu2[1] = delu[0][i][j+1] - delu[0][i][j-1];
-            delu2[1] = delu2[1]*dely_f;
-
-            delu3[1] = abs(delu[0][i][j+1]) + abs(delu[0][i][j-1]);
-            delu3[1] = delu3[1]*dely_f;
-
-            delu4[1] = delua[0][i][j+1] + delua[0][i][j-1];
-            delu4[1] = delu4[1]*dely_f;
+            delu2[1] = (delu[0][i][j+1] - delu[0][i][j-1])*dely_f;
+            delu3[1] = (abs(delu[0][i][j+1]) + abs(delu[0][i][j-1]))*dely_f;
+            delu4[1] = (delua[0][i][j+1] + delua[0][i][j-1])*dely_f;
 
             // d/dxdy
-            delu2[2] = delu[1][i+1][j] - delu[1][i-1][j];
-            delu2[2] = delu2[2]*delx;
-
-            delu3[2] = abs(delu[1][i+1][j]) + abs(delu[1][i-1][j]);
-            delu3[2] = delu3[2]*delx;
-
-            delu4[2] = delua[1][i+1][j] + delua[1][i-1][j];
-            delu4[2] = delu4[2]*delx;
+            delu2[2] = (delu[1][i+1][j] - delu[1][i-1][j])*delx;
+            delu3[2] = (abs(delu[1][i+1][j]) + abs(delu[1][i-1][j]))*delx;
+            delu4[2] = (delua[1][i+1][j] + delua[1][i-1][j])*delx;
 
             // d/dydy
-            delu2[3] = delu[1][i][j+1] - delu[1][i][j-1];
-            delu2[3] = delu2[3]*dely_f;
-
-            delu3[3] = abs(delu[1][i][j+1]) + abs(delu[1][i][j-1]);
-            delu3[3] = delu3[3]*dely_f;
-
-            delu4[3] = delua[1][i][j+1] + delua[1][i][j-1];
-            delu4[3] = delu4[3]*dely_f;
+            delu2[3] = (delu[1][i][j+1] - delu[1][i][j-1])*dely_f;
+            delu3[3] = (abs(delu[1][i][j+1]) + abs(delu[1][i][j-1]))*dely_f;
+            delu4[3] = (delua[1][i][j+1] + delua[1][i][j-1])*dely_f;
 		
             // compute the error
             double num = 0.;
             double denom = 0.;
 
-            for (int kk=1;kk<= ndim2; kk++){  // kk= 1, 2, 3, 4
+            for (int kk = 0; kk < ndim2; kk++){  // kk= 1, 2, 3, 4
                 num = num + pow(delu2[kk],2.);
-                denom = denom + pow(delu3[kk]+ (refine_filter*delu4[kk]),2);
+                denom = denom + pow(delu3[kk] + (refine_filter*delu4[kk]), 2);
                 // refine_filter is the epsilon in my writing sheet
                 // refine_filter = 0.01 by default
             }
-              // compare the square of the error
+            // compare the square of the error
             if (denom == 0. && num != 0.){
                 error = std::numeric_limits<double>::max();
             }else if (denom != 0.0){
                 error = std::max(error, num/denom);
             }
-
         }
     }
     ckout << thisIndex.getIndexString().c_str() << " error: " << error << endl;

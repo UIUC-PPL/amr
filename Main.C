@@ -158,7 +158,7 @@ Main::Main(CkArgMsg* m){
   }
   qtree.doneInserting();
 
-  CkStartQD(CkCallback(CkIndex_Main::startRunning(), thisProxy));
+  CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
 
   //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
   //CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
@@ -205,8 +205,14 @@ Main::Main(CkArgMsg* m){
   /*qtree[qindex].doStep();*/
 }
 
-void Main::startRunning() {
+void Main::startMeshGeneration() {
   //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+  start_time = CkWallTimer();
+  qtree.generateMesh();
+  CkStartQD(CkCallback(CkIndex_Main::startRunning(), thisProxy));
+}
+
+void Main::startRunning(){
   start_time = CkWallTimer();
   qtree.doStep();
 }

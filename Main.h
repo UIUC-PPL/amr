@@ -10,5 +10,6 @@ class Main:public CBase_Main{
         Main(CkArgMsg* m);
         void printTreeInformation(CkVec<QuadIndex>);
         void terminate();
+				void startMeshGeneration();
         void startRunning();
 };

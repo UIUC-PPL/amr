@@ -1719,4 +1719,7 @@ Advection::Advection(InitRefineMsg* msg)
   //call Quiesence detection to begin next iteration*/
   //CkStartQD(CkIndex_Advection::doStep(), &thishandle);
 }
+
+void Advection::generateMesh(){
+}
 #include "Advection.def.h"

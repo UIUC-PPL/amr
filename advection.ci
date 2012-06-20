@@ -34,6 +34,7 @@ mainmodule Main{
     entry Main(CkArgMsg *m);
     entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
+    entry void startMeshGeneration();
     entry void startRunning();
   };
 
@@ -89,7 +90,8 @@ module Advection{
     //entry void recvNeighborDecision(DIR);
     //entry void recvStatusUpdateFromParent(int);
     entry void exchangePhase1Msg(int, DECISION);
-    //entry void doMeshRestructure();
+    entry void generateMesh();
+    entry void doMeshRestructure();
     entry void done();
 
     entry void rootTerminated() {};

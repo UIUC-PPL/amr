@@ -185,16 +185,10 @@ Advection_SDAG_CODE
         void printState();
         void done();
         void pup(PUP::er &p);
-        
-        /*Computation Methods*/
-        /*void doStep(){
-            begin_iteration();
-        }*/
-        /*void receiveGhosts(int iter, int dir, int width, double *u){
-            imsg=0;
-            process(iter, dir, width, u);
-            sendReadyData();
-        }*/
+ 				
+        /* initial mesh generation*/       
+				void generateMesh();
+
         void begin_iteration();
         void process(int, int, int, double*);
         void compute_and_iterate();

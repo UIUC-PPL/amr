@@ -675,17 +675,17 @@ void Advection::interpolateAndSend(int NBR) {
     *out = *in + *sx2 + *sy2; out++;
   }
 
+  QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(map_child(cdir));
+  thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary, thisIndex, rand());
+
 #ifdef LOGGER
+	logFile << "sending interpolated data to " << receiver.getIndexString().c_str() << std::endl;
   for(int i=0; i<count; i++){
     logFile << boundary[i] << '\t';
   }
   logFile << std::endl;
+	
 #endif
-
-  QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(map_child(cdir));
-  thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary, thisIndex, rand());
-
-  ////terminator->msgSent(receiver);
 
   return;
 }

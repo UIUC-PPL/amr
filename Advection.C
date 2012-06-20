@@ -668,9 +668,9 @@ void Advection::interpolateAndSend(int NBR) {
     sx_r = (in.right() - *in) / 4;
     sx_l = -1*(*in - in.left())/4;
     // Possible inversion in definitions of up/down
-    sy_u = -1*(*in - in.up())  / 4;
-    sy_d = (in.down() - *in)  / 4;
-
+    sy_u = -1*(*in - in.down())  / 4;
+    sy_d = (in.up() - *in)  / 4;
+	  
     *out = *in + *sx1 + *sy1; out++;
     *out = *in + *sx2 + *sy2; out++;
   }

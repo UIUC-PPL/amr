@@ -781,13 +781,8 @@ void Advection::iterate() {
 
     //time to check need for refinement/coarsening
     if(iterations % refine_frequency == 0) {
-      /*This computation phase can be tested for correctness by running 
-        extreme cases - like everyone wants to refine, 
-        everyone wants to derefine, nobody wants to do anything */
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-//      CkPrintf("%s in long phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
       contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-      //startRemesh();
     }
     else {
       doStep();

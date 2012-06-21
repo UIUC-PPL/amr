@@ -468,15 +468,6 @@ void Advection::begin_iteration(void) {
     
   hasReceived.clear();
 
-  for(int i=1; i<=block_width; i++)
-    for(int j=1; j<=block_height; j++)
-      u2[index(i,j)] = u[index(i,j)];
-
-  for(int i=1; i<=block_width; i++)
-    for(int j=1; j<=block_height; j++)
-      u3[index(i,j)] = u[index(i,j)];
-
-
   for(int j=1; j<=block_height; j++){
     left_edge[j-1] = u[index(1,j)];
     right_edge[j-1] = u[index(block_width,j)];

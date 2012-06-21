@@ -151,6 +151,12 @@ module Advection{
 	  		ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
 			}
       iterations++;
+      char fname[100];
+
+      sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
+      VB(outFile.open(fname););
+      VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
+
 			exchangeGhosts();
     }
 		when signalExchangeGhostsCompletion() atomic "doWork" {

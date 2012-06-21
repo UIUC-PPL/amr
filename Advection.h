@@ -195,9 +195,10 @@ Advection_SDAG_CODE
         void iterate();
 
         /*Phase1 Entry Methods*/
+				void doRemeshing();
         DECISION getGranularityDecision();
-
-        void doMeshRestructure();
+			
+        //void doMeshRestructure();
         void resetMeshRestructureData();
         void communicatePhase1Msgs();
         void informParent(int, DECISION);

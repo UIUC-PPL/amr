@@ -929,19 +929,20 @@ void Advection::resetMeshRestructureData(){
   hasAllocatedMemory=false;
 }
 
-void Advection::doMeshRestructure(){
+void Advection::doRemeshing(){
   //CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
 
   if(!hasReset){
     hasReset=true;
     resetMeshRestructureData();
   }
-
+	
   if(!isRefined) {//run this on leaf nodes
     /*Done Resetting Old Data*/
     /* It is possible that some Message has alreasdy been processed
        MeshRestructure Phase was called*/
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
+
     if(decision==INV)
       decision = getGranularityDecision();
     else if(decision==REFINE);

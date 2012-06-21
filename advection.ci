@@ -91,7 +91,7 @@ module Advection{
     //entry void recvStatusUpdateFromParent(int);
     entry void exchangePhase1Msg(int, DECISION);
     entry void generateMesh();
-    entry void doMeshRestructure();
+    //entry void doMeshRestructure();
     entry void done();
 
     entry void rootTerminated() {};
@@ -142,6 +142,8 @@ module Advection{
 			}
     }
 	};
+	entry void doRemeshing();
+	entry void signalExchangeGhostsCompletion();
 
 	entry void doStep(){
   	atomic "begin iteration"{
@@ -149,23 +151,30 @@ module Advection{
 	  		ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
 			}
       iterations++;
-      begin_iteration();
+			exchangeGhosts();
     }
-    for(imsg = 0; imsg < 4;) {
-    	when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
-                                 QuadIndex sender, int tag) atomic "process ghosts" {
-      	VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
-                     << dir << ", " << width << ", " << sender.getIndexString() << ", "
-                     << tag << std::endl;);
-      	process(iter, dir, width, u1);
-      	sendReadyData();
-    	}
-    }
-    atomic "doWork" {
+		when signalExchangeGhostsCompletion() atomic "doWork" {
       compute_and_iterate();
       iterate();
     }
   };
+	
+	entry void doMeshRestructure(){
+		if (!isRefined){
+			atomic "exchange ghosts before remeshing"{
+				exchangeGhosts();
+			}
+			when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
+				doRemeshing();
+			}
+		}
+		else {
+			atomic "do remeshing on internal nodes"{
+				doRemeshing();
+			}
+		}
+	};
+
 
   entry void exchangeGhosts(){
     atomic "send whatever data you can"{
@@ -194,6 +203,9 @@ module Advection{
       	sendReadyData();
     	}
     }
+		atomic "signal exchange ghost completion"{
+			thisProxy[thisIndex].signalExchangeGhostsCompletion();
+		}
   };
 
     entry void phase1Done();

@@ -1216,7 +1216,6 @@ void Advection::doPhase2(){
   imsg=0;
 
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
-  CmiMemoryCheck();
   if(isRefined){
     decision=INV;
   }

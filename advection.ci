@@ -143,29 +143,59 @@ module Advection{
     }
 	};
 
-    entry void doStep(){
-      atomic "begin iteration"{
-	if (thisIndex.bitVector == 0) {
-	  ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
-	}
-        iterations++;
-        begin_iteration();
-      }
-      for(imsg = 0; imsg < 4;) {
-        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
-                                        QuadIndex sender, int tag) atomic "process ghosts" {
-          VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
+	entry void doStep(){
+  	atomic "begin iteration"{
+			if (thisIndex.bitVector == 0) {
+	  		ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
+			}
+      iterations++;
+      begin_iteration();
+    }
+    for(imsg = 0; imsg < 4;) {
+    	when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
+                                 QuadIndex sender, int tag) atomic "process ghosts" {
+      	VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
                      << dir << ", " << width << ", " << sender.getIndexString() << ", "
                      << tag << std::endl;);
-          process(iter, dir, width, u1);
-          sendReadyData();
-        }
-      }
-      atomic "doWork" {
-        compute_and_iterate();
-        iterate();
-      }
-    };
+      	process(iter, dir, width, u1);
+      	sendReadyData();
+    	}
+    }
+    atomic "doWork" {
+      compute_and_iterate();
+      iterate();
+    }
+  };
+
+  entry void exchangeGhosts(){
+    atomic "send whatever data you can"{
+			for(int i=0; i<3*NUM_NEIGHBORS; i++)
+				nbr_dataSent[i]=false;
+						
+			hasReceived.clear();
+
+			for(int j=1; j<=block_height; j++){
+				left_edge[j-1] = u[index(1,j)];
+				right_edge[j-1] = u[index(block_width,j)];
+			}
+			for(int i=0; i<NUM_NEIGHBORS; i++){
+				sendGhost(i);
+			}
+			VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);
+    }
+
+    for(imsg = 0; imsg < 4;) {
+    	when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
+                                 QuadIndex sender, int tag) atomic "receive ghosts" {
+      	VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
+                     << dir << ", " << width << ", " << sender.getIndexString() << ", "
+                     << tag << std::endl;);
+      	process(iter, dir, width, u1);
+      	sendReadyData();
+    	}
+    }
+  };
+
     entry void phase1Done();
             
     entry void getGhostsAndRefine(){

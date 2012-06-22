@@ -1238,7 +1238,7 @@ void Advection::doPhase2(){
         }
       }
     }
-
+  /*
   //Send Appropriate Data to the Neighbors based on their New Status
   if(isRefined==false) {// can send data only if I am a leaf node
     for(int i=0; i<NUM_NEIGHBORS; i++) {//check if any of the neighbors need data for its refinement
@@ -1294,7 +1294,7 @@ void Advection::doPhase2(){
             ;
         }
       }
-  }
+  }*/
 
   //CkPrintf("%s middle of phase 2 %d\n", thisIndex.getIndexString().c_str(), iterations);
 
@@ -1311,12 +1311,13 @@ void Advection::doPhase2(){
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     shouldDestroy = true;
-      VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
+    VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
       //this->~Advection();
-      }
+  }
   else if(decision==REFINE){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
-    thisProxy[thisIndex].getGhostsAndRefine();
+    //thisProxy[thisIndex].getGhostsAndRefine();
+    refine();
     ////terminator->msgSent(thisIndex);
   }
     

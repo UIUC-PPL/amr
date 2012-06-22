@@ -1457,9 +1457,6 @@ void Advection::recvChildData(ChildDataMsg *msg){
   setNbrStatus(c1, msg);
   setNbrStatus(c2, msg);
     
-  ////terminator->msgProcessed();
-
-  CmiMemoryCheck();
   delete msg;
 }
 

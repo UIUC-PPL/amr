@@ -1069,15 +1069,22 @@ void Advection::recvParentDecision(){
   hasReceivedParentDecision=true;
   if(decision==DEREFINE){
     decision=STAY;
-    if(!hasCommunicatedSTAY){
-      hasCommunicatedSTAY=true;
-      communicatePhase1Msgs();
-    }
   }
+  updateNeighborsofChangeInDecision();
 }
 
 bool isDirectionSimple(int dir) {
   return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
+}
+
+void Advection::updateNeighborsofChangeInDecision(){
+  if(decision==REFINE && !hasCommunicatedREFINE){
+    hasCommunicatedREFINE=true;
+    communicatePhase1Msgs();
+  }else if(decision==STAY && !hasCommunicatedSTAY){
+    hasCommunicatedSTAY=true;
+    communicatePhase1Msgs();
+  }
 }
 
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msgs are either REFINE or STAY messages
@@ -1110,13 +1117,7 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
   }
 
   VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
-  if(decision==REFINE && !hasCommunicatedREFINE){
-    hasCommunicatedREFINE=true;
-    communicatePhase1Msgs();
-  }else if(decision==STAY && !hasCommunicatedSTAY){
-    hasCommunicatedSTAY=true;
-    communicatePhase1Msgs();
-  }
+  updateNeighborsofChangeInDecision();
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)

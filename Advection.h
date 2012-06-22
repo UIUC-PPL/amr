@@ -203,6 +203,7 @@ Advection_SDAG_CODE
         void communicatePhase1Msgs();
         void informParent(int, DECISION);
         void recvParentDecision();
+        void updateNeighborsofChangeInDecision();
         //void recvNeighborDecision(DIR);
         //void recvStatusUpdateFromParent(int);
         void exchangePhase1Msg(int, DECISION);

@@ -1056,17 +1056,6 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
         //terminator->msgSent(thisIndex.getChild(i));
       }
     }
-    //now tell the neighbors that I am Not Going to Derefine
-    /*for(int i=0; i<NUM_NEIGHBORS; i++){//all the neighbors must be existing as I am a Parent
-      CkAssert(nbr_exists[i]);
-      thisProxy(nbr[i]).recvNeighborDecision(SENDER_DIR[i]);
-      }*/
-  }
-
-  // Was called as an entry method, not as a local method
-  if (dec != INV) {
-    //terminator->doneSending();
-    //terminator->msgProcessed();
   }
 }
 
@@ -1085,64 +1074,20 @@ void Advection::recvParentDecision(){
       communicatePhase1Msgs();
     }
   }
-
-  //terminator->doneSending();
-  //terminator->msgProcessed();
 }
-
-/*void Advection::recvNeighborDecision(DIR dir){
-  if(!hasReset){
-  hasReset=true;
-  resetMeshRestructureData();
-  }
-
-  //This Message can be sent only by refined neighbors
-  CkAssert(nbr_exists[dir] && nbr_isRefined[dir]);
-  nbr_decision[dir]=STAY;
-
-  if(!isRefined){
-  if(decision==REFINE);//the message will be communicated elsewhere
-  else if(decision==DEREFINE){//now I cannot derefine and tell parent about it
-  decision=STAY;
-  if(parent!=thisIndex && !hasReceivedParentDecision){
-  thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);//communicate only if the 
-  //parent's decision has not already been received
-  hasReceivedParentDecision=true;//because I know the parent's decision now
-  }
-  }
-  else{
-  //the message will be communicated elsewhere
-  }
-  }
-  else if(isRefined){//then the parent already knows that it cannot derefine
-  // however, tell the children that the neighbor is not going to derefine
-  //
-  int c1, c2;
-  thisIndex.getSiblingInDirection(dir, c1, c2);
-  thisProxy(thisIndex.getChild(c1)).recvStatusUpdateFromParent(dir);
-  thisProxy(thisIndex.getChild(c2)).recvStatusUpdateFromParent(dir);
-  }
-  }*/
-
-/*void Advection::recvStatusUpdateFromParent(int dir){
-  hasReceivedStatusFromParent[dir]=true;
-  if(nbr_decision[dir]!=REFINE){
-  nbr_decision[dir]=STAY;
-  }
-  }*/
 
 bool isDirectionSimple(int dir) {
   return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
 }
 
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msgs are either REFINE or STAY messages
-  VB(logFile << thisIndex.getIndexString() << " received decision " << dec << " from direction " << dir << std::endl; );
+  VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
   if(!hasReset){
     hasReset=true;
     resetMeshRestructureData();
   }
   if(nbr_decision[dir]!=REFINE){
-    VB(logFile << "setting decision of neighbor in dir " << dir << " to " << dec << std::endl;);
+    VB(logFile << "setting decision of neighbor in dir " << dir << " to " << remoteDecision << std::endl;);
     nbr_decision[dir] = remoteDecision;
   }
 

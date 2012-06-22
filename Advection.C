@@ -1094,7 +1094,7 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
   if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
     //communicated and the neighbors decision cannot change my decision now
     //Now check if my Decision Changes Because of this Message
-    if(isDirectionSimple(dir) && remoteDecision == REFINE) {
+    if(isDirectionSimple(dir) && (remoteDecision == REFINE || remoteDecision == STAY)) {
       decision=STAY;
       if(!hasCommunicatedSTAY){
         hasCommunicatedSTAY=true;

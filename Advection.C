@@ -1081,7 +1081,7 @@ bool isDirectionSimple(int dir) {
 }
 
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msgs are either REFINE or STAY messages
-  VB(CkAssert((remoteDecision == REFINE || remoteDecision == DEREFINE)););
+  VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
   if(!hasReset){
     hasReset=true;

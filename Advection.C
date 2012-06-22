@@ -1086,41 +1086,34 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
     hasReset=true;
     resetMeshRestructureData();
   }
-  if(nbr_decision[dir]!=REFINE){
+  if(nbr_decision[dir]!=REFINE){//update only if the new message is more potent than earlier messages from the same neighbor
     VB(logFile << "setting decision of neighbor in dir " << dir << " to " << remoteDecision << std::endl;);
     nbr_decision[dir] = remoteDecision;
   }
+  remoteDecision = nbr_decision[dir];
 
   if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
     //communicated and the neighbors decision cannot change my decision now
     //Now check if my Decision Changes Because of this Message
     if(isDirectionSimple(dir) && (remoteDecision == REFINE || remoteDecision == STAY)) {
       decision=STAY;
-      if(!hasCommunicatedSTAY){
-        hasCommunicatedSTAY=true;
-        communicatePhase1Msgs();
-      }
     }
     else if (!isDirectionSimple(dir)) {
       if (remoteDecision == REFINE) {// I am going to refine
         decision = REFINE;
-        hasCommunicatedREFINE=true;
-        VB(logFile << thisIndex.getIndexString() << " has changed its decision to REFINE" << std::endl;);
-          communicatePhase1Msgs();
       }else if (remoteDecision == STAY) {//dec can be either REFINE or STAY
         decision = remoteDecision;
-                
-        VB(logFile << thisIndex.getIndexString() << " decision\'s now is STAY" << std::endl;);
-          if(decision==STAY && !hasCommunicatedSTAY){
-            hasCommunicatedSTAY=true;
-            communicatePhase1Msgs();
-          }
-          else if(decision==REFINE && !hasCommunicatedREFINE){
-            hasCommunicatedREFINE=true;
-            communicatePhase1Msgs();
-          }
       }
     }
+  }
+
+  VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
+  if(decision==REFINE && !hasCommunicatedREFINE){
+    hasCommunicatedREFINE=true;
+    communicatePhase1Msgs();
+  }else if(decision==STAY && !hasCommunicatedSTAY){
+    hasCommunicatedSTAY=true;
+    communicatePhase1Msgs();
   }
 }
 

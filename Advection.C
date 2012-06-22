@@ -824,7 +824,7 @@ DECISION Advection::getGranularityDecision(){
         return REFINE;
     }
   return STAY;
-    
+  */   
   if(rand()%5==0){
     return REFINE;
   }
@@ -833,7 +833,7 @@ DECISION Advection::getGranularityDecision(){
       return DEREFINE;	
     else 
       return STAY;
-  }*/
+  }
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;
@@ -968,7 +968,7 @@ void Advection::doRemeshing(){
     if(parent!=thisIndex) {
       //CkPrintf("%s -> %s startRemesh %d\n", thisIndex.getIndexString().c_str(),
       //parent.getIndexString().c_str(), iterations);
-      //thisProxy(parent).startRemesh();
+      //thisProxy(parent).doMeshRestructure();
       ////terminator->msgSent(parent);
     }
   }
@@ -1146,7 +1146,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
     nbr_decision[dir] = remoteDecision;
   }
 
-    
   if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
     //communicated and the neighbors decision cannot change my decision now
     //Now check if my Decision Changes Because of this Message
@@ -1178,9 +1177,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
       }
     }
   }
-
-  //terminator->doneSending();
-  //terminator->msgProcessed();
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)
@@ -1531,6 +1527,7 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
       refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx_r - sy_u;
       refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx_l + sy_d;
       refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx_r + sy_d;
+		  VB(logFile << u[index(i,j)] << ", " << sx_l << ", " << sx_r << ", " << sy_u << ", " << sy_d << std::endl;);
       n++;
     }
     m++;
@@ -1543,7 +1540,8 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 
   size_t sz = (block_width)*(block_height);
   vector<double> refined_u(sz);
-
+	
+	VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
   InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)

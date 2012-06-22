@@ -169,6 +169,7 @@ module Advection{
 		if (!isRefined){
 			atomic "exchange ghosts before remeshing"{
 				exchangeGhosts();
+        //thisProxy[thisIndex].signalExchangeGhostsCompletion();
 			}
 			when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
 				doRemeshing();

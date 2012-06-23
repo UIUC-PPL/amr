@@ -1067,9 +1067,10 @@ void Advection::recvParentDecision(){
     }
 
   hasReceivedParentDecision=true;
-  if(decision==DEREFINE){
+  /*if(decision==DEREFINE){
     decision=STAY;
-  }
+  }*/
+  decision = std::max(STAY, decision);
   updateNeighborsofChangeInDecision();
 }
 

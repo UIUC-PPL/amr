@@ -567,7 +567,6 @@ void Advection::sendReadyData2RefiningNeighbors(){
           hasReceivedFromAroundCorner(cornerDirection(i))) {
         interpolateAndSend(i);
         nbr_dataSent[i]=true;
-        ////terminator->msgSent(getRefinedNeighbor(i));
       }
     }
   }
@@ -959,7 +958,6 @@ void Advection::doRemeshing(){
       //CkPrintf("%s -> %s startRemesh %d\n", thisIndex.getIndexString().c_str(),
       //parent.getIndexString().c_str(), iterations);
       //thisProxy(parent).doMeshRestructure();
-      ////terminator->msgSent(parent);
     }
   }
   else if(isGrandParent && !parentHasAlreadyMadeDecision){
@@ -990,7 +988,6 @@ void Advection::communicatePhase1Msgs(){
       if(nbr_exists[i] && !nbr_isRefined[i]){
         VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
           thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i],decision);//Since Phase1Msgs are only refinement messages
-          //terminator->msgSent(nbr[i]);
       }
       //just send your direction w.r.t. to the receiving neighbor
       else if(nbr_exists[i] && nbr_isRefined[i]){
@@ -1003,13 +1000,10 @@ void Advection::communicatePhase1Msgs(){
                     
         thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision);
         thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision);
-        //terminator->msgSent(q1);
-        //terminator->msgSent(q2);
       }
       else{//send to the parent of the non-existing neighbor
         VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
         thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision);
-        //terminator->msgSent(nbr[i].getParent());
       }
     }
   }
@@ -1020,7 +1014,6 @@ void Advection::communicatePhase1Msgs(){
   //If my DECISION is to stay or to REFINE, tell the parent
   if((decision == REFINE || decision == STAY) && (parent!=thisIndex)){
     thisProxy(parent).informParent(thisIndex.getChildNum(), decision);
-    //terminator->msgSent(parent);
   }
 }
 
@@ -1043,7 +1036,6 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
     for(int i=0 ;i<NUM_CHILDREN; i++){
       if(i!=childNum && !child_isRefined[i]) {
         thisProxy(thisIndex.getChild(i)).recvParentDecision();
-        //terminator->msgSent(thisIndex.getChild(i));
       }
     }
   }
@@ -1187,7 +1179,6 @@ void Advection::doPhase2(){
 
         //to serve getGhostsAndRefine()
         if(sendGhost(i))
-          ////terminator->msgSent(lastSent)
           ;
       }else{
         //wait for data to arrive and then send it back
@@ -1198,11 +1189,9 @@ void Advection::doPhase2(){
         else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
         if(nbr_decision[d1]==REFINE) {
           thisProxy[thisIndex].getAndSendGhost();
-          ////terminator->msgSent(thisIndex);
         }
         if(nbr_decision[d2]==REFINE) {
           thisProxy[thisIndex].getAndSendGhost();
-          ////terminator->msgSent(thisIndex);
         }
       }
     }
@@ -1222,7 +1211,6 @@ void Advection::doPhase2(){
           }
           //to serve getGhostsAndRefine()
           if(sendGhost(i))
-            ////terminator->msgSent(lastSent)
             ;
         }
       }
@@ -1239,7 +1227,6 @@ void Advection::doPhase2(){
     ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) ChildDataMsg(thisIndex.getChildNum(), myt, mydt, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
 
     thisProxy(parent).recvChildData(msg);
-    ////terminator->msgSent(parent);
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     shouldDestroy = true;
@@ -1250,7 +1237,6 @@ void Advection::doPhase2(){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
     //thisProxy[thisIndex].getGhostsAndRefine();
     refine();
-    ////terminator->msgSent(thisIndex);
   }
     
   if((decision==STAY) || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision)){
@@ -1477,7 +1463,6 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
     InitRefineMsg(dx/2, dy/2, myt, mydt, xmin, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
   thisProxy(child).insert(msg);
-  //terminator->msgSent(child);
 }
 
 void Advection::refine(){
@@ -1625,7 +1610,6 @@ Advection::Advection(InitRefineMsg* msg)
   //delete the message
   delete msg;
 
-  ////terminator->msgProcessed();
 
   //CkPrintf("%s child phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);

@@ -977,7 +977,6 @@ void Advection::phase1DoneQD() {
 /***** PHASE1 FUNCTIONS****/
 void Advection::communicatePhase1Msgs(){
     
-    
   if(decision==REFINE||decision==STAY){
     //tell the neighbor if it exists, also tell to children of the neighbor 
     // if that neighbor is refined
@@ -987,7 +986,7 @@ void Advection::communicatePhase1Msgs(){
     for(int i=0; i<NUM_NEIGHBORS; i++){
       if(nbr_exists[i] && !nbr_isRefined[i]){
         VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
-          thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i],decision);//Since Phase1Msgs are only refinement messages
+          thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i], decision);//Since Phase1Msgs are only refinement messages
       }
       //just send your direction w.r.t. to the receiving neighbor
       else if(nbr_exists[i] && nbr_isRefined[i]){
@@ -1049,9 +1048,6 @@ void Advection::recvParentDecision(){
     }
 
   hasReceivedParentDecision=true;
-  /*if(decision==DEREFINE){
-    decision=STAY;
-  }*/
   decision = std::max(STAY, decision);
   updateNeighborsofChangeInDecision();
 }
@@ -1527,7 +1523,8 @@ Advection::Advection(InitRefineMsg* msg)
   */
   for(int dir=0; dir<NUM_NEIGHBORS; dir++){
     VB(logFile << thisIndex.getIndexString() << " neighbor in direction " << dir << " is " << nbr[dir].getIndexString() << std::endl;);
-      if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are same
+      if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are the same, the neighbor has also just been created
+                                                        // so it can not be refined
         nbr_exists[dir]=true;
         nbr_isRefined[dir]=false;
       }

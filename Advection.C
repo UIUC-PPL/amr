@@ -1074,10 +1074,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
     resetMeshRestructureData();
   }
   
-  /*if(nbr_decision[dir]!=REFINE){//update only if the new message is more potent than earlier messages from the same neighbor
-    VB(logFile << "setting decision of neighbor in dir " << dir << " to " << remoteDecision << std::endl;);
-    nbr_decision[dir] = remoteDecision;
-  }*/
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
 

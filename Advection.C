@@ -1074,10 +1074,11 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
     resetMeshRestructureData();
   }
   
-  if(nbr_decision[dir]!=REFINE){//update only if the new message is more potent than earlier messages from the same neighbor
+  /*if(nbr_decision[dir]!=REFINE){//update only if the new message is more potent than earlier messages from the same neighbor
     VB(logFile << "setting decision of neighbor in dir " << dir << " to " << remoteDecision << std::endl;);
     nbr_decision[dir] = remoteDecision;
-  }
+  }*/
+  nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
 
   if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
@@ -1130,7 +1131,6 @@ void Advection::doPhase2(){
     nbr_dataSent[i]=false;
 
   imsg=0;
-
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
   if(isRefined){
     decision=INV;

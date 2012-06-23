@@ -943,24 +943,14 @@ void Advection::doRemeshing(){
        MeshRestructure Phase was called*/
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
 
-    if(decision==INV)
-      decision = getGranularityDecision();
-    else if(decision==REFINE);
-    else{//decision == STAY
-      DECISION dec = getGranularityDecision();
-      if(dec==STAY || dec==REFINE)
-        decision=dec;
-    }
+    if (decision == REFINE);//no need to call getGranularityDecision
+    else
+        decision = max(decision, getGranularityDecision());
+
+
     //ckout << thisIndex.getIndexString().c_str() << " decision = " << decision << ", iteration = " << iterations << endl;
     //initiate Phase1 of the computation
-    if(decision==REFINE && !hasCommunicatedREFINE){
-      hasCommunicatedREFINE=true;
-      communicatePhase1Msgs();
-    }
-    else if(decision==STAY && !hasCommunicatedSTAY){
-      hasCommunicatedSTAY=true;
-      communicatePhase1Msgs();
-    }
+    updateNeighborsofChangeInDecision();
     //Inform Parent About Start of the Restructure Phase 
     // Think of a better way to do this because right now as many as 
     // number of unrefined children are informing the parent about the

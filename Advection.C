@@ -772,9 +772,6 @@ void Advection::iterate() {
     //time to check need for refinement/coarsening
     if(iterations % refine_frequency == 0) {
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      if(iterations==18){
-          ckout << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString().c_str() << endl;
-      }
       contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
     }
     else {

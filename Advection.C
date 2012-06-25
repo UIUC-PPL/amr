@@ -786,53 +786,6 @@ void Advection::iterate() {
 }
 
 DECISION Advection::getGranularityDecision(){
-  /*if(strcmp(thisIndex.getIndexString(),"00")==0 || strcmp(thisIndex.getIndexString(),"01")==0)// && iterations <15)
-    return REFINE;
-    else return STAY;*/
-  //return REFINE;
-  /*if(strcmp(thisIndex.getIndexString(),"00")==0)
-    return REFINE;
-    if(strlen(thisIndex.getIndexString())==4)
-    return REFINE;
-    if(iterations%50==0){
-    return DEREFINE;
-    }
-    return STAY;*/
-  /*if(iterations==5 || iterations==10 || iterations==15)
-    return REFINE;
-    return STAY;*/
-    
-  //if(thisIndex.getDepth()==min_depth)
-  //  return STAY;
-    
-  /*if(strcmp(thisIndex.getIndexString(),"0111")==0)
-    return REFINE;
-    else return STAY;*/
-    
- /*if(xc <= 0.10){
-    return REFINE;
-    }
-    else if (xc <= 0.66 || thisIndex.getDepth()==min_depth){
-    return STAY;
-    }
-    else return DEREFINE;
-
-  for(int j=1; j<=block_height; j++)
-    for(int i=1; i<=block_width; i++){
-      if(u[index(i,j)]-u[index(i-1,j)]>0.33)
-        return REFINE;
-    }
-  return STAY;
-  */   
-  /*if(rand()%5==0){
-    return REFINE;
-  }
-  else{
-    if(rand()%2==0 && thisIndex.getDepth()!=min_depth)
-      return DEREFINE;	
-    else 
-      return STAY;
-  }*/
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;

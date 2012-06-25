@@ -1529,7 +1529,7 @@ Advection::Advection(InitRefineMsg* msg)
         //so it is possible that my parents neighbor do not exist
         //at this moment but a notification has been sent that they
         //should be generated
-        if(msg->parent_nbr_exists[dir]){
+        /*if(msg->parent_nbr_exists[dir]){
           if(msg->parent_nbr_isRefined[dir]){
             nbr_exists[dir]=true;
             //check for the decision of the neighbors sent by parent
@@ -1550,7 +1550,32 @@ Advection::Advection(InitRefineMsg* msg)
           }
         }
         else{
+          VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
           nbr_exists[dir]=false;
+        }*/
+        if (msg->parent_nbr_exists[dir] && !msg->parent_nbr_isRefined[dir]){
+          switch(msg->parent_nbr_decision[dir]){
+            case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
+            case STAY:   nbr_exists[dir]=false; break;
+            case DEREFINE: CkAbort("this neighbor cannot derefine");
+            default: CkAbort("nbr decision not set");
+          }
+        }
+        else if (msg->parent_nbr_exists[dir] && msg->parent_nbr_isRefined[dir]){
+            int nbr_dir_wrt_parent = getNbrDir(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
+            switch(msg->parent_nbr_decision[nbr_dir_wrt_parent]){
+                case DEREFINE: nbr_exists[dir]=false; break;
+                case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;
+                case REFINE: nbr_exists[dir]=true; nbr_isRefined[dir]=true; break;
+                default: CkAbort("nbr decision not set");
+            }
+        }
+        else if (!msg->parent_nbr_exists[dir]){
+          VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
+          nbr_exists[dir]=false;
+        }
+        else{
+            CkAbort("huh.. we should never reach here");
         }
       }
   }

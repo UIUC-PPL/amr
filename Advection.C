@@ -1391,17 +1391,11 @@ void Advection::recvChildData(ChildDataMsg *msg){
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
   int c1, c2;
-  if(msg->childNum==0){
-    c1=RIGHT; c2=UP;
-  }
-  else if(msg->childNum==1){
-    c1=LEFT; c2=UP;
-  }
-  else if(msg->childNum==2){
-    c1=LEFT; c2=DOWN;
-  }
-  else if(msg->childNum==3){
-    c1=RIGHT; c2=DOWN;
+  switch(msg->childNum){
+    case 0: c1=RIGHT; c2=UP;   break;
+    case 1: c1=LEFT;  c2=UP;   break;
+    case 2: c1=LEFT;  c2=DOWN; break;
+    case 3: c1=RIGHT; c2=DOWN; break;
   }
     
   this->iterations=msg->iterations;

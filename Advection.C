@@ -1077,24 +1077,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
 
-  /*DECISION oldDecision = decision;
-  if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
-    //communicated and the neighbors decision cannot change my decision now
-    //Now check if my Decision Changes Because of this Message
-    if(isDirectionSimple(dir) && (remoteDecision == REFINE || remoteDecision == STAY)) {
-      decision=STAY;
-    }
-    else if (!isDirectionSimple(dir)) {
-      if (remoteDecision == REFINE) {// I am going to refine
-        decision = REFINE;
-      }else if (remoteDecision == STAY) {//dec can be either REFINE or STAY
-        decision = remoteDecision;
-      }
-    }
-  }
-  logFile << "oldDecision: " << oldDecision << std::endl;
-  logFile << "decision 1: " << decision << std::endl;
-    decision = oldDecision;*/
     /*inv=-1, coarsen=0, stay=1, refine=2
     refine/stay messages with remoteDecision
     if sender is sibling  //note that this situation will be handled by the informParent and recvParentDecision methods
@@ -1566,30 +1548,6 @@ Advection::Advection(InitRefineMsg* msg)
         //so it is possible that my parents neighbor do not exist
         //at this moment but a notification has been sent that they
         //should be generated
-        /*if(msg->parent_nbr_exists[dir]){
-          if(msg->parent_nbr_isRefined[dir]){
-            nbr_exists[dir]=true;
-            //check for the decision of the neighbors sent by parent
-            nbr_isRefined[dir]=false;
-            VB(logFile << thisIndex.getQuadI() << std::endl;);
-                    
-            VB(logFile << thisIndex.getIndexString() << " nbr in direction " << getNbrDir(thisIndex.getQuadI(), dir) << " has decision = " << msg->parent_nbr_decision[getNbrDir(thisIndex.getQuadI(), dir)] << std::endl;);
-              if(msg->parent_nbr_decision[getNbrDir(thisIndex.getQuadI(), dir)]==REFINE){
-                nbr_isRefined[dir]=true;
-                VB(logFile << thisIndex.getIndexString() << " setting " << dir << " to refined" << std::endl;);
-                  }
-          }
-          else{
-            nbr_exists[dir]=false;
-            nbr_isRefined[dir]=false;
-            if(msg->parent_nbr_decision[dir]==REFINE)
-              nbr_exists[dir]=true;
-          }
-        }
-        else{
-          VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
-          nbr_exists[dir]=false;
-        }*/
         if (msg->parent_nbr_exists[dir] && !msg->parent_nbr_isRefined[dir]){
           switch(msg->parent_nbr_decision[dir]){
             case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;

@@ -1119,6 +1119,15 @@ ChildDataMsg::ChildDataMsg(int cnum, double mt, double mdt, int iter, double* u,
 
 }
 
+void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction numbers of the refined neighbors in direction 'dir'
+  switch(dir){
+    case RIGHT: d1=RIGHT_UP;  d2=RIGHT_DOWN; return;
+    case LEFT:  d1=LEFT_UP;   d2=LEFT_DOWN; return;
+    case UP:    d1=UP_LEFT;   d2=UP_RIGHT; return;
+    case DOWN:  d1=DOWN_LEFT; d2=DOWN_RIGHT; return;
+  }
+}
+
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
@@ -1134,6 +1143,7 @@ void Advection::doPhase2(){
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
   //Update the decision of your neighbors
+  if(decision >= 0)
   for(int i=0; i<NUM_NEIGHBORS; i++) {
     if(nbr_decision[i]==INV){
       VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;);
@@ -1141,11 +1151,8 @@ void Advection::doPhase2(){
         nbr_decision[i]= DEREFINE;
       else {//when neighbor exists and is refined
         int d1, d2;
-        if(i==RIGHT){d1=RIGHT_UP; d2=RIGHT_DOWN;}
-        else if(i==LEFT){d1=LEFT_UP; d2=LEFT_DOWN;}
-        else if(i==UP){d1=UP_LEFT; d2=UP_RIGHT;}
-        else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
-      // logFile << d1 << ": " << nbr_decision[d1] << ", " << d2 << ": " << nbr_decision[d2]<< std::endl;
+        getRefinedNbrDirections(i, d1, d2);
+
         if(nbr_decision[d1]==INV){
           VB(CkAssert(nbr_decision[d2]==INV););
           nbr_decision[d1] = DEREFINE;
@@ -1263,15 +1270,13 @@ void Advection::doPhase2(){
         }
         else if(nbr_exists[i] && nbr_isRefined[i]){
           int d1, d2;
-          if(i==RIGHT){d1=RIGHT_UP; d2=RIGHT_DOWN;}
-          else if(i==LEFT){d1=LEFT_UP; d2=LEFT_DOWN;}
-          else if(i==UP){d1=UP_LEFT; d2=UP_RIGHT;}
-          else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
-                
-          if(nbr_decision[d1]==STAY){
-            nbr_exists[i]=true; nbr_isRefined[i]=true;
-          }else if(nbr_decision[d1]==DEREFINE){
-            nbr_exists[i]=true; nbr_isRefined[i]=false;
+          getRefinedNbrDirections(i, d1, d2);
+          
+          switch(nbr_decision[d1]){
+            case STAY:    nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
+            case DEREFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+            case REFINE:  CkAbort("unacceptable decision");
+            default:      CkAbort("nbr_decision not set");
           }
         }
       }
@@ -1295,6 +1300,7 @@ void Advection::doPhase2(){
     //CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
   }  
 }
+
 
 void Advection::recvChildData(ChildDataMsg *msg){
   VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);

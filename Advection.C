@@ -1132,28 +1132,29 @@ void Advection::doPhase2(){
     decision=INV;
   }
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
+
   //Update the decision of your neighbors
-  if(decision==STAY || decision==REFINE || decision==DEREFINE)
-    for(int i=0; i<NUM_NEIGHBORS; i++) {
-      if(nbr_decision[i]==INV){
-        //CmiMemoryCheck();
-        VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;);
-        if((nbr_exists[i] && !nbr_isRefined[i])||!nbr_exists[i])
-          nbr_decision[i]= DEREFINE;
-        else {//when neighbor exists and is refined
-          int d1, d2;
-          if(i==RIGHT){d1=RIGHT_UP; d2=RIGHT_DOWN;}
-          else if(i==LEFT){d1=LEFT_UP; d2=LEFT_DOWN;}
-          else if(i==UP){d1=UP_LEFT; d2=UP_RIGHT;}
-          else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
-          // logFile << d1 << ": " << nbr_decision[d1] << ", " << d2 << ": " << nbr_decision[d2]<< std::endl;
-          if(nbr_decision[d1]==INV){
-            nbr_decision[d1]=DEREFINE;
-            nbr_decision[d2]=DEREFINE;
-          }
+  for(int i=0; i<NUM_NEIGHBORS; i++) {
+    if(nbr_decision[i]==INV){
+      VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;);
+      if((nbr_exists[i] && !nbr_isRefined[i])||!nbr_exists[i])
+        nbr_decision[i]= DEREFINE;
+      else {//when neighbor exists and is refined
+        int d1, d2;
+        if(i==RIGHT){d1=RIGHT_UP; d2=RIGHT_DOWN;}
+        else if(i==LEFT){d1=LEFT_UP; d2=LEFT_DOWN;}
+        else if(i==UP){d1=UP_LEFT; d2=UP_RIGHT;}
+        else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
+      // logFile << d1 << ": " << nbr_decision[d1] << ", " << d2 << ": " << nbr_decision[d2]<< std::endl;
+        if(nbr_decision[d1]==INV){
+          VB(CkAssert(nbr_decision[d2]==INV););
+          nbr_decision[d1] = DEREFINE;
+          nbr_decision[d2] = DEREFINE;
         }
       }
     }
+  }
+
   /*
   //Send Appropriate Data to the Neighbors based on their New Status
   if(isRefined==false) {// can send data only if I am a leaf node
@@ -1215,7 +1216,7 @@ void Advection::doPhase2(){
   }
   else if(decision==DEREFINE && !isRefined){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
-      size_t sz = ((block_height)*(block_width))/4;
+    size_t sz = ((block_height)*(block_width))/4;
     ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) ChildDataMsg(thisIndex.getChildNum(), myt, mydt, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
 
     thisProxy(parent).recvChildData(msg);
@@ -1223,7 +1224,6 @@ void Advection::doPhase2(){
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     shouldDestroy = true;
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
-      //this->~Advection();
   }
   else if(decision==REFINE){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);

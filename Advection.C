@@ -1239,21 +1239,18 @@ void Advection::doPhase2(){
     isActive = false;
   }
 
-  //Update the Status of Your Neighbors
+  //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
       for(int i=0; i<NUM_NEIGHBORS; i++){
         if(!nbr_exists[i]){
-          if(nbr_decision[i]==DEREFINE){
-            VB(logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;);
-              CkExit();
-          }
-          else if(nbr_decision[i]==REFINE){
-            nbr_exists[i]=true;
-            nbr_isRefined[i]=false;
-          }
-          else if(nbr_decision[i]==STAY){
-            nbr_exists[i]=false;
+          switch(nbr_decision[i]){
+            case DEREFINE:
+              logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
+              CkAbort("undefined state");
+            case REFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+            case STAY: nbr_exists[i]=false; break;
+            default: CkAbort("nbr_decision not set");
           }
         }
         else if(nbr_exists[i] && !nbr_isRefined[i]){

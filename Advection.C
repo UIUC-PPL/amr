@@ -1077,6 +1077,7 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
 
+  /*DECISION oldDecision = decision;
   if(decision==DEREFINE || decision==STAY || decision==INV) {//if decision was refine it would already have been 
     //communicated and the neighbors decision cannot change my decision now
     //Now check if my Decision Changes Because of this Message
@@ -1091,6 +1092,48 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
       }
     }
   }
+  logFile << "oldDecision: " << oldDecision << std::endl;
+  logFile << "decision 1: " << decision << std::endl;
+    decision = oldDecision;*/
+    /*inv=-1, coarsen=0, stay=1, refine=2
+    refine/stay messages with remoteDecision
+    if sender is sibling  //note that this situation will be handled by the informParent and recvParentDecision methods
+        myDecision = max(myDecision, remoteDecision)
+    if sender is from simple direction
+        if remoteDecision == stay
+            myDecision = myDecision//I can do whatever I want to do
+        else if remoteDecision == refine
+            myDecision = max(stay, myDecision)
+    else if sender is uncle
+        myDecision = myDecision // I can do whatever I want to do
+    else if sender is a refined neighbor
+        myDecision = max(myDecision, remoteDecision)*/
+  //logFile << nbr_exists[dir] << ", " << nbr_isRefined[dir] << std::endl;  
+  if(isDirectionSimple(dir) && nbr_exists[dir]){
+    //logFile << "i am here1, remoteDecision = " << remoteDecision << ", " << decision << std::endl;
+    if(remoteDecision==STAY);
+        //decision=std::max(STAY, decision);
+    else if(remoteDecision==REFINE)
+        decision = std::max(STAY, decision);
+    //decision = std::max(STAY, decision);
+  }
+  else if (isDirectionSimple(dir) && !nbr_exists[dir])
+  /*{
+      logFile << "i am here2" << std::endl;
+        decision=max(STAY, decision);*/
+    ;//decision = std::max(STAY, decision);
+  /*}*/
+  else if(!isDirectionSimple(dir)){
+    //logFile << "i am here3" << std::endl;
+    VB(CkAssert(isDirectionSimple(dir) == false););
+    decision = std::max(decision, remoteDecision);      
+
+  }
+  else{
+      CkAbort("unacceptable condition");
+  }
+
+  logFile << "decision 2: " << decision << std::endl;
 
   VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
   updateNeighborsofChangeInDecision();

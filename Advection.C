@@ -1254,14 +1254,11 @@ void Advection::doPhase2(){
           }
         }
         else if(nbr_exists[i] && !nbr_isRefined[i]){
-          if(nbr_decision[i]==REFINE)
-            nbr_isRefined[i]=true;
-          else if(nbr_decision[i]==STAY){
-            nbr_exists[i]=true;
-            nbr_isRefined[i]=false;
-          }
-          else{// the neighbor is going to get derefined
-            nbr_exists[i]=false;
+          switch(nbr_decision[i]){
+            case REFINE: nbr_isRefined[i]=true; break;
+            case STAY: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+            case DEREFINE: nbr_exists[i]=false; break;
+            default: CkAbort("nbr_decision not set");
           }
         }
         else if(nbr_exists[i] && nbr_isRefined[i]){

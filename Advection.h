@@ -152,7 +152,7 @@ Advection_SDAG_CODE
         double *bottom_edge;
 
         int iterations, cycle;
-        bool isActive, shouldDestroy;
+        bool shouldDestroy;
         
         double up;
         double un;

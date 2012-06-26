@@ -1217,14 +1217,6 @@ void Advection::doPhase2(){
     refine();
   }
     
-  if((decision==STAY) || (isRefined && !isGrandParent && !parentHasAlreadyMadeDecision)){
-    VB(logFile << "calling doStep after QD on myself:" << isRefined << ", " << isGrandParent << ", " << parentHasAlreadyMadeDecision<< endl;);
-    //CkStartQD(CkIndex_Advection::doStep(), &thishandle);
-    isActive = true;
-  } else {
-    isActive = false;
-  }
-
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
@@ -1456,7 +1448,6 @@ Advection::Advection(InitRefineMsg* msg)
 {
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
-  isActive = true;
   hasReset = false;
   shouldDestroy = false;
   //rootTerminated();

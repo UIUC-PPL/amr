@@ -1,5 +1,5 @@
-CHARMC=~/projects/termdetection/charm/bin/charmc -module liveViz $(OPTS)
-BOOST_ROOT = $(HOME)/boost
+CHARMC=~/workspace/charm/bin/charmc -module liveViz $(OPTS)
+BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
 
@@ -15,7 +15,7 @@ OBJS = QuadIndex.o Advection.o Main.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -lboost_filesystem -tracemode projections
+	$(CHARMC) $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -lboost_filesystem -lboost_system -tracemode projections
 
 Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci
@@ -23,6 +23,11 @@ Main.decl.h Advection.decl.h: advection.ci
 Advection.o: Advection.h Advection.decl.h
 QuadIndex.o: 
 Main.o: Main.h Advection.h Main.decl.h
+
+png:
+	g++ pngwriter.c -o pngwriter -I/home/alanger/workspace/amr/pngwriter-0.5.4/src/  -L/usr/lib -lpng -lpngwriter -lz -lfreetype
+
+
 
 test: advection
 	./charmrun ++local ./$< +p4 64 4 12

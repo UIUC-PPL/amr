@@ -865,7 +865,9 @@ void Advection::resetMeshRestructureData(){
   /*Reset old data*/
   /*Phase1 Resetting*/
   for(int i=0; i<3*NUM_NEIGHBORS; i++)
-    nbr_decision[i]=INV;
+    nbr_decision[i]=DEREFINE;//by default a neighbor will derefine
+                            //unless indicated otherwise through exchange of a
+                            //message in phase1
 
   decision = INV;
 
@@ -1111,10 +1113,9 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
-  if(isRefined){
+  /*if(isRefined){
     decision=INV;
   }
-  VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
   //Update the decision of your neighbors
   if(decision >= 0)
@@ -1134,7 +1135,8 @@ void Advection::doPhase2(){
         }
       }
     }
-  }
+  }*/
+  VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
   /*
   //Send Appropriate Data to the Neighbors based on their New Status

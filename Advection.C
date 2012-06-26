@@ -52,7 +52,6 @@ double ***delu, ***delua;
 double delu2[ndim2], delu3[ndim2], delu4[ndim2];
 double delx, dely, dely_f;
 double refine_filter = 0.01;
-double error=0;
 double refine_cutoff=0.8, derefine_cutoff=0.2;
 
 #include "Advection.decl.h"
@@ -789,7 +788,7 @@ DECISION Advection::getGranularityDecision(){
     delx = 0.5/dx;
     dely = 0.5/dy;
     dely_f = dely;
-    error=0;
+    double error=0;
 
     for(int i=1; i <= block_width; i++){
         for(int j=1; j<=block_height; j++){

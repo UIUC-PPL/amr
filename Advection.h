@@ -207,7 +207,6 @@ Advection_SDAG_CODE
         //void recvNeighborDecision(DIR);
         //void recvStatusUpdateFromParent(int);
         void exchangePhase1Msg(int, DECISION);
-        void phase1DoneQD();
 
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);

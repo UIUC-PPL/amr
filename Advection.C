@@ -925,11 +925,6 @@ void Advection::doRemeshing(){
   }
 }
 
-void Advection::phase1DoneQD() {
-  ckout << thisIndex.getIndexString().c_str() << " signaled by QD" << endl;
-  //contribute(CkCallback(CkIndex_Advection::doPhase2(), thisProxy));
-}
-
 /***** PHASE1 FUNCTIONS****/
 void Advection::communicatePhase1Msgs(){
     

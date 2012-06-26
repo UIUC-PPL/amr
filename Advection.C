@@ -1277,28 +1277,15 @@ void Advection::recvChildData(ChildDataMsg *msg){
     mem_allocate_all();
   }
   int st_i, end_i, st_j, end_j;
-  if(msg->childNum==0){
-    st_i=block_width/2+1; end_i=block_width;
-    st_j=1; end_j=block_height/2;
-  }
-  else if(msg->childNum==1){
-    st_i=1; end_i=block_width/2;
-    st_j=1; end_j=block_height/2;
-  }
-  else if(msg->childNum==2){
-    st_i=1; end_i=block_width/2;
-    st_j=block_height/2+1; end_j=block_height;
-  }
-  else if(msg->childNum==3){
-    st_i=block_width/2+1; end_i=block_width;
-    st_j=block_height/2+1;end_j=block_height;
-  }
-  else{
-    VB(logFile << "Error: recvChildData(ChildDataMsg*) received " << msg->childNum << "as ChildNum" <<std::endl;);
-      CkExit();
+  switch(msg->childNum){
+      case 0:  st_i = block_width/2+1;  end_i = block_width;    st_j = 1;                 end_j = block_height/2;  break;
+      case 1:  st_i = 1;                end_i = block_width/2;  st_j = 1;                 end_j = block_height/2;  break;
+      case 2:  st_i = 1;                end_i = block_width/2;  st_j = block_height/2+1;  end_j = block_height;    break;
+      case 3:  st_i = block_width/2+1;  end_i = block_width;    st_j = block_height/2+1;  end_j = block_height;    break;
+      default: CkAbort("undefined child number");
   }
 
-    int ctr=0;
+  int ctr=0;
   for(int j=st_j; j<=end_j; j++){
     for(int i=st_i; i<=end_i; i++){
       u[index(i,j)]=msg->child_u[ctr];

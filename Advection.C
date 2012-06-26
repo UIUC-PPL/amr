@@ -1110,11 +1110,6 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
-  hasReceived.clear();//clear it up to track the ghosts layered required for restructure
-  for(int i=0; i<NUM_NEIGHBORS; i++)
-    nbr_dataSent[i]=false;
-
-  imsg=0;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
   if(isRefined){
     decision=INV;

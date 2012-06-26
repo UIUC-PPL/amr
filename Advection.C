@@ -1112,29 +1112,7 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
-  /*if(isRefined){
-    decision=INV;
-  }
 
-  //Update the decision of your neighbors
-  if(decision >= 0)
-  for(int i=0; i<NUM_NEIGHBORS; i++) {
-    if(nbr_decision[i]==INV){
-      VB(logFile <<  thisIndex.getIndexString() << " has Not received Any Message From Nbr " << i << std::endl;);
-      if((nbr_exists[i] && !nbr_isRefined[i])||!nbr_exists[i])
-        nbr_decision[i]= DEREFINE;
-      else {//when neighbor exists and is refined
-        int d1, d2;
-        getRefinedNbrDirections(i, d1, d2);
-
-        if(nbr_decision[d1]==INV){
-          VB(CkAssert(nbr_decision[d2]==INV););
-          nbr_decision[d1] = DEREFINE;
-          nbr_decision[d2] = DEREFINE;
-        }
-      }
-    }
-  }*/
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
   /*
@@ -1232,6 +1210,7 @@ void Advection::updateNbrStatus(){
           switch(nbr_decision[i]){
             case DEREFINE:
               logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
+              ckout << thisIndex.getIndexString().c_str() << " 's nbr in direction " << i << " is set to derefine" << endl; 
               CkAbort("undefined state");
             case REFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
             case STAY: nbr_exists[i]=false; break;

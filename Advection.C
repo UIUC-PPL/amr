@@ -1208,7 +1208,17 @@ void Advection::doPhase2(){
     //thisProxy[thisIndex].getGhostsAndRefine();
     refine();
   }
-    
+   
+  updateNbrStatus();
+
+  //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
+  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
+  parentHasAlreadyMadeDecision=false;
+  hasReset=false;
+
+}
+
+void Advection::updateNbrStatus(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
@@ -1250,13 +1260,7 @@ void Advection::doPhase2(){
   }else if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){// parent going to destroy its children
     isRefined = false;
   }
-  //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
-  parentHasAlreadyMadeDecision=false;
-  hasReset=false;
-
 }
-
 
 void Advection::recvChildData(ChildDataMsg *msg){
   VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);

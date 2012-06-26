@@ -793,6 +793,7 @@ DECISION Advection::getGranularityDecision(){
 
     for(int i=1; i <= block_width; i++){
         for(int j=1; j<=block_height; j++){
+            // d/dx
             delu[0][i][j] = u[index(i+1, j)] - u[index(i-1,j)];
             delu[0][i][j] = delu[0][i][j]*delx;
 
@@ -837,7 +838,7 @@ DECISION Advection::getGranularityDecision(){
 
             for (int kk = 0; kk < ndim2; kk++){  // kk= 1, 2, 3, 4
                 num = num + pow(delu2[kk],2.);
-                denom = denom + pow(delu3[kk] + (refine_filter*delu4[kk]), 2);
+                denom = denom + pow(delu3[kk], 2.) + (refine_filter*delu4[kk])*2;
                 // refine_filter is the epsilon in my writing sheet
                 // refine_filter = 0.01 by default
             }

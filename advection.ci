@@ -75,7 +75,6 @@ module Advection{
 
   };
 
-  //include "terminator.hpp";
 
   array [QuadIndex] Advection {
     entry Advection();
@@ -234,15 +233,11 @@ module Advection{
           sendReadyData2RefiningNeighbors();
           //cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
           //<< " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << "\n";
-          ////terminator->doneSending();
-          ////terminator->msgProcessed();
         }
       }
       atomic "refine"{
         //cout << thisIndex.getIndexString() << " now refining\n";
         refine();
-        ////terminator->doneSending();
-        ////terminator->msgProcessed(); // For the self-message that triggered this
       }
     };
     //happens in doPhase2()
@@ -250,14 +245,11 @@ module Advection{
     entry void getAndSendGhost(){
       atomic{
         VB(logFile << "getAndSendGhost called" << endl;); 
-        ////terminator->msgProcessed(); // For the self-message that triggered this
       }
       when receiveRefGhosts[iterations] (int iter, int dir, int width,
                                          double u1[width]) atomic "interpolate and send"{
         process(iter, dir, width, u1);
         sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
-        ////terminator->doneSending();
-        ////terminator->msgProcessed();
       }
     };
 
@@ -267,8 +259,5 @@ module Advection{
     entry void doPhase2();
     entry void recvChildData(ChildDataMsg*);
 
-    /*// For termination detection
-    entry void needAck(QuadIndex predecessor, unsigned int count);
-    entry void gotAck(unsigned int count);*/
   };
 };

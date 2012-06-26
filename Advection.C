@@ -1313,7 +1313,6 @@ void Advection::recvChildData(ChildDataMsg *msg){
     VB(logFile << "Error: recvChildData(ChildDataMsg*) received " << msg->childNum << "as ChildNum" <<std::endl;);
       CkExit();
   }
-  VB(logFile << "Check Memory 1" << thisIndex.getIndexString() << std::endl;);
 
     int ctr=0;
   for(int j=st_j; j<=end_j; j++){
@@ -1586,5 +1585,7 @@ Advection::Advection(InitRefineMsg* msg)
 }
 
 void Advection::generateMesh(){
+
 }
+
 #include "Advection.def.h"

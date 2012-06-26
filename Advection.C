@@ -76,10 +76,11 @@ PerProcessorChare::PerProcessorChare(){
 
 InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 
                              double myt, double mydt, double xmin, double  ymin, 
-                             int iterations_, vector<double>& refined_u, 
+                             int meshGenIterations_, int iterations_, vector<double>& refined_u, 
                              bool *nbr_exists,
                              bool *nbr_isRefined, DECISION *nbr_decision) {
   this->isInMeshGenerationPhase = isInMeshGenerationPhase;
+  this->meshGenIterations = meshGenIterations_;
   this->dx = dx;
   this->dy = dy;
   this->myt = myt;
@@ -197,6 +198,7 @@ void Advection::advection(){
   myt = t;
   mem_allocate_all();
   iterations=0;
+  meshGenIterations=0;
 
   thisIndex.getCoordinates(xc, yc);
 
@@ -1389,7 +1391,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
   InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-    InitRefineMsg(0, dx/2, dy/2, myt, mydt, xmin, ymin, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+    InitRefineMsg(0, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
   thisProxy(child).insert(msg);
 }
 
@@ -1509,6 +1511,7 @@ Advection::Advection(InitRefineMsg* msg)
   VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
 
   thisIndex.getCoordinates(xc, yc);
+  meshGenIterations = msg->meshGenIterations;
   iterations = msg->iterations;
 
   mem_allocate_all();
@@ -1554,7 +1557,8 @@ Advection::Advection(InitRefineMsg* msg)
     logFile << std::endl;
   }
 #endif
-  decision=REFINE;//to used for reduction while doing mesh generation
+  decision=REFINE;//to be used for reduction while doing mesh generation
+                  // to keep track if any change happened in the last mesh gen iteration 
   //delete the message
   delete msg;
 
@@ -1579,7 +1583,7 @@ void Advection::updateMesh(){
             }
             child = thisIndex.getChild(childNum);
             InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-                                InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
+                                InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
             thisProxy(child).insert(msg);
           }
           //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;

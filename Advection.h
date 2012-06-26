@@ -152,6 +152,7 @@ Advection_SDAG_CODE
         double *bottom_edge;
 
         int iterations, cycle;
+        int meshGenIterations;
         bool shouldDestroy;
         
         double up;
@@ -237,14 +238,14 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
     public:
         bool isInMeshGenerationPhase;
         double dx, dy, myt, mydt, xmin, ymin, *refined_u;
-        int iterations;
+        int meshGenIterations, iterations;
         bool *parent_nbr_exists;
         bool *parent_nbr_isRefined;
         DECISION *parent_nbr_decision;
 
         InitRefineMsg(){};
-        InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, int iterations, 
-                        vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
+        InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
+                        int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 
 class ChildDataMsg: public CMessage_ChildDataMsg{

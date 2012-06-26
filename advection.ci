@@ -88,10 +88,7 @@ module Advection{
     entry void begin_iteration();
     entry void informParent(int, DECISION);
     entry void recvParentDecision();
-    //entry void recvNeighborDecision(DIR);
-    //entry void recvStatusUpdateFromParent(int);
     entry void exchangePhase1Msg(int, DECISION);
-    //entry void doMeshRestructure();
     entry void done();
 
     entry void rootTerminated() {};
@@ -183,7 +180,6 @@ module Advection{
 	      		}
 	      		contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
 	    		}
-          //startRemesh();
 				}
 			}
     }
@@ -215,7 +211,6 @@ module Advection{
 		if (!isRefined){
 			atomic "exchange ghosts before remeshing"{
 				exchangeGhosts();
-        //thisProxy[thisIndex].signalExchangeGhostsCompletion();
 			}
 			when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
 				doRemeshing();
@@ -264,15 +259,6 @@ module Advection{
     entry void phase1Done();
             
     entry void getGhostsAndRefine(){
-      /*atomic "initialize imsg"{
-        imsg=0;
-        for(set<int>::iterator itr=hasReceived.begin(); itr!=hasReceived.end(); itr++){
-        if(*itr <= 3)
-        imsg++;
-        else 
-        imsg += 0.5;
-        }
-        }*/
       for(;imsg<4;) {
         when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
                                         QuadIndex sender, int tag) atomic "save ghosts" {
@@ -287,6 +273,7 @@ module Advection{
         refine();
       }
     };
+
     //happens in doPhase2()
     entry void receiveRefGhosts(int ,int, int width, double u[width]);
     entry void getAndSendGhost(){

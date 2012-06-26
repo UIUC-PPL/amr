@@ -209,7 +209,7 @@ void Main::startMeshGeneration() {
   //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
   start_time = CkWallTimer();
   qtree.generateMesh();
-  CkStartQD(CkCallback(CkIndex_Main::startRunning(), thisProxy));
+  //CkStartQD(CkCallback(CkIndex_Main::startRunning(), mainProxy));
 }
 
 void Main::startRunning(){

@@ -187,7 +187,7 @@ Advection_SDAG_CODE
         void pup(PUP::er &p);
  				
         /* initial mesh generation*/       
-				void generateMesh();
+				void updateMesh();
 
         void begin_iteration();
         void process(int, int, int, double*);
@@ -216,6 +216,7 @@ Advection_SDAG_CODE
         bool sendGhost(int,bool);
         QuadIndex lastSent;
         void doPhase2();
+        void updateNbrStatus();
 
         void recvChildData(ChildDataMsg*);
         void interpolateAndSend(int);
@@ -234,6 +235,7 @@ Advection_SDAG_CODE
 class InitRefineMsg: public CMessage_InitRefineMsg{
 
     public:
+        bool isInMeshGenerationPhase;
         double dx, dy, myt, mydt, xmin, ymin, *refined_u;
         int iterations;
         bool *parent_nbr_exists;
@@ -241,12 +243,13 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
         DECISION *parent_nbr_decision;
 
         InitRefineMsg(){};
-        InitRefineMsg(double dx, double dy, double myt, double mydt, double xmin, double ymin, int iterations, 
+        InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, int iterations, 
                         vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 
 class ChildDataMsg: public CMessage_ChildDataMsg{
     public:
+        bool isInMeshGenerationPhase;
         int childNum;
         double myt, mydt; int iterations;
 	double *child_u;
@@ -254,7 +257,7 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
         bool *child_nbr_isRefined;
         DECISION *child_nbr_decision;
         
-        ChildDataMsg(int cnum, double myt, double mydt, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
+        ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };
 
 class PerProcessorChare : public CBase_PerProcessorChare{

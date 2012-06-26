@@ -48,6 +48,7 @@ mainmodule Main{
 module Advection{
 
   message InitRefineMsg {
+    bool isInMeshGenerationPhase;
     double dx;
     double dy;
     double myt;
@@ -59,6 +60,7 @@ module Advection{
   };
 
   message ChildDataMsg{
+    bool isInMeshGenerationPhase;
     int childNum;
     int iterations;
     double myt;
@@ -89,11 +91,56 @@ module Advection{
     //entry void recvNeighborDecision(DIR);
     //entry void recvStatusUpdateFromParent(int);
     entry void exchangePhase1Msg(int, DECISION);
-    entry void generateMesh();
     //entry void doMeshRestructure();
     entry void done();
 
     entry void rootTerminated() {};
+    
+    entry void phase1OfMeshGenerationDone();
+    entry [reductiontarget] void meshUpdateReductionClient(int result);
+
+    entry void generateMesh(){
+        atomic "call remeshing for mesh update"{
+            doRemeshing();
+            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
+                ckout << "making refinement decisions" << endl;
+                CkStartQD(CkCallback(CkIndex_Advection::phase1OfMeshGenerationDone(), thisProxy));
+            }
+        }
+        when phase1OfMeshGenerationDone() atomic{
+            updateMesh();
+            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
+                ckout << "now in phase 2 of mesh generation" << endl;
+                CkStartQD(CkCallback(CkIndex_Advection::phase2OfMeshGenerationDone(), thisProxy));
+            }
+        }
+    };
+
+    entry void phase2OfMeshGenerationDone(){
+        atomic{
+            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
+                ckout << "participating in reduction to determine mesh stability" << endl;
+
+            int contri;
+            //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
+            if(decision==DEREFINE || decision==REFINE)
+                contri=1;
+            else
+                contri=0;
+            contribute(sizeof(int), &contri, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));
+        }
+        when meshUpdateReductionClient(int result) atomic{
+            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
+                ckout << "nUpdates: " << result << endl;
+
+            if(result>0)
+                generateMesh();
+            else
+                phase2Done();
+        }
+    };
+
+    entry void updateMesh();
     entry void startRemesh() {
         atomic "doMeshRestructure" {
           doMeshRestructure();

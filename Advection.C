@@ -1255,13 +1255,6 @@ void Advection::doPhase2(){
   parentHasAlreadyMadeDecision=false;
   hasReset=false;
 
-  if (decision != REFINE) {
-    //CkPrintf("%s nonrefine phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-    //    fflush(stdout);
-//     contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
-  } else {
-    //CkPrintf("%s refine phase 2e %d\n", thisIndex.getIndexString().c_str(), iterations);
-  }  
 }
 
 

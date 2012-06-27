@@ -855,20 +855,19 @@ DECISION Advection::getGranularityDecision(){
         }
     }
     error = sqrt(error);
-    if(error < derefine_cutoff && thisIndex.getDepth() > min_depth){
+    if(error < derefine_cutoff && thisIndex.getDepth() > min_depth)
         return DEREFINE;
-    }
-    else if(error > refine_cutoff && thisIndex.getDepth() < max_depth){
+    else if(error > refine_cutoff && thisIndex.getDepth() < max_depth)
         return REFINE;  
-    }
-    else return STAY;
+    else
+        return STAY;
 }
 
 void Advection::resetMeshRestructureData(){
   /*Reset old data*/
   /*Phase1 Resetting*/
   for(int i=0; i<3*NUM_NEIGHBORS; i++)
-    nbr_decision[i]=DEREFINE;//by default a neighbor will derefine
+    nbr_decision[i] = DEREFINE;//by default a neighbor will derefine
                             //unless indicated otherwise through exchange of a
                             //message in phase1
 
@@ -931,7 +930,7 @@ void Advection::doRemeshing(){
 /***** PHASE1 FUNCTIONS****/
 void Advection::communicatePhase1Msgs(){
     
-  if(decision==REFINE||decision==STAY){
+  if(decision == REFINE || decision == STAY){
     //tell the neighbor if it exists, also tell to children of the neighbor 
     // if that neighbor is refined
     //In case the neighbor does not exist, just tell to the parent of the 
@@ -965,7 +964,7 @@ void Advection::communicatePhase1Msgs(){
   }
 
   //If my DECISION is to stay or to REFINE, tell the parent
-  if((decision == REFINE || decision == STAY) && (parent!=thisIndex)){
+  if((decision == REFINE || decision == STAY) && (parent != thisIndex)){
     thisProxy(parent).informParent(thisIndex.getChildNum(), decision);
   }
 }
@@ -982,9 +981,9 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
       child_isRefined[childNum]=true;
       isGrandParent = true;
     }
-  if(parentHasAlreadyMadeDecision==false){
+  if(parentHasAlreadyMadeDecision == false){
     VB(logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;);
-      parentHasAlreadyMadeDecision=true;
+      parentHasAlreadyMadeDecision = true;
     //tell rest of the children which are not refined
     for(int i=0 ;i<NUM_CHILDREN; i++){
       if(i!=childNum && !child_isRefined[i]) {
@@ -1001,7 +1000,7 @@ void Advection::recvParentDecision(){
       resetMeshRestructureData();
     }
 
-  hasReceivedParentDecision=true;
+  hasReceivedParentDecision = true;
   decision = std::max(STAY, decision);
   updateNeighborsofChangeInDecision();
 }
@@ -1011,10 +1010,10 @@ bool isDirectionSimple(int dir) {
 }
 
 void Advection::updateNeighborsofChangeInDecision(){
-  if(decision==REFINE && !hasCommunicatedREFINE){
+  if(decision == REFINE && !hasCommunicatedREFINE){
     hasCommunicatedREFINE=true;
     communicatePhase1Msgs();
-  }else if(decision==STAY && !hasCommunicatedSTAY){
+  }else if(decision == STAY && !hasCommunicatedSTAY){
     hasCommunicatedSTAY=true;
     communicatePhase1Msgs();
   }
@@ -1047,9 +1046,9 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
   //logFile << nbr_exists[dir] << ", " << nbr_isRefined[dir] << std::endl;  
   if(isDirectionSimple(dir) && nbr_exists[dir]){
     //logFile << "i am here1, remoteDecision = " << remoteDecision << ", " << decision << std::endl;
-    if(remoteDecision==STAY);
+    if(remoteDecision == STAY);
         //decision=std::max(STAY, decision);
-    else if(remoteDecision==REFINE)
+    else if(remoteDecision == REFINE)
         decision = std::max(STAY, decision);
     //decision = std::max(STAY, decision);
   }
@@ -1176,7 +1175,7 @@ void Advection::doPhase2(){
   if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
     //Get Data From the Children and extrapolate it
   }
-  else if(decision==DEREFINE && !isRefined){//send data to the parent
+  else if(decision == DEREFINE && !isRefined){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     size_t sz = ((block_height)*(block_width))/4;
     ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
@@ -1188,7 +1187,7 @@ void Advection::doPhase2(){
     shouldDestroy = true;
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
   }
-  else if(decision==REFINE){
+  else if(decision == REFINE){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
     //thisProxy[thisIndex].getGhostsAndRefine();
     refine();
@@ -1198,7 +1197,7 @@ void Advection::doPhase2(){
 
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
-  parentHasAlreadyMadeDecision=false;
+  parentHasAlreadyMadeDecision = false;
   hasReset=false;
 
 }
@@ -1240,7 +1239,7 @@ void Advection::updateNbrStatus(){
         }
       }
   }
-  else if(decision==REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
+  else if(decision == REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
     isRefined=true;
     isGrandParent=false;
   }else if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){// parent going to destroy its children

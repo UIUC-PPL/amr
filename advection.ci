@@ -134,13 +134,15 @@ module Advection{
         when meshUpdateReductionClient(int result) atomic{
             if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
                 ckout << "nUpdates: " << result << endl;
-
             meshGenIterations++;
-            if(result>0 && meshGenIterations<2){
+            if(result > 0 && meshGenIterations < 10){
+                VB(logFile << "calling generateMesh on myself" << std::endl;);
                 generateMesh();
             }
-            else
+            else{
+                VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
                 phase2Done();
+            }
         }
     };
 

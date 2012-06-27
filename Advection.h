@@ -252,13 +252,14 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
     public:
         bool isInMeshGenerationPhase;
         int childNum;
-        double myt, mydt; int iterations;
+        double myt, mydt; 
+        int meshGenIterations, iterations;
 	double *child_u;
         bool *child_nbr_exists;
         bool *child_nbr_isRefined;
         DECISION *child_nbr_decision;
         
-        ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
+        ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };
 
 class PerProcessorChare : public CBase_PerProcessorChare{

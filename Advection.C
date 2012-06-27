@@ -1068,14 +1068,13 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision){//Phase1 Msg
       CkAbort("unacceptable condition");
   }
 
-  logFile << "decision 2: " << decision << std::endl;
 
   VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
   updateNeighborsofChangeInDecision();
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)
-ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, double mdt, int iter, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision){
+ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, double mdt, int meshGenIterations, int iter, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision){
   //logFile << child_nbr_isRefined << std::endl;
   if(isInMeshGenerationPhase==false){
     for(int i=1; i<= block_width; i+=2){
@@ -1088,6 +1087,7 @@ ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, do
     }
   }
   this->isInMeshGenerationPhase = isInMeshGenerationPhase;
+  this->meshGenIterations = meshGenIterations;
   childNum = cnum;
   iterations=iter;
   myt=mt;
@@ -1179,7 +1179,7 @@ void Advection::doPhase2(){
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     size_t sz = ((block_height)*(block_width))/4;
     ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-                            ChildDataMsg(0, thisIndex.getChildNum(), myt, mydt, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
+                            ChildDataMsg(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
 
     thisProxy(parent).recvChildData(msg);
     //deallocate all your memory and destroy yourself
@@ -1254,6 +1254,7 @@ void Advection::recvChildData(ChildDataMsg *msg){
     myt = msg->myt;
   mydt = msg->mydt;
   iterations = msg->iterations;
+  meshGenIterations = msg->meshGenIterations;
 
   if(!hasAllocatedMemory){
     hasAllocatedMemory=true;
@@ -1591,7 +1592,7 @@ void Advection::updateMesh(){
         }
         else if(decision==DEREFINE){
           ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-                                    ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, iterations, 
+                                    ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, 
                                                     u, nbr_exists, nbr_isRefined, nbr_decision);
 
           thisProxy(parent).recvChildData(msg);

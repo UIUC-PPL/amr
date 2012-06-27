@@ -1185,6 +1185,7 @@ void Advection::doPhase2(){
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     shouldDestroy = true;
+    thisProxy[thisIndex].ckDestroy();
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
   }
   else if(decision == REFINE){
@@ -1598,7 +1599,7 @@ void Advection::updateMesh(){
           VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
           shouldDestroy = true;
           //ckout << thisIndex.getIndexString().c_str() << " is now coarsening" << endl;
-          //thisProxy[thisIndex].ckDestroy();
+          thisProxy[thisIndex].ckDestroy();
         }
 
         updateNbrStatus(); //update the status of your neighbors

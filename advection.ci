@@ -163,8 +163,8 @@ module Advection{
 	  		CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
 	  		fflush(stdout);
 			}
-      if (shouldDestroy) 
-				thisProxy[thisIndex].ckDestroy();
+      if (shouldDestroy);
+				//thisProxy[thisIndex].ckDestroy();
       else {
          if (!isRefined) {
            thisProxy[thisIndex].doStep();

@@ -118,10 +118,6 @@ Main::Main(CkArgMsg* m){
   dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;
   dy = (ymax - ymin)/double(array_height);//ckout << "dy: " << dy << endl;
   //ckout << min(dx, dy) << endl;	
-  dt = min(dx,dy)/v * cfl;
-  if ((t + dt) >= tmax )
-    dt = tmax - t;
-  t = t+dt;
   //ckout << "dt: " << dt << endl;
   xctr = 0.3;
   yctr = 0.5;
@@ -147,7 +143,13 @@ Main::Main(CkArgMsg* m){
   double fdepth = (log(num_chares)/log(4));
 	int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
-  max_depth = 100;
+  max_depth = 7;
+
+  dt = min(dx,dy)/v * cfl;
+  dt /= 2*(max_depth - min_depth);
+  if ((t + dt) >= tmax )
+    dt = tmax - t;
+  t = t+dt;
 
   QuadIndex qindex;
   for(int i=0; i < num_chares; i++){

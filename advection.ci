@@ -119,9 +119,14 @@ module Advection{
                 ckout << "participating in reduction to determine mesh stability" << endl;
 
             int contri;
+            if(decision==DEREFINE)
+                isRefined=false;
+
             //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
-            if(decision==DEREFINE || decision==REFINE)
+            if(decision==DEREFINE || decision==REFINE){
+                //ckout << thisIndex.getIndexString().c_str() << " contributing 1, decision = " << decision << endl;
                 contri=1;
+            }
             else
                 contri=0;
             contribute(sizeof(int), &contri, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));

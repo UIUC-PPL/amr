@@ -95,6 +95,48 @@ InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy,
   memcpy(this->parent_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
 }
 
+void Advection::applyInitialCondition(){
+  double rsq;
+  for(int i=0; i<block_width+2; i++){
+    for(int j=0; j<block_height+2; j++){
+      rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
+        if(rsq <= radius*radius)
+          u[index(i, block_height+1-j)] = 2;
+        else u[index(i, block_height+1-j)] = 1;
+    }
+  }
+  return;
+
+  double *xarray = x;
+  double *yarray = y;
+
+  double x, y, rx, ry;
+  double t = 0.2;
+  for(int i = 0; i < block_width + 2; i++){
+    for(int j = 0; j < block_height + 2; j++){
+      x = xarray[i]*100; y = yarray[j]*100;
+      u[index(i, block_height+1-j)] = 1;
+      if (!(y >= 10 && y < 90))
+          continue;
+      if (x >= 8 && x < 16){//its the C
+        //get corresponding y1max, y1min and y2ax, y2min
+      }else if(x >= 20 && x < 28){//its H
+        rx = x - 20; ry = y - 10;
+        if(rx <= 2 || rx >= 6 || (ry >= 35 && ry < 45))
+          u[index(i, block_height+1-j)] = 2;
+      }else if(x >= 32 && x < 40){//its A
+      }else if(x >= 44 && x < 52){//its R
+      }else if(x >= 56 && x < 64){//its M
+      }else if(x >= 68 && x < 76){//its +
+        rx = x - 69; ry = y - 20;
+        if ((ry >= 20 && ry <= 40) || (rx >= 2 && rx <= 4))
+          u[index(i, block_height+1-j)] = 2;
+      }else if(x >= 80 && x < 88){//its +
+      }
+    }
+  }
+}
+
 void Advection::mem_allocate(double* &p, int size){
   p = new double[size];
 }
@@ -218,22 +260,7 @@ void Advection::advection(){
     
   //logFile << "In Adfvection2" << std::endl;
   VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
-    /*for(int i=0; i<block_width+2; i++){
-      for(int j=0; j<block_height+2; j++){
-        rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-        if(i==block_width/2)
-            u[index(i, block_height+1-j)] = 2;
-        else u[index(i, block_height+1-j)] = 1;
-      }
-    }*/
-    for(int i=0; i<block_width+2; i++){
-      for(int j=0; j<block_height+2; j++){
-        rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-        if(rsq <= radius*radius)
-          u[index(i, block_height+1-j)] = 2;
-        else u[index(i, block_height+1-j)] = 1;
-      }
-    }
+  applyInitialCondition();
 #if 1
 #ifdef LOGGER
   for(int i=0; i<block_height; i++){
@@ -1269,25 +1296,18 @@ void Advection::recvChildData(ChildDataMsg *msg){
       default: CkAbort("undefined child number");
   }
     
-  
   int ctr=0; double rsq;
-  for(int j=st_j; j<=end_j; j++){
-    for(int i=st_i; i<=end_i; i++){
-      switch(msg->isInMeshGenerationPhase){
-        case 1:
-                rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-                if(rsq <= radius*radius)
-                  u[index(i, block_height+1-j)] = 2;
-                else u[index(i, block_height+1-j)] = 1;
-                break;
-        case 0:
-                u[index(i,j)]=msg->child_u[ctr];
-                VB(logFile << msg->child_u[ctr] << ", " << u[index(i,j)] << "\t";);
-                ctr++;
-                break;
+  if(msg->isInMeshGenerationPhase)
+      applyInitialCondition();
+  else{
+    for(int j=st_j; j<=end_j; j++){
+      for(int i=st_i; i<=end_i; i++){
+        u[index(i,j)]=msg->child_u[ctr];
+        VB(logFile << msg->child_u[ctr] << ", " << u[index(i,j)] << "\t";);
+        ctr++;
       }
+      VB(logFile << std::endl;);
     }
-    VB(logFile << std::endl;);
   }
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
@@ -1531,15 +1551,7 @@ Advection::Advection(InitRefineMsg* msg)
     for(int i=0; i<block_height+2; i++)
       y[i] = ymin + double(i)*dy - 0.5*dy;
     
-    double rsq;
-    for(int i=0; i<block_width+2; i++){
-      for(int j=0; j<block_height+2; j++){
-        rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-        if(rsq <= radius*radius)
-          u[index(i, block_height+1-j)] = 2;
-        else u[index(i, block_height+1-j)] = 1;
-      }
-    }
+    applyInitialCondition();
   }else{
       //Initialize u - For boundaries I have to wait for the neighbors
       //to send the values, rest of it can be initialized by the values 

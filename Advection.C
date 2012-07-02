@@ -96,7 +96,7 @@ InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy,
 }
 
 void Advection::applyInitialCondition(){
-  double rsq;
+  /*double rsq;
   for(int i=0; i<block_width+2; i++){
     for(int j=0; j<block_height+2; j++){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -105,33 +105,66 @@ void Advection::applyInitialCondition(){
         else u[index(i, block_height+1-j)] = 1;
     }
   }
-  return;
+  return;*/
 
   double *xarray = x;
   double *yarray = y;
 
   double x, y, rx, ry;
-  double t = 0.2;
+  double t = 2;
   for(int i = 0; i < block_width + 2; i++){
     for(int j = 0; j < block_height + 2; j++){
       x = xarray[i]*100; y = yarray[j]*100;
       u[index(i, block_height+1-j)] = 1;
-      if (!(y >= 10 && y < 90))
+      if (!(y >= 42 && y < 58))
           continue;
       if (x >= 8 && x < 16){//its the C
         //get corresponding y1max, y1min and y2ax, y2min
+        double y1max, y1min, y2min, y2max;
+        y1max = 50 + sqrt(64 - pow((x - 16), 2.));
+        y1min = y1max - t;
+        y2min = 50 - sqrt(64 - pow((x - 16), 2.));
+        y2max = y2min + t;
+        if ((y < y1max && y >= y1min) || (y >= y2min && y < y2max))
+          u[index(i, block_height+1-j)] = 2;
       }else if(x >= 20 && x < 28){//its H
-        rx = x - 20; ry = y - 10;
-        if(rx <= 2 || rx >= 6 || (ry >= 35 && ry < 45))
+        rx = x - 20; ry = y - 42;
+        if(rx <= 2 || rx >= 6 || (ry >= 6 && ry < 10))
           u[index(i, block_height+1-j)] = 2;
       }else if(x >= 32 && x < 40){//its A
+         rx = x - 32; ry = y - 42;
+         if ((ry >= 8 && ry < 8 + t) || (ry >= 14))
+           u[index(i, block_height+1-j)] = 2;
+         if ((rx < t) || (rx >= 8 - t))
+           u[index(i, block_height+1-j)] = 2;
       }else if(x >= 44 && x < 52){//its R
+         rx = x - 44; ry = y - 42;
+         if (rx < t || (rx >= 6 && ry >= 8))
+           u[index(i, block_height+1-j)] = 2;
+         if ((ry >= 8 && ry <= 10) || (ry >= 14))
+           u[index(i, block_height+1-j)] = 2;
+         if (rx >= 2){
+            double ymax = -1*(4.0/3.0)*rx + (32./3.);
+            double ymin = ymax - t;
+            if (ry >= ymin && ry < ymax)
+              u[index(i, block_height+1-j)] = 2;
+         }
       }else if(x >= 56 && x < 64){//its M
+        rx = x - 56; ry = y - 42;
+        if ((rx < t) || (rx >= 8 - t))
+           u[index(i, block_height+1-j)] = 2;
+        if (ry >= 12)
+           u[index(i, block_height+1-j)] = 2;
+        if (rx >= 3 && rx < 5 && ry >= 8)
+           u[index(i, block_height+1-j)] = 2;
       }else if(x >= 68 && x < 76){//its +
-        rx = x - 69; ry = y - 20;
-        if ((ry >= 20 && ry <= 40) || (rx >= 2 && rx <= 4))
+        rx = x - 69; ry = y - 42;
+        if ((ry >= 5 && ry <= 10) || (rx >= 2 && rx <= 4))
           u[index(i, block_height+1-j)] = 2;
       }else if(x >= 80 && x < 88){//its +
+        rx = x - 81; ry = y - 42;
+        if ((ry >= 5 && ry <= 10) || (rx >= 2 && rx <= 4))
+          u[index(i, block_height+1-j)] = 2;
       }
     }
   }

@@ -119,8 +119,8 @@ module Advection{
                 ckout << "participating in reduction to determine mesh stability" << endl;
 
             int contri;
-            if(decision==DEREFINE)
-                isRefined=false;
+            //if(decision==DEREFINE)
+            //    isRefined=false;
 
             //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
             if(decision==DEREFINE || decision==REFINE){
@@ -136,7 +136,7 @@ module Advection{
                 ckout << "nUpdates: " << result << endl;
             meshGenIterations++;
             if(result > 0 && meshGenIterations < 10){
-                VB(logFile << "calling generateMesh on myself" << std::endl;);
+                VB(logFile << "calling generateMesh on myself, iteration " << meshGenIterations << std::endl;);
                 generateMesh();
             }
             else{

@@ -1663,10 +1663,11 @@ void Advection::updateMesh(){
           thisProxy[thisIndex].ckDestroy();
         }
 
-        updateNbrStatus(); //update the status of your neighbors
-        if(decision==REFINE || decision==DEREFINE)
-            decision=INV;
     }
+
+    updateNbrStatus(); //update the status of your neighbors
+    if(decision==REFINE || decision==DEREFINE)
+        decision=INV;
     VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
     parentHasAlreadyMadeDecision = false;
     hasReset = false;

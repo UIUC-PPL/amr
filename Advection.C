@@ -1053,6 +1053,9 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
         thisProxy(thisIndex.getChild(i)).recvParentDecision();
       }
     }
+    //informyour parent that you are not going to derefine
+    if(parent!=thisIndex)
+        thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);
   }
 }
 

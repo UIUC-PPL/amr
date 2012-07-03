@@ -1037,10 +1037,13 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
     resetMeshRestructureData();
   }
   VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << std::endl;);
-    if(dec==REFINE){
-      child_isRefined[childNum]=true;
-      isGrandParent = true;
-    }
+  if(childNum >= 0)
+      child_decision[childNum]=dec;
+
+  if(dec==REFINE){
+    child_isRefined[childNum]=true;
+    isGrandParent = true;
+  }
   if(parentHasAlreadyMadeDecision == false){
     VB(logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;);
       parentHasAlreadyMadeDecision = true;
@@ -1306,6 +1309,18 @@ void Advection::updateNbrStatus(){
   }else if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){// parent going to destroy its children
     isRefined = false;
   }
+  if(isGrandParent){
+    for(int i=0; i<NUM_CHILDREN; i++){
+        if(child_decision[i]==INV && child_isRefined[i])//did not receive any message
+            child_isRefined[i]=false;
+    }
+    isGrandParent=false;
+    for(int i=0; i<NUM_CHILDREN; i++)
+        if(child_isRefined[i])
+            isGrandParent=true;
+  }
+  VB(logFile << "isGrandparent = " << isGrandParent << std::endl;);
+
 }
 
 void Advection::recvChildData(ChildDataMsg *msg){

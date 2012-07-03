@@ -118,7 +118,7 @@ Advection_SDAG_CODE
         bool hasReceivedFromAroundCorner(int aroundCorner);
 
         /*Phase1 DataStructures*/
-	DECISION decision;
+	      DECISION decision;
         DECISION nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
         DECISION child_decision[NUM_CHILDREN];
 

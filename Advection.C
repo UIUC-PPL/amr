@@ -380,7 +380,7 @@ void Advection::pup(PUP::er &p){
 }
     
 Advection::~Advection(){
-  CkPrintf("%s destructor %d\n", thisIndex.getIndexString().c_str(), iterations);
+  //CkPrintf("%s destructor %d\n", thisIndex.getIndexString().c_str(), iterations);
   VB(logFile << "In Destructor" << std::endl;);
     delete [] u;
   delete [] u2;

@@ -232,23 +232,40 @@ void Main::printTreeInformation(CkVec<QuadIndex> list){
 }
 
 
-struct AdvMap : public CBase_AdvMap
-{
+struct AdvMap : public CBase_AdvMap {
   AdvMap() { }
 
   int procNum(int arrayHdl, const CkArrayIndex& i) {
+    int numPes = CkNumPes();
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());
-    unsigned long ret = CkHashFunction_default(&idx.bitVector, sizeof(idx.bitVector)) % CkNumPes();
-    srand48(idx.bitVector >> (sizeof(unsigned int)*8 - idx.nbits));
+    std::string str = idx.getIndexString();
+    std::string base = str.substr(0, 8);
+
+    QuadIndex baseIndex(base.c_str());
+    srand48(baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits));
     for (int i = 0; i < 1000; ++i) lrand48();
+    int basePE = int(drand48() * numPes) % numPes;
+    int offset = 1;
 
-    ret = int(drand48() * CkNumPes()) % CkNumPes();
-    //    CkPrintf("%d Asked for location of %u %s, got %lu\n", CkMyPe(), idx.bitVector, idx.getIndexString().c_str(), ret);
+    for (int i = 8; i < idx.nbits; i += 2) {
+      if (i != 8) offset *= 4;
+      std::string coord = str.substr(i, 2);
+      QuadIndex coordIndex(coord.c_str());
+      int fact = coordIndex.bitVector >> (sizeof(unsigned int)*8 - coordIndex.nbits);
+      offset += fact;
+    }
 
+    int pe = (basePE + offset - 1) % numPes;
 
-      return ret;
+    // std::cout << "index = " << str
+    //           << ", base = " << base
+    //           << ", baseIndex = " << baseIndex.getIndexString()
+    //           << ", basePE = " << basePE
+    //           << ", offset = " << offset
+    //           << ", pe = " << pe
+    //           << std::endl;
 
-    return (idx.bitVector >> (sizeof(unsigned int)*8 - idx.nbits)) % CkNumPes();
+    return pe;
   }
 };
 

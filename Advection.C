@@ -836,9 +836,11 @@ void Advection::iterate() {
     //time to check need for refinement/coarsening
     if(iterations % refine_frequency == 0) {
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+      //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+      startRemesh();
     }
     else {
+      VB(logFile << "calling doStep now, iteration " << iterations << std::endl;);
       doStep();
     }
   }
@@ -1068,7 +1070,8 @@ void Advection::recvParentDecision(){
 
   hasReceivedParentDecision = true;
   decision = std::max(STAY, decision);
-  updateNeighborsofChangeInDecision();
+  if(!isRefined)
+    updateNeighborsofChangeInDecision();
 }
 
 bool isDirectionSimple(int dir) {
@@ -1271,7 +1274,7 @@ void Advection::doPhase2(){
 
 void Advection::updateNbrStatus(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
-  if(decision == STAY){
+  if(!isRefined && decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
       for(int i=0; i<NUM_NEIGHBORS; i++){
         if(!nbr_exists[i]){

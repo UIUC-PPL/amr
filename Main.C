@@ -112,7 +112,7 @@ Main::Main(CkArgMsg* m){
   io_tnext = 0;
   nframe = 20;
   io_tout = tmax/nframe;
-  refine_frequency = 2;
+  refine_frequency = 3;
 
   //call colormap
   dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;

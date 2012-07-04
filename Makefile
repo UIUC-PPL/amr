@@ -1,4 +1,4 @@
-CHARMC=~/workspace/charm/bin/charmc -module liveViz $(OPTS)
+CHARMC ?= ~/workspace/charm/bin/charmc $(OPTS)
 BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
@@ -7,15 +7,14 @@ REVNUM  = $(shell git --git-dir=.git rev-parse HEAD)
 
 CXX=$(CHARMC)
 
-CXXFLAGS += -I$(BOOSTINC) -g -DAMR_REVISION=$(REVNUM) -I$(HOME)/projects/termdetection/newalg
-LDFLAGS += -L$(BOOSTLIB)
+CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) -I$(HOME)/projects/termdetection/newalg
 
 OBJS = QuadIndex.o Advection.o Main.o
 
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -lboost_filesystem -lboost_system -tracemode projections
+	$(CHARMC)  -module liveViz $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections
 
 Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci

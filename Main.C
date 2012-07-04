@@ -9,8 +9,8 @@
 #include <algorithm>
 #include "charm++.h"
 #include "trace-projections.h"
-#include <boost/assign/list_of.hpp>
-#include "boost/filesystem.hpp"
+//#include <boost/assign/list_of.hpp>
+//#include "boost/filesystem.hpp"
 
 using namespace std;
 
@@ -78,8 +78,8 @@ Main::Main(CkArgMsg* m){
 
 
   mainProxy = thisProxy;
-  boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
-  boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
+  //boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
+  //boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
 
   iterations = 0;
 

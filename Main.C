@@ -143,7 +143,7 @@ Main::Main(CkArgMsg* m){
   double fdepth = (log(num_chares)/log(4));
 	int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
-  max_depth = 5;
+  max_depth = 9;
 
   dt = min(dx,dy)/v * cfl;
   dt /= 2*(max_depth - min_depth);

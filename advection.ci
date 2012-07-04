@@ -135,7 +135,7 @@ module Advection{
             if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
                 ckout << "nUpdates: " << result << endl;
             meshGenIterations++;
-            if(result > 0 && meshGenIterations < 10){
+            if(result > 0 && meshGenIterations < 1){
                 VB(logFile << "calling generateMesh on myself, iteration " << meshGenIterations << std::endl;);
                 generateMesh();
             }

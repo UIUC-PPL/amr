@@ -96,7 +96,7 @@ InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy,
 }
 
 void Advection::applyInitialCondition(){
-  /*double rsq;
+  double rsq;
   for(int i=0; i<block_width+2; i++){
     for(int j=0; j<block_height+2; j++){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
@@ -105,7 +105,7 @@ void Advection::applyInitialCondition(){
         else u[index(i, block_height+1-j)] = 1;
     }
   }
-  return;*/
+  return;
 
   double *xarray = x;
   double *yarray = y;
@@ -1038,7 +1038,7 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
     hasReset=true;
     resetMeshRestructureData();
   }
-  VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << ", iteration " << iterations << std::endl;);
   if(childNum >= 0)
       child_decision[childNum]=dec;
 
@@ -1047,7 +1047,7 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
     isGrandParent = true;
   }
   if(parentHasAlreadyMadeDecision == false){
-    VB(logFile << "settin parentHasAlreadyMadeDecision to true " << std::endl;);
+    VB(logFile << "settin parentHasAlreadyMadeDecision to true, iterations " << iterations << std::endl;);
       parentHasAlreadyMadeDecision = true;
     //tell rest of the children which are not refined
     for(int i=0 ;i<NUM_CHILDREN; i++){
@@ -1055,7 +1055,7 @@ void Advection::informParent(int childNum, DECISION dec){//Will be called from t
         thisProxy(thisIndex.getChild(i)).recvParentDecision();
       }
     }
-    //informyour parent that you are not going to derefine
+    //inform your parent that you are not going to derefine
     if(parent!=thisIndex)
         thisProxy(parent).informParent(thisIndex.getChildNum(), STAY);
   }
@@ -1181,7 +1181,7 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
-  VB(logFile << thisIndex.getIndexString() << " Entering Phase2 " << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << " Entering Phase2, iteration " << iterations << std::endl;);
 
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
@@ -1325,7 +1325,7 @@ void Advection::updateNbrStatus(){
         if(child_isRefined[i])
             isGrandParent=true;
   }
-  VB(logFile << "isGrandparent = " << isGrandParent << std::endl;);
+  VB(logFile << "isGrandparent = " << isGrandParent << ", iteration = " << iterations << std::endl;);
 
 }
 
@@ -1546,7 +1546,8 @@ Advection::Advection(InitRefineMsg* msg)
             case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
             case STAY:   nbr_exists[dir]=false; break;
             case DEREFINE: CkAbort("this neighbor cannot derefine");
-            default: CkAbort("nbr decision not set");
+            default: VB(logFile << thisIndex.getIndexString() << " nbr decision not set" << endl;); 
+                CkAbort("nbr decision not set");
           }
         }
         else if (msg->parent_nbr_exists[dir] && msg->parent_nbr_isRefined[dir]){

@@ -1698,4 +1698,13 @@ void Advection::updateMesh(){
     hasReset = false;
 }
 
+void Advection::ResumeFromSync(){
+    phase2Done();
+}
+
+void Advection::startLdb(){
+    if(thisIndex.bitVector==0)
+        ckout << "starting load balancing now.." << endl;
+    AtSync();
+}
 #include "Advection.def.h"

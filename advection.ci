@@ -141,6 +141,8 @@ module Advection{
             }
             else{
                 VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
+                if(isRefined)
+                    iterations++;//set it to 1
                 phase2Done();
             }
         }
@@ -158,12 +160,12 @@ module Advection{
 				when phase1Done() atomic {
 					if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
 						CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
-						CkStartQD(CkCallback(CkIndex_Advection::phase2Done(), thisProxy));
+						CkStartQD(CkCallback(CkIndex_Advection::startLdb(), thisProxy));
 					}
 					doPhase2();
 				}
     };
-
+    
     // Separated for newly created chares from refinement
     entry  [reductiontarget] void phase2Done() {
 		atomic {
@@ -196,6 +198,7 @@ module Advection{
     }
 	};
 	entry void doRemeshing();
+  entry void startLdb();
 	entry void signalExchangeGhostsCompletion();
 
 	entry void doStep(){

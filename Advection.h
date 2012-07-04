@@ -226,6 +226,10 @@ Advection_SDAG_CODE
         template<class T>
         void print_Array(T*,int,int);
 
+        /*Load Balancing functions*/
+        void startLdb();
+        void ResumeFromSync();
+
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);
 

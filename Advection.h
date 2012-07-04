@@ -173,10 +173,10 @@ Advection_SDAG_CODE
         Advection(double, double, double, double);
         Advection(InitRefineMsg*);
   Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{advection(); 
-          ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
+    //ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
   }
   Advection(CkMigrateMessage* m) /*: AdvTerm(thisProxy, thisIndex, true) */{__sdag_init();
-  ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
+    //ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
 }
         
         void advection();// common function for initialization

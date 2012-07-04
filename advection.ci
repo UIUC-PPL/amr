@@ -160,7 +160,12 @@ module Advection{
 				when phase1Done() atomic {
 					if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
 						CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
-						CkStartQD(CkCallback(CkIndex_Advection::startLdb(), thisProxy));
+						CkCallback cb;
+						if ((iterations / refine_frequency) % 15 == 0)
+						  cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
+						else
+						  cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
+						CkStartQD(cb);
 					}
 					doPhase2();
 				}

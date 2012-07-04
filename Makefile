@@ -14,7 +14,7 @@ OBJS = QuadIndex.o Advection.o Main.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC)  -module liveViz $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections
+	$(CHARMC)  -module liveViz $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RefineLB
 
 Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci

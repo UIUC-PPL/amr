@@ -231,9 +231,11 @@ void Main::printTreeInformation(CkVec<QuadIndex> list){
   }   
 }
 
+#define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001UL
 
 struct AdvMap : public CBase_AdvMap {
-  AdvMap() { }
+  int bits;
+  AdvMap() : bits(log2(CkNumPes())) { }
 
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     int numPes = CkNumPes();
@@ -242,9 +244,10 @@ struct AdvMap : public CBase_AdvMap {
     std::string base = str.substr(0, 8);
 
     QuadIndex baseIndex(base.c_str());
-    srand48(baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits));
-    for (int i = 0; i < 1000; ++i) lrand48();
-    int basePE = int(drand48() * numPes) % numPes;
+    unsigned long val = baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits);
+    unsigned long hash = GOLDEN_RATIO_PRIME_64 * val;
+
+    int basePE = hash >> (64 - bits);
     int offset = 1;
 
     for (int i = 8; i < idx.nbits; i += 2) {

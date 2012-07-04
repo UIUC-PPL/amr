@@ -1501,7 +1501,7 @@ void Advection::refine(){
   refineChild(2, 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
   refineChild(3, block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
 
-  thisProxy.doneInserting();
+  //thisProxy.doneInserting();
 
   //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
   //fflush(stdout);
@@ -1673,7 +1673,7 @@ void Advection::updateMesh(){
             thisProxy(child).insert(msg);
           }
           //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;
-          thisProxy.doneInserting();
+          //thisProxy.doneInserting();
         }
         else if(decision==DEREFINE){
           ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 

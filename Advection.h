@@ -123,8 +123,6 @@ Advection_SDAG_CODE
         DECISION child_decision[NUM_CHILDREN];
 
         bool hasReset;
-        bool hasInitiatedPhase1;
-        bool hasInitiatedPhase2;
 	bool parentHasAlreadyMadeDecision;//to be used by a parent
 	bool hasReceivedParentDecision;
         bool hasCommunicatedSTAY, hasCommunicatedREFINE;

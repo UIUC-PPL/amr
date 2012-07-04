@@ -944,7 +944,6 @@ void Advection::resetMeshRestructureData(){
   hasCommunicatedREFINE=false;
 
   /*Phase2 resetting*/
-  hasInitiatedPhase2 = false;
   hasAllocatedMemory=false;
 }
 

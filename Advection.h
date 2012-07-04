@@ -149,7 +149,7 @@ Advection_SDAG_CODE
         double *top_edge;
         double *bottom_edge;
 
-        int iterations, cycle;
+        int iterations;
         int meshGenIterations;
         bool shouldDestroy;
         

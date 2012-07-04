@@ -333,18 +333,34 @@ void Advection::pup(PUP::er &p){
   __sdag_pup(p);
 
   p|isRefined;
+  p|isGrandParent;
+  p|depth;
+
+  for(int i=0; i<NUM_CHILDREN; i++)
+    p|child_isRefined[i];
+
   for(int i=0; i<NUM_NEIGHBORS; i++){
     p|nbr_exists[i];
     p|nbr_isRefined[i];
   }
 
-  for(int i=0; i<3*NUM_NEIGHBORS; i++)
+  for(int i=0; i<3*NUM_NEIGHBORS; i++){
     p|nbr_dataSent[i];
+  }
 
-  for(int i=0; i<NUM_CHILDREN; i++)
-    p|child_isRefined[i];
+  p|hasReceived;
+  p|hasReset;
+  p|decision;
+  p|parentHasAlreadyMadeDecision;
+  p|hasReceivedParentDecision;
+  p|hasCommunicatedSTAY;
+  p|hasCommunicatedREFINE;
+  p|hasAllocatedMemory;
 
   p|parent;
+  for(int i=0; i<NUM_NEIGHBORS; i++)
+      p|nbr[i];
+
   p|xc;
   p|yc;
   p|imsg;
@@ -354,35 +370,38 @@ void Advection::pup(PUP::er &p){
     
   for(int i=0; i<(block_width+2)*(block_height+2); i++){
     p|u[i];
-    p|u2[i];
-    p|u3[i];
+    //p|u2[i];
+    //p|u3[i];
   }
 
   for (int i=0; i<block_width+2; i++){
     p|x[i];
-    p|top_edge[i];
-    p|bottom_edge[i];
+    //p|top_edge[i];
+    //p|bottom_edge[i];
   }
 
   for (int i=0; i<block_height+2; i++){
     p|y[i];
-    p|left_edge[i];
-    p|right_edge[i];
+    //p|left_edge[i];
+    //p|right_edge[i];
   }
-
+ 
   p|iterations;
+  p|meshGenIterations;
+  p|shouldDestroy;
   p|up;
   p|un;
   p|myt;
   p|mydt;
+
+  p|dx; p|dy; p|nx; p|ny; p|xmin; p|xmax; p|ymin; p|ymax;
     
-  p|hasReceived;
 }
     
 Advection::~Advection(){
   //CkPrintf("%s destructor %d\n", thisIndex.getIndexString().c_str(), iterations);
   VB(logFile << "In Destructor" << std::endl;);
-    delete [] u;
+  delete [] u;
   delete [] u2;
   delete [] u3;
 

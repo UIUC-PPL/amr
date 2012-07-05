@@ -9,6 +9,6 @@ Compiling the code:
 
 Running the code:
 ./charmrun +p8 ++local ./advection arg1 arg2 arg3
-where arg1 = #total numbe rof zones in one dimension
+where arg1 = max_depth of the mesh (min_depth is fixed to 4 in the code)
       arg2 = #zones in one dimension per chare
       arg3 = #iterations for which the code is to be run

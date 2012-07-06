@@ -175,7 +175,9 @@ module Advection{
     entry  [reductiontarget] void phase2Done() {
 		atomic {
 			if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-	  		CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+	  		//CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+        ckout << "time for iteration " << iterations - refine_frequency + 1 << " to " << iterations << ": " << CmiWallTimer() - itBeginTime << endl;
+        itBeginTime = CmiWallTimer();
 	  		fflush(stdout);
 			}
       if (shouldDestroy);

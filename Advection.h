@@ -158,7 +158,8 @@ Advection_SDAG_CODE
         double myt, mydt;
         double dx, dy, nx, ny;
         double xmin, xmax, ymin, ymax;
-
+        
+        double itBeginTime;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
         QuadIndex getRefinedNeighbor(int NBR);

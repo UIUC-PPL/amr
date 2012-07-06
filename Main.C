@@ -10,7 +10,7 @@
 #include "charm++.h"
 #include "trace-projections.h"
 //#include <boost/assign/list_of.hpp>
-//#include "boost/filesystem.hpp"
+#include "boost/filesystem.hpp"
 
 using namespace std;
 
@@ -80,6 +80,8 @@ Main::Main(CkArgMsg* m){
   mainProxy = thisProxy;
   //boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
   //boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
+  boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/log");
+  boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/log");
 
   iterations = 0;
 
@@ -232,7 +234,7 @@ void Main::printTreeInformation(CkVec<QuadIndex> list){
   }   
 }
 
-#define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001UL
+#define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
 
 struct AdvMap : public CBase_AdvMap {
   int bits;
@@ -245,8 +247,8 @@ struct AdvMap : public CBase_AdvMap {
     std::string base = str.substr(0, 8);
 
     QuadIndex baseIndex(base.c_str());
-    unsigned long val = baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits);
-    unsigned long hash = GOLDEN_RATIO_PRIME_64 * val;
+    unsigned long long val = baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits);
+    unsigned long long hash = GOLDEN_RATIO_PRIME_64 * val;
 
     int basePE = hash >> (64 - bits);
     int offset = 1;

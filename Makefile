@@ -1,35 +1,32 @@
-CHARMC ?= ~/workspace/charm/bin/charmc $(OPTS)
-BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
+CHARMC=~/charm/bin/charmc -module liveViz $(OPTS) -tracemode projections
+BOOST_ROOT = $(HOME)/boost_1_46_1
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
-
-REVNUM  = $(shell git --git-dir=.git rev-parse HEAD)
 
 CXX=$(CHARMC)
 
 CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) -I$(HOME)/projects/termdetection/newalg
+CPPFLAGS += -I$(BOOSTINC)
+LDFLAGS += -L$(BOOSTLIB)
 
-OBJS = QuadIndex.o Advection.o Main.o
+OBJS = QuadIndex.o Advection.o
 
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC)  -module liveViz $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RefineLB
+	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -language charm++ -o advection Main.C  $(OBJS) -lboost_filesystem -lboost_system  -tracemode projections
 
-Main.decl.h Advection.decl.h: advection.ci
+advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci
 
-Advection.o: Advection.h Advection.decl.h
+Advection.o: advection.decl.h
+	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -o Advection.o Advection.C
+
 QuadIndex.o: 
-Main.o: Main.h Advection.h Main.decl.h
+	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -o QuadIndex.o QuadIndex.C
 
-png:
-	g++ pngwriter.c -o pngwriter -I/home/alanger/workspace/amr/pngwriter-0.5.4/src/  -L/usr/lib -lpng -lpngwriter -lz -lfreetype
-
-
-
-test: advection
-	./charmrun ++local ./$< +p4 64 4 12
+test: all
+	./charmrun advetion +p4 10
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun

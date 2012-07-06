@@ -172,10 +172,14 @@ Advection_SDAG_CODE
         /*Constructors*/
         Advection(double, double, double, double);
         Advection(InitRefineMsg*);
-  Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{advection(); 
+  Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{
+usesAutoMeasure = CmiFalse;
+      //advection(); 
     //ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
   }
-  Advection(CkMigrateMessage* m) /*: AdvTerm(thisProxy, thisIndex, true) */{__sdag_init();
+  Advection(CkMigrateMessage* m) /*: AdvTerm(thisProxy, thisIndex, true) */{
+      usesAutoMeasure = CmiFalse;
+      __sdag_init();
     //ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
 }
         
@@ -229,6 +233,7 @@ Advection_SDAG_CODE
         /*Load Balancing functions*/
         void startLdb();
         void ResumeFromSync();
+        void UserSetLBLoad();
 
         /*LiveViz*/
         void requestNextFrame(liveVizRequestMsg*);

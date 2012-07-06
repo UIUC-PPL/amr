@@ -193,7 +193,7 @@ void Advection::mem_allocate_all(){
 
 Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   /*: AdvTerm(thisProxy, thisIndex, true)*/
-{
+{usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created" << endl;
 //Constructor for the Initial Grid Zones
   __sdag_init();
@@ -267,7 +267,7 @@ void Advection::printState(){
 #endif
 }
 
-void Advection::advection(){
+void Advection::advection(){ usesAutoMeasure = CmiFalse;
 
   //logFile << "In Advection: " << std::endl;
   myt = t;
@@ -1512,7 +1512,7 @@ void Advection::refine(){
 
 Advection::Advection(InitRefineMsg* msg)
   /*: AdvTerm(thisProxy, thisIndex, true), CBase_Advection()*/
-{
+{usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
   hasReset = false;
@@ -1706,5 +1706,13 @@ void Advection::startLdb(){
     if(thisIndex.bitVector==0)
         ckout << "starting load balancing now.." << endl;
     AtSync();
+}
+
+void Advection::UserSetLBLoad(){
+    if(isRefined)
+        setObjTime(0);
+    else
+        setObjTime(1);
+    //ckout << thisIndex.getIndexString().c_str() << " status: " << isRefined << endl;
 }
 #include "Advection.def.h"

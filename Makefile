@@ -7,14 +7,15 @@ REVNUM  = $(shell git --git-dir=.git rev-parse HEAD)
 
 CXX=$(CHARMC)
 
-CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) -I$(HOME)/projects/termdetection/newalg
+OPTS ?= -O3
+CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) $(OPTS)
 
 OBJS = QuadIndex.o Advection.o Main.o
 
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC)  -module liveViz $(OPTS) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RefineLB
+	$(CHARMC)  -module liveViz $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RefineLB
 
 Main.decl.h Advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci

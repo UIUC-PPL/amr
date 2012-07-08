@@ -395,7 +395,8 @@ void Advection::pup(PUP::er &p){
   p|mydt;
 
   p|dx; p|dy; p|nx; p|ny; p|xmin; p|xmax; p|ymin; p|ymax;
-    
+  
+  p|itBeginTime;
 }
     
 Advection::~Advection(){

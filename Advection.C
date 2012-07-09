@@ -839,7 +839,9 @@ void Advection::iterate() {
   if(iterations >= max_iterations){
     //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-    contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
+    if (isRoot())
+      CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+    //contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
     //contribute();
     //if(thisIndex.getDepth()!=min_depth)
     //  thisProxy(thisIndex.getParent()).done();

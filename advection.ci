@@ -201,7 +201,8 @@ module Advection{
 	    if (iterations >= max_iterations) {
 	      //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
 	      VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-	      contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
+	      if (isRoot())
+		CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
 	    } else {
 	      if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
 		CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);

@@ -42,6 +42,13 @@ mainmodule Main{
     entry void AdvMap();
   };
 
+  group LBControl {
+    entry LBControl();
+    entry void autolbon();
+  };
+
+  readonly CProxy_LBControl lbc;
+
   extern module Advection;
 };
 
@@ -173,46 +180,49 @@ module Advection{
     
     // Separated for newly created chares from refinement
     entry  [reductiontarget] void phase2Done() {
-		atomic {
-			if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-	  		//CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-        ckout << "time for iteration " << iterations - refine_frequency + 1 << " to " << iterations << ": " << CmiWallTimer() - itBeginTime << endl;
-        itBeginTime = CmiWallTimer();
-	  		fflush(stdout);
-			}
-      if (shouldDestroy);
-				//thisProxy[thisIndex].ckDestroy();
-      else {
-         if (!isRefined) {
-           thisProxy[thisIndex].doStep();
-         } 
-				else {
-        	iterations += refine_frequency - 1;
-	    		if (iterations >= max_iterations) {
-	      		//ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
-		  			VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-		  			contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
-	    		} else {
-	      		if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-							CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-							fflush(stdout);
-	      		}
-	      		//contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-            startRemesh();
-	    		}
-				}
-			}
-    }
-	};
+      atomic {
+	CkAssert(usesAutoMeasure == CmiFalse);
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+	  //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+	  ckout << "time for iteration " << iterations - refine_frequency + 1 << " to " << iterations << ": " << CmiWallTimer() - itBeginTime << endl;
+	  itBeginTime = CmiWallTimer();
+	  fflush(stdout);
+	}
+	if (shouldDestroy);
+	//thisProxy[thisIndex].ckDestroy();
+	else {
+	  if (isRoot() && iterations + refine_frequency < max_iterations)
+	    thisProxy.beginInserting();
+	  if (!isRefined) {
+	    thisProxy[thisIndex].doStep();
+	  } 
+	  else {
+	    iterations += refine_frequency - 1;
+	    if (iterations >= max_iterations) {
+	      //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
+	      VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
+	      contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
+	    } else {
+	      if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+		CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
+		fflush(stdout);
+	      }
+	      //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
+	      startRemesh();
+	    }
+	  }
+	}
+      }
+    };
 	entry void doRemeshing();
   entry void startLdb();
 	entry void signalExchangeGhostsCompletion();
 
 	entry void doStep(){
   	atomic "begin iteration"{
-			if (thisIndex.bitVector == 0) {
-	  		ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
-			}
+	  if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+	    ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
+	  }
       iterations++;
       char fname[100];
 

@@ -240,6 +240,8 @@ usesAutoMeasure = CmiFalse;
         void requestNextFrame(liveVizRequestMsg*);
 
         void rootTerminated2();
+
+	bool isRoot();
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{

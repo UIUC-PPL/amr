@@ -76,6 +76,8 @@ double start_time, end_time;
 Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
+  lbc = CProxy_LBControl::ckNew();
+
 
   mainProxy = thisProxy;
   //boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
@@ -272,6 +274,20 @@ struct AdvMap : public CBase_AdvMap {
     return pe;
   }
 };
+
+
+struct LBControl : public CBase_LBControl {
+  LBControl() {
+    TurnManualLBOn();
+  }
+  void autolbon() {
+    //if (CkMyPe() == 0)
+    //CkPrintf("%d switching to automatic LB\n", CkMyPe());
+    //TurnManualLBOff();
+  }
+};
+
+CProxy_LBControl lbc;
 
 
 #include "Main.def.h"

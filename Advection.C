@@ -1703,9 +1703,12 @@ void Advection::ResumeFromSync(){
 }
 
 void Advection::startLdb(){
-    if(thisIndex.bitVector==0)
-        ckout << "starting load balancing now.." << endl;
-    AtSync();
+  UserSetLBLoad();
+  thisArray->remoteDoneInserting();
+  if(thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+    ckout << CkMyPe() << "starting load balancing now.." << endl;
+    LBDatabaseObj()->StartLB();
+  }
 }
 
 void Advection::UserSetLBLoad(){
@@ -1714,5 +1717,9 @@ void Advection::UserSetLBLoad(){
     else
         setObjTime(1);
     //ckout << thisIndex.getIndexString().c_str() << " status: " << isRefined << endl;
+}
+
+bool Advection::isRoot() {
+  return thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0;
 }
 #include "Advection.def.h"

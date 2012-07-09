@@ -395,7 +395,8 @@ void Advection::pup(PUP::er &p){
   p|mydt;
 
   p|dx; p|dy; p|nx; p|ny; p|xmin; p|xmax; p|ymin; p|ymax;
-    
+  
+  p|itBeginTime;
 }
     
 Advection::~Advection(){
@@ -538,29 +539,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
   return false;
 }
 
-void Advection::begin_iteration(void) {
-  //logFile << "String: " << thisIndex.getIndexString() << std::endl;
-    
-  char fname[100];
-  sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-  VB(outFile.open(fname););
-  VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
 
-    for(int i=0; i<3*NUM_NEIGHBORS; i++)
-      nbr_dataSent[i]=false;
-    
-  hasReceived.clear();
-
-  for(int j=1; j<=block_height; j++){
-    left_edge[j-1] = u[index(1,j)];
-    right_edge[j-1] = u[index(block_width,j)];
-  }
-  //logFile << "Seding Ghosts " << thisIndex.getIndexString() << std::endl;
-  for(int i=0; i<NUM_NEIGHBORS; i++){
-    sendGhost(i);
-  }
-  VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);;
-}
 template<class T>
 void Advection::print_Array(T* array, int size, int row_size){
 #ifdef LOGGER

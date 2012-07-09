@@ -194,7 +194,6 @@ usesAutoMeasure = CmiFalse;
 				void updateMesh();
         void applyInitialCondition();
         
-        void begin_iteration();
         void process(int, int, int, double*);
         void compute_and_iterate();
         void iterate();

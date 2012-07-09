@@ -30,6 +30,8 @@ mainmodule Main{
   readonly int max_iterations;
   readonly int refine_frequency;
 
+  initproc TurnManualLBOn();
+
   mainchare Main{
     entry Main(CkArgMsg *m);
     entry void printTreeInformation(CkVec<QuadIndex>);
@@ -41,13 +43,6 @@ mainmodule Main{
   group AdvMap : CkArrayMap {
     entry void AdvMap();
   };
-
-  group LBControl {
-    entry LBControl();
-    entry void autolbon();
-  };
-
-  readonly CProxy_LBControl lbc;
 
   extern module Advection;
 };

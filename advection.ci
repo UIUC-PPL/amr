@@ -38,6 +38,7 @@ mainmodule Main{
     entry void terminate();
     entry void startMeshGeneration();
     entry void startRunning();
+    entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
   };
 
   group AdvMap : CkArrayMap {
@@ -76,7 +77,7 @@ module Advection{
 
   group PerProcessorChare{
     entry PerProcessorChare();
-
+    entry void collectCascades(CkCallback cb);
   };
 
 

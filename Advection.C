@@ -85,6 +85,11 @@ void PerProcessorChare::recordCascade(int iteration, int length) {
   cascades[iteration] = max(cascades[iteration], length);
 }
 
+void PerProcessorChare::collectCascades(CkCallback cb) {
+  contribute(max_iterations*sizeof(cascades[0]), &cascades[0],
+             CkReduction::max_int, cb);
+}
+
 InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 
                              double myt, double mydt, double xmin, double  ymin, 
                              int meshGenIterations_, int iterations_, vector<double>& refined_u, 
@@ -1094,8 +1099,8 @@ bool isDirectionSimple(int dir) {
 }
 
 void Advection::updateNeighborsofChangeInDecision(int cascade_length) {
-  CkPrintf("%d %s cascade of length %d\n",
-           CkMyPe(), thisIndex.getIndexString().c_str(), cascade_length);
+  //CkPrintf("%d %s cascade of length %d\n",
+  //       CkMyPe(), thisIndex.getIndexString().c_str(), cascade_length);
   if(decision == REFINE && !hasCommunicatedREFINE){
     hasCommunicatedREFINE=true;
     communicatePhase1Msgs(cascade_length);

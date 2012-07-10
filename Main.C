@@ -220,6 +220,15 @@ void Main::startRunning(){
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
+  ppc->collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
+                                  thisProxy));
+}
+
+void Main::reportCascadeStats(int *cascade_lengths, int size) {
+  ckout << "Cascade lengths: ";
+  for (int i = 0; i < size; ++i)
+    ckout << cascade_lengths[i] << ", ";
+  ckout << endl;
   CkExit();
 }
 

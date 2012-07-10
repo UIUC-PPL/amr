@@ -18,7 +18,6 @@ using namespace std;
 #include "liveViz.h"
 #include "Constants.h"
 #include "QuadIndex.h"
-#include "Advection.decl.h"
 #include "Advection.h"
 #include "Main.decl.h"
 #include "Main.h"

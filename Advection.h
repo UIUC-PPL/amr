@@ -1,9 +1,14 @@
+
+#if !defined(ADVECTION_H)
+#define ADVECTION_H
+
 #ifdef LOGGER
 #define VB(x) do { x } while(false)
 #else
 #define VB(x) do { } while(false)
 #endif
 
+#include "Advection.decl.h"
 
 int inline map_nbr(int quad, int nbr){
     if(quad==0){
@@ -283,3 +288,5 @@ public:
 };
 
 extern readonly<CProxy_PerProcessorChare> ppc;
+
+#endif // ADVECTION_H

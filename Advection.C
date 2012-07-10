@@ -54,7 +54,6 @@ double delx, dely, dely_f;
 double refine_filter = 0.01;
 double refine_cutoff=0.2, derefine_cutoff=0.05;
 
-#include "Advection.decl.h"
 #include "Advection.h"
 
 readonly<CProxy_PerProcessorChare> ppc;

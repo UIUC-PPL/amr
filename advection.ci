@@ -87,9 +87,9 @@ module Advection{
     entry void printState();
 
     entry void receiveGhosts(int iter, int dir, int width, double u[width], QuadIndex sender, int tag);
-    entry void informParent(int, DECISION);
-    entry void recvParentDecision();
-    entry void exchangePhase1Msg(int, DECISION);
+    entry void informParent(int, DECISION, int cascade_length);
+    entry void recvParentDecision(int cascade_length);
+    entry void exchangePhase1Msg(int, DECISION, int cascade_length);
     entry void done();
 
     entry void rootTerminated() {};

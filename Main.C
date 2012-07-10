@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <limits>
 #include "charm++.h"
 #include "trace-projections.h"
 //#include <boost/assign/list_of.hpp>

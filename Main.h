@@ -13,4 +13,5 @@ class Main:public CBase_Main{
         void startMeshGeneration();
         void startRunning();
         void reportCascadeStats(int *cascade_lengths, int size);
+        void qdlatency(double* elems, int size);
 };

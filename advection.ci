@@ -39,6 +39,7 @@ mainmodule Main{
     entry void startMeshGeneration();
     entry void startRunning();
     entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
+    entry [reductiontarget] void qdlatency(double elems[size], int size);
   };
 
   group AdvMap : CkArrayMap {
@@ -78,6 +79,7 @@ module Advection{
   group PerProcessorChare{
     entry PerProcessorChare();
     entry void collectCascades(CkCallback cb);
+    entry void reduceLatencies();
   };
 
 
@@ -158,19 +160,20 @@ module Advection{
           if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
             CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
         }
-
-				when phase1Done() atomic {
-					if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-						CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
-						CkCallback cb;
-						if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
-						  cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
-						else
-						  cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
-						CkStartQD(cb);
-					}
-					doPhase2();
-				}
+        when phase1Done() atomic {
+          double localQDLatency = CkWallTimer() - lastIdleTimeQD;
+          ppc->ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
+          if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+            CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
+            CkCallback cb;
+            if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
+              cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
+            else
+              cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
+            CkStartQD(cb);
+          }
+          doPhase2();
+        }
     };
     
     // Separated for newly created chares from refinement

@@ -229,6 +229,14 @@ void Main::reportCascadeStats(int *cascade_lengths, int size) {
   for (int i = 0; i < size; ++i)
     ckout << cascade_lengths[i] << ", ";
   ckout << endl;
+  ppc->reduceLatencies();
+}
+
+void Main::qdlatency(double* elems, int size) {
+  for (unsigned i = 0; i < size; i++) {
+    if (elems[i] != std::numeric_limits<double>::max())
+      CkPrintf("iteration %u, QD latency = %f\n", i, elems[i]);
+  }
   CkExit();
 }
 

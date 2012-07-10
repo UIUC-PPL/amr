@@ -20,6 +20,8 @@ using namespace std;
 #include "Main.decl.h"
 #include "Main.h"
 
+extern double lastIdleTimeQD;
+
 extern CProxy_Main mainProxy;
 
 extern int array_height;
@@ -61,6 +63,8 @@ readonly<CProxy_PerProcessorChare> ppc;
 PerProcessorChare::PerProcessorChare()
   : cascades(max_iterations)
 {
+  qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+
   for (int i = 0; i < max_iterations; ++i)
     cascades[i] = 0;
 
@@ -88,6 +92,17 @@ void PerProcessorChare::recordCascade(int iteration, int length) {
 void PerProcessorChare::collectCascades(CkCallback cb) {
   contribute(max_iterations*sizeof(cascades[0]), &cascades[0],
              CkReduction::max_int, cb);
+}
+
+void PerProcessorChare::recordQDLatency(int iteration, double latency) {
+  CkAssert(qdlatencies.size() >= iteration);
+  if (latency < qdlatencies[iteration])
+    qdlatencies[iteration] = latency;
+}
+
+void PerProcessorChare::reduceLatencies() {
+  CkCallback cb(CkReductionTarget(Main,qdlatency), mainProxy);
+  contribute(sizeof(double)*max_iterations, &qdlatencies[0], CkReduction::min_double, cb);
 }
 
 InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 

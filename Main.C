@@ -236,7 +236,7 @@ void Main::reportCascadeStats(int *cascade_lengths, int size) {
 void Main::qdlatency(double* elems, int size) {
   for (unsigned i = 0; i < size; i++) {
     if (elems[i] != std::numeric_limits<double>::max())
-      CkPrintf("iteration %u, QD latency = %f\n", i, elems[i]);
+      CkPrintf("iteration %u, QD latency = %0.20f\n", i, elems[i]);
   }
   CkExit();
 }

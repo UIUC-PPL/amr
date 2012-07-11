@@ -271,11 +271,9 @@ struct AdvMap : public CBase_AdvMap {
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     int numPes = CkNumPes();
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());
-    std::string str = idx.getIndexString();
-    std::string base = str.substr(0, 8);
+    int baseBits = 8;
 
-    QuadIndex baseIndex(base.c_str());
-    unsigned long val = baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits);
+    unsigned long val = idx.bitVector >> (sizeof(unsigned int)*8 - baseBits);
     unsigned long hash = GOLDEN_RATIO_PRIME_64 * val;
 
     int basePE = hash >> (64 - bits);

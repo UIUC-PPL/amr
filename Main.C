@@ -265,15 +265,11 @@ struct AdvMap : public CBase_AdvMap {
     unsigned long hash = GOLDEN_RATIO_PRIME_64 * val;
 
     int basePE = hash >> (64 - bits);
-    int offset = 1;
 
-    for (int i = 8; i < idx.nbits; i += 2) {
-      if (i != 8) offset *= 4;
-      std::string coord = str.substr(i, 2);
-      QuadIndex coordIndex(coord.c_str());
-      int fact = coordIndex.bitVector >> (sizeof(unsigned int)*8 - coordIndex.nbits);
-      offset += fact;
-    }
+    unsigned long validBits = idx.bitVector & ((1L << 24) - 1);
+    validBits += (1L << 22);
+    unsigned long offset = validBits >> (sizeof(unsigned int)*8 - idx.nbits);
+    offset += (idx.nbits == 8);
 
     int pe = (basePE + offset - 1) % numPes;
 

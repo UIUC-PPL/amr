@@ -21,10 +21,16 @@ set logscale xy
 
 set xlabel 'Number of Cores'
 set ylabel 'Execution Time (seconds)'
-set xtics autofreq nomirror (64,128,256,512,1024)
+#set xtics autofreq nomirror (64,128,256,512,1024)
 set ytics autofreq 10
 set mytics 5
-set yrange [1:100]
-set xrange [32:2048]
-plot 'scalingData8' using 1:2 with linespoints ls 1 title "depth8",\
-     'scalingData8' using 1:3 with linespoints ls 10 title ""
+set yrange [1:500]
+set xrange [32:33000]
+plot 'scaling_data8' using 1:2 with linespoints ls 1 title "depth8",\
+     'scaling_data8' using 1:3 with linespoints ls 10 title "",\
+     'scaling_data9' using 1:2 with linespoints ls 2 title "depth9",\
+     'scaling_data9' using 1:3 with linespoints ls 10 title "",\
+     'scaling_data10' using 1:2 with linespoints ls 3 title "depth10",\
+     'scaling_data10' using 1:3 with linespoints ls 10 title "",\
+     'scaling_data11' using 1:2 with linespoints ls 4 title "depth11",\
+     'scaling_data11' using 1:3 with linespoints ls 10 title ""

@@ -35,8 +35,12 @@ for my $file (@files) {
     close FILE;
 }
 
+my $perfect = 0.0;
+
 for my $key (sort {$a <=> $b} (keys %scaling)) {
+    next if ($key == -1);
     my $val = $scaling{$key};
-    my $perfect = $bestThroughput / $key;
-    print "$key $val $perfect\n";
+    if ($perfect == 0.0) {$perfect = $val * $key;}
+    my $ideal = $perfect / $key;
+    print "$key $val $ideal\n";
 }

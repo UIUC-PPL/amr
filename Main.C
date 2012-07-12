@@ -88,7 +88,6 @@ Main::Main(CkArgMsg* m){
   }
 
   array_height = array_width = 256;
-  max_depth =atoi(m->argv[1]);
   
   block_height = block_width = atoi(m->argv[2]);
   max_iterations = atoi(m->argv[3]);
@@ -142,8 +141,13 @@ Main::Main(CkArgMsg* m){
   //save the total number of worker chares we have in this simulation
   num_chares = num_chare_rows*num_chare_cols;
   double fdepth = (log(num_chares)/log(4));
-	int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
+  int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
+  CkAssert(min_depth >= 4);
+  // To maintain the semantics of "max_depth" that set it relative to
+  // a grid fo 256, offset by 4
+  max_depth = atoi(m->argv[1]) + min_depth - 4;
+
   /*max_depth = 9;*/
 
   dt = min(dx,dy)/v * cfl;

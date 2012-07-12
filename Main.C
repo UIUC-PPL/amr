@@ -83,11 +83,15 @@ Main::Main(CkArgMsg* m){
   iterations = 0;
 
   if(m->argc < 4){
-    ckout << "Usage: " << m->argv[0] << "[max_depth] [block_size] [iterations]" << endl; 
+    ckout << "Usage: " << m->argv[0] << "[max_depth] [block_size] [iterations] [array_dim]?" << endl; 
     CkExit();
   }
 
-  array_height = array_width = 256;
+  if (m->argc >= 5) {
+    array_height = array_width = atoi(m->argv[4]);
+  } else {
+    array_height = array_width = 256;
+  }
   
   block_height = block_width = atoi(m->argv[2]);
   max_iterations = atoi(m->argv[3]);

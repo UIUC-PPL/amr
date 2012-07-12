@@ -133,8 +133,6 @@ Main::Main(CkArgMsg* m){
   //ckout << "an: " <<an << endl;
 
   /*****End Initialization **********/
-  CkPrintf("Running Advection on %d processors with (%d,%d) elements\n",
-           CkNumPes(), array_width, array_height);
 
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
@@ -151,6 +149,9 @@ Main::Main(CkArgMsg* m){
   // To maintain the semantics of "max_depth" that set it relative to
   // a grid fo 256, offset by 4
   max_depth = atoi(m->argv[1]) + min_depth - 4;
+
+  CkPrintf("Running Advection on %d processors with (%d,%d) elements, minDepth = %d, maxDepth = %d, blockSize = %d, maxIter = %d\n",
+           CkNumPes(), array_width, array_height, min_depth, max_depth, block_height, max_iterations);
 
   /*max_depth = 9;*/
 

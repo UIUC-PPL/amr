@@ -83,7 +83,7 @@ Main::Main(CkArgMsg* m){
   iterations = 0;
 
   if(m->argc < 4){
-    ckout << "Usage: " << m->argv[0] << "[array_size] [block_size] [iterations]" << endl; 
+    ckout << "Usage: " << m->argv[0] << "[max_depth] [block_size] [iterations]" << endl; 
     CkExit();
   }
 

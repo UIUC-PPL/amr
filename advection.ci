@@ -40,6 +40,7 @@ mainmodule Main{
     entry void startRunning();
     entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
     entry [reductiontarget] void qdlatency(double elems[size], int size);
+    entry [reductiontarget] void totalWorkUnits(int total);
   };
 
   group AdvMap : CkArrayMap {
@@ -80,6 +81,7 @@ module Advection{
     entry PerProcessorChare();
     entry void collectCascades(CkCallback cb);
     entry void reduceLatencies();
+    entry void reduceWorkUnits();
   };
 
 
@@ -214,16 +216,17 @@ module Advection{
       }
     };
     entry void doRemeshing();
-  entry void startLdb();
-  entry void signalExchangeGhostsCompletion();
+    entry void startLdb();
+    entry void signalExchangeGhostsCompletion();
 
-	entry void doStep(){
-  	atomic "begin iteration"{
-	  if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-	    ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
-	  }
-      iterations++;
-      char fname[100];
+    entry void doStep(){
+      atomic "begin iteration"{
+        ppc->ckLocalBranch()->incrementWorkUnitCount();
+        if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+          ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations << endl;
+        }
+        iterations++;
+        char fname[100];
 
       sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
       VB(outFile.open(fname););

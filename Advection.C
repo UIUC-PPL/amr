@@ -62,6 +62,7 @@ readonly<CProxy_PerProcessorChare> ppc;
 
 PerProcessorChare::PerProcessorChare()
   : cascades(max_iterations)
+  , workUnitCount(0)
 {
   qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
 
@@ -85,6 +86,10 @@ PerProcessorChare::PerProcessorChare()
   }
 }
 
+void PerProcessorChare::incrementWorkUnitCount() {
+  workUnitCount++;
+}
+
 void PerProcessorChare::recordCascade(int iteration, int length) {
   cascades[iteration] = max(cascades[iteration], length);
 }
@@ -103,6 +108,11 @@ void PerProcessorChare::recordQDLatency(int iteration, double latency) {
 void PerProcessorChare::reduceLatencies() {
   CkCallback cb(CkReductionTarget(Main,qdlatency), mainProxy);
   contribute(sizeof(double)*max_iterations, &qdlatencies[0], CkReduction::min_double, cb);
+}
+
+void PerProcessorChare::reduceWorkUnits() {
+  CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
+  contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
 InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 

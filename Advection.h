@@ -280,13 +280,16 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
 class PerProcessorChare : public CBase_PerProcessorChare {
   vector<int> cascades;
   std::vector<double> qdlatencies;
+  int workUnitCount;
 
 public:
   PerProcessorChare();
 
+  void incrementWorkUnitCount();
   void recordCascade(int iteration, int length);
   void collectCascades(CkCallback cb);
   void recordQDLatency(int iteration, double latency);
+  void reduceWorkUnits();
   void reduceLatencies();
 };
 

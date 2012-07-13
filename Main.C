@@ -247,6 +247,11 @@ void Main::qdlatency(double* elems, int size) {
     if (elems[i] != std::numeric_limits<double>::max())
       CkPrintf("iteration %u, QD latency = %0.20f\n", i, elems[i]);
   }
+  ppc->reduceWorkUnits();
+}
+
+void Main::totalWorkUnits(int total) {
+  CkPrintf("total work units = %d\n", total);
   CkExit();
 }
 

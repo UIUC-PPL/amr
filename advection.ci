@@ -191,8 +191,6 @@ module Advection{
 	if (shouldDestroy);
 	//thisProxy[thisIndex].ckDestroy();
 	else {
-	  if (isRoot() && iterations + refine_frequency < max_iterations)
-	    thisProxy.beginInserting();
 	  if (!isRefined) {
 	    thisProxy[thisIndex].doStep();
 	  } 

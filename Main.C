@@ -248,6 +248,13 @@ void Main::qdlatency(double* elems, int size) {
     if (elems[i] != std::numeric_limits<double>::max())
       CkPrintf("iteration %u, QD latency = %0.20f\n", i, elems[i]);
   }
+}
+
+void Main::remeshlatency(double* elems, int size) {
+  for (unsigned i = 0; i < size; i++) {
+    if (elems[i] != std::numeric_limits<double>::max())
+      CkPrintf("iteration %u, Remesh latency = %0.20f\n", i, elems[i]);
+  }
   ppc->reduceWorkUnits();
 }
 

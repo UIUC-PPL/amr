@@ -80,7 +80,7 @@ for my $file (@files) {
     $scaling{TS_PROC_SEC}{$proc} = $timePerSec / $proc;
     $scaling{WU_PROC_SEC}{$proc} = $wuPerSec / $proc;
 
-    print STDERR "$file: $proc, \t time $time, \t depth {$minDepth,$maxDepth}, \t iter $maxIter, \t b $blockSize, \t ts/sec $timePerSec \t WUs $workUnits \t WUs/sec $wuPerSec \t psec $procSecs \t p-ts/sec $procTSSec \t ts/proc/sec $scaling{TS_PROC_SEC}{$proc} \t wu/proc/sec $scaling{WU_PROC_SEC}{$proc} \n";
+    print "$file: $proc, \t time $time, \t depth {$minDepth,$maxDepth}, \t iter $maxIter, \t b $blockSize, \t ts/sec $timePerSec \t WUs $workUnits \t WUs/sec $wuPerSec \t psec $procSecs \t p-ts/sec $procTSSec \t ts/proc/sec $scaling{TS_PROC_SEC}{$proc} \t wu/proc/sec $scaling{WU_PROC_SEC}{$proc} \n";
     #print "$proc $time\n";
 
     close FILE;
@@ -150,7 +150,7 @@ close FILE;
 my %qds = %{$scaling{QD_LATENCY}};
 for my $key (sort {$a <=> $b} (keys %qds)) {
     next if ($key == -1);
-    open FILE, ">", "histoQD.$key";
+    open FILE, ">", "histoQD.$id";
     my $str = join "\n", @{$qds{$key}};
     print FILE "$str\n";
     close FILE;
@@ -167,9 +167,9 @@ for my $proc (sort {$a <=> $b} (keys %qds)) {
                                                     $qdSorted[@qdSorted / 2],
                                                     $qdSorted[@qdSorted * 0.05],
                                                     $qdSorted[@qdSorted * 0.95]);
-    print "{min=$qdMin, max=$qdMax, med=$qdMed, 5th=$qd5th, 95th=$qd95th}\n";
+    print "$id: {min=$qdMin, max=$qdMax, med=$qdMed, 5th=$qd5th, 95th=$qd95th}\n";
     my $w = 0.19;
-    my $pos = $proc + $proc * $w * ($max - 9);
+    my $pos = $proc + $proc * $w * ($max - 10);
     print FILE "$proc $min $max $qdMin $qd5th $qdMed $qd95th $qdMax $pos\n";
 }
 close FILE;

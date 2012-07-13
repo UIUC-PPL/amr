@@ -17,14 +17,14 @@ set style line 10 pt 0 lw 2 lc rgb "black"
 set key top right
 #set grid mytics ytics
 
-set logscale xy
+set logscale x
 
 set xlabel 'Number of Cores'
 set ylabel 'wu/proc/sec'
 set xtics autofreq nomirror (1,16,32,64,128,256,512,1024,2048)
-set ytics autofreq 10
-set mytics 5
-set yrange [1:100000]
+#set ytics autofreq 10
+#set mytics 5
+set yrange [0.1:20000]
 set xrange [0.5:8096]
 plot 'workUnitPerProcSecs.160' using 1:2 with linespoints ls 1 title "depth8",\
      'workUnitPerProcSecs.160' using 1:3 with linespoints ls 10 title "",\

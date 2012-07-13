@@ -40,6 +40,7 @@ mainmodule Main{
     entry void startRunning();
     entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
     entry [reductiontarget] void qdlatency(double elems[size], int size);
+    entry [reductiontarget] void remeshlatency(double elems[size], int size);
     entry [reductiontarget] void totalWorkUnits(int total);
   };
 
@@ -163,8 +164,11 @@ module Advection{
             CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
         }
         when phase1Done() atomic {
-          double localQDLatency = CkWallTimer() - lastIdleTimeQD;
+	  double now = CkWallTimer();
+          double localQDLatency = now - lastIdleTimeQD;
+	  double localRemeshLatency = now - remeshStartTime;
           ppc->ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
+          ppc->ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
           if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
             CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
             CkCallback cb;

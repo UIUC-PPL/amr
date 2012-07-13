@@ -65,6 +65,7 @@ PerProcessorChare::PerProcessorChare()
   , workUnitCount(0)
 {
   qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+  remeshlatencies.resize(max_iterations, std::numeric_limits<double>::max());
 
   for (int i = 0; i < max_iterations; ++i)
     cascades[i] = 0;
@@ -105,9 +106,17 @@ void PerProcessorChare::recordQDLatency(int iteration, double latency) {
     qdlatencies[iteration] = latency;
 }
 
+void PerProcessorChare::recordRemeshLatency(int iteration, double latency) {
+  CkAssert(remeshlatencies.size() >= iteration);
+  if (latency < remeshlatencies[iteration])
+    remeshlatencies[iteration] = latency;
+}
+
 void PerProcessorChare::reduceLatencies() {
   CkCallback cb(CkReductionTarget(Main,qdlatency), mainProxy);
   contribute(sizeof(double)*max_iterations, &qdlatencies[0], CkReduction::min_double, cb);
+  CkCallback cb2(CkReductionTarget(Main,remeshlatency), mainProxy);
+  contribute(sizeof(double)*max_iterations, &remeshlatencies[0], CkReduction::min_double, cb2);
 }
 
 void PerProcessorChare::reduceWorkUnits() {
@@ -990,6 +999,8 @@ void Advection::resetMeshRestructureData(){
 
 void Advection::doRemeshing(){
   //CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
+
+  remeshStartTime = CkWallTimer();
 
   if(!hasReset){
     hasReset=true;

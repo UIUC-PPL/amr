@@ -164,7 +164,7 @@ Advection_SDAG_CODE
         double dx, dy, nx, ny;
         double xmin, xmax, ymin, ymax;
         
-        double itBeginTime;
+        double itBeginTime, remeshStartTime;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
         QuadIndex getRefinedNeighbor(int NBR);
@@ -279,7 +279,7 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
 
 class PerProcessorChare : public CBase_PerProcessorChare {
   vector<int> cascades;
-  std::vector<double> qdlatencies;
+  std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
 
 public:
@@ -289,6 +289,7 @@ public:
   void recordCascade(int iteration, int length);
   void collectCascades(CkCallback cb);
   void recordQDLatency(int iteration, double latency);
+  void recordRemeshLatency(int iteration, double latency);
   void reduceWorkUnits();
   void reduceLatencies();
 };

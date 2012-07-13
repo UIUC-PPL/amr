@@ -16,10 +16,20 @@ mv *titan{180,200,220} $OUTPUT
 ./scalingPlot.pl bgq11 data/strong.11/*output >> $OUTPUT/status
 mv *bgq{9,10,11} $OUTPUT
 
+# box and whisker plots for TD
 ./qdCandlestick.pl $OUTPUT QDcandle.titan{180,200,220}
 gnuplot temp.gnuplot > $OUTPUT/qdCandlestickTitan.ps
 ./qdCandlestick.pl $OUTPUT QDcandle.bgq{9,10,11}
 gnuplot temp.gnuplot > $OUTPUT/qdCandlestickBGQ.ps
+
+# strong scaling (ts/sec) paired by machine
+./tsPerSec.pl $OUTPUT timestepPerSec.titan180 timestepPerSec.bgq9
+gnuplot temp.gnuplot > $OUTPUT/timestepPerSec9.ps
+./tsPerSec.pl $OUTPUT timestepPerSec.titan200 timestepPerSec.bgq10
+gnuplot temp.gnuplot > $OUTPUT/timestepPerSec10.ps
+./tsPerSec.pl $OUTPUT timestepPerSec.titan220 timestepPerSec.bgq11
+gnuplot temp.gnuplot > $OUTPUT/timestepPerSec11.ps
+
 
 rm temp.gnuplot
 

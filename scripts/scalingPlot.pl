@@ -104,7 +104,7 @@ $perfect = 0.0;
 my %timesteps = %{$scaling{STEPS_PER_SEC}};
 open TIMESTEPS_PER_SEC, ">", "timestepPerSec.$id";
 for my $key (sort {$a <=> $b} (keys %timesteps)) {
-    next if ($key == -1);
+    next if ($key == -1 || $key == 1);
     my $val = $timesteps{$key};
     if ($perfect == 0.0) {$perfect = $val / $key;}
     my $ideal = $perfect * $key;

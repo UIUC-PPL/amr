@@ -46,8 +46,9 @@ for my $file (@files) {
             if ($latency > 6000) {
                 print STDERR "$file: WARNING: high (over 6000us) qd latency of $latency\n";
             } else {
-                push @{$scaling{QD_LATENCY}{$proc}}, $latency;
+                
             }
+            push @{$scaling{QD_LATENCY}{$proc}}, $latency;
         }
         if (/Cascade lengths: ([0-9, ]+)/) {
             my @clen = split /, /, $1;
@@ -168,7 +169,7 @@ for my $proc (sort {$a <=> $b} (keys %qds)) {
                                                     $qdSorted[@qdSorted * 0.95]);
     print "{min=$qdMin, max=$qdMax, med=$qdMed, 5th=$qd5th, 95th=$qd95th}\n";
     my $w = 0.19;
-    my $pos = $proc + $proc * $w * ($max - 11);
+    my $pos = $proc + $proc * $w * ($max - 9);
     print FILE "$proc $min $max $qdMin $qd5th $qdMed $qd95th $qdMax $pos\n";
 }
 close FILE;

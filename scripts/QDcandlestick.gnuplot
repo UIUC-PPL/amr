@@ -15,9 +15,9 @@ set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)
 set bars 4.0
 set style fill empty
 f(x)=x+4
-plot 'QDcandle.160' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 whiskerbars,\
+plot 'QDcandle.160' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 title "depth8" whiskerbars,\
      'QDcandle.160' using 9:6:6:6:6 with candlesticks ls 1 lw 2 lt -1 notitle,\
-     'QDcandle.180' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 whiskerbars,\
+     'QDcandle.180' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 title "depth9" whiskerbars,\
      'QDcandle.180' using 9:6:6:6:6 with candlesticks ls 4 lw 2 lt -1 notitle,\
-     'QDcandle.200' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 whiskerbars,\
+     'QDcandle.200' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 title "depth10" whiskerbars,\
      'QDcandle.200' using 9:6:6:6:6 with candlesticks ls 3 lw 2 lt -1 notitle

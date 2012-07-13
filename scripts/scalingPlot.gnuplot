@@ -1,7 +1,7 @@
 set terminal post color font "Helvetica,24"
 set border 1+2+4+8 lw 1.3
 
-set pointsize 2.5
+set pointsize 1
 
 set style line 1 pt 1 lt 2 lc rgb "red" lw 4
 set style line 2 pt 3 lt 5 lc rgb "#ff8800" lw 4

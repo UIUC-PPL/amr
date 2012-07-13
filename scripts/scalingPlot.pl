@@ -89,7 +89,7 @@ for my $file (@files) {
 my $perfect = 0.0;
 # output strong scaling time
 my %timings = %{$scaling{TIME}};
-open SCALING_TIMES, ">", "strongScalingTimes";
+open SCALING_TIMES, ">", "strongScalingTimes.$id";
 for my $key (sort {$a <=> $b} (keys %timings)) {
     next if ($key == -1);
     my $val = $timings{$key};
@@ -102,7 +102,7 @@ close SCALING_TIMES;
 $perfect = 0.0;
 # output timesteps per second
 my %timesteps = %{$scaling{STEPS_PER_SEC}};
-open TIMESTEPS_PER_SEC, ">", "timestepPerSec";
+open TIMESTEPS_PER_SEC, ">", "timestepPerSec.$id";
 for my $key (sort {$a <=> $b} (keys %timesteps)) {
     next if ($key == -1);
     my $val = $timesteps{$key};
@@ -115,7 +115,7 @@ close TIMESTEPS_PER_SEC;
 $perfect = 0.0;
 # output timesteps per second
 my %wu = %{$scaling{WORK_UNITS_PER_SEC}};
-open FILE, ">", "workUnitsPerSec";
+open FILE, ">", "workUnitsPerSec.$id";
 for my $key (sort {$a <=> $b} (keys %wu)) {
     next if ($key == -1);
     my $val = $wu{$key};
@@ -128,7 +128,7 @@ close FILE;
 $perfect = 0.0;
 # output TS_PROC_SEC
 %wu = %{$scaling{TS_PROC_SEC}};
-open FILE, ">", "timestepPerProcSecs";
+open FILE, ">", "timestepPerProcSecs.$id";
 for my $key (sort {$a <=> $b} (keys %wu)) {
     next if ($key == -1);
     my $val = $wu{$key};
@@ -139,7 +139,7 @@ close FILE;
 $perfect = 0.0;
 # output WU_PROC_SEC
 %wu = %{$scaling{WU_PROC_SEC}};
-open FILE, ">", "workUnitPerProcSecs";
+open FILE, ">", "workUnitPerProcSecs.$id";
 for my $key (sort {$a <=> $b} (keys %wu)) {
     next if ($key == -1);
     my $val = $wu{$key};

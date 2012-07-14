@@ -58,6 +58,21 @@ gnuplot temp.gnuplot > $OUTPUT/timestepPerSec11.ps
 ./remeshLatency.pl $OUTPUT QDcandle.titan{1020,1040,1030}
 gnuplot temp.gnuplot > $OUTPUT/remeshLatencyTitan.ps
 
+# step time plots
+./stepTime.pl $OUTPUT stepTime titan180
+gnuplot temp.gnuplot > $OUTPUT/stepTimeTitanDepth9.ps
+./stepTime.pl $OUTPUT stepTime titan200
+gnuplot temp.gnuplot > $OUTPUT/stepTimeTitanDepth10.ps
+./stepTime.pl $OUTPUT stepTime titan220
+gnuplot temp.gnuplot > $OUTPUT/stepTimeTitanDepth11.ps
+
+./stepTime.pl $OUTPUT stepTime bgq9
+gnuplot temp.gnuplot > $OUTPUT/stepTimeBGQDepth9.ps
+./stepTime.pl $OUTPUT stepTime bgq10
+gnuplot temp.gnuplot > $OUTPUT/stepTimeBGQDepth10.ps
+./stepTime.pl $OUTPUT stepTime bgq11
+gnuplot temp.gnuplot > $OUTPUT/stepTimeBGQDepth11.ps
+
 rm temp.gnuplot
 
 for i in $OUTPUT/*ps

@@ -18,7 +18,7 @@ set style line 4 pt 6 lt 1 lc rgb "#006400" lw 4
 set key top left
 
 set logscale x
-set yrange [-100:25000]
+set yrange [-100:7000]
 set xrange [10:3000]
 
 set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)

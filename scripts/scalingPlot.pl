@@ -20,6 +20,9 @@ for my $file (@files) {
     my $workUnits = -1;
 
     for (<FILE>) {
+        if (/time for iteration (\d+) to (\d+): ([0-9.]+)/) {
+            $scaling{STEP_TIME}{$proc}{$1} = $3*1000;
+        }
         if (/(\d+) processors/) {
             $proc = $1;
         }
@@ -122,6 +125,18 @@ for my $key (sort {$a <=> $b} (keys %timesteps)) {
     print TIMESTEPS_PER_SEC "$key $val $ideal\n";
 }
 close TIMESTEPS_PER_SEC;
+
+my %stepProcTime = %{$scaling{STEP_TIME}};
+for my $proc (sort {$a <=> $b} (keys %stepProcTime)) {
+    next if ($proc == -1 || $proc == 1);
+    open STEP_TIME_FILE, ">", "stepTime.$proc.$id";
+    my %timeHash = %{$stepProcTime{$proc}};
+    for my $iter (sort {$a <=> $b} (keys %timeHash)) {
+        my $time = $timeHash{$iter};
+        print STEP_TIME_FILE "$iter $time\n";
+    }
+    close STEP_TIME_FILE;
+}
 
 $perfect = 0.0;
 # output timesteps per second

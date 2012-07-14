@@ -50,6 +50,15 @@ for my $file (@files) {
             }
             push @{$scaling{QD_LATENCY}{$proc}}, $latency;
         }
+        if (/iteration (\d+), Remesh latency = ([0-9.]+)/) {
+            my $latency = $2*1000000;
+            # if ($latency > 6000) {
+            #     print STDERR "$file: WARNING: high (over 6000us) qd latency of $latency\n";
+            # } else {
+                
+            # }
+            push @{$scaling{REMESH_LATENCY}{$proc}}, $latency;
+        }
         if (/Cascade lengths: ([0-9, ]+)/) {
             my @clen = split /, /, $1;
             shift @clen; shift @clen; shift @clen; shift @clen;
@@ -85,6 +94,8 @@ for my $file (@files) {
 
     close FILE;
 }
+
+if (!(exists $scaling{TIME})) {exit 0};
 
 my $perfect = 0.0;
 # output strong scaling time
@@ -156,6 +167,18 @@ for my $key (sort {$a <=> $b} (keys %qds)) {
     close FILE;
 }
 
+# if the remeshing latency is in the file
+if (exists $scaling{REMESH_LATENCY}) {
+    my %remesh = %{$scaling{REMESH_LATENCY}};
+    for my $key (sort {$a <=> $b} (keys %remesh)) {
+        next if ($key == -1);
+        open FILE, ">", "histoRemesh.$key.$id";
+        my $str = join "\n", @{$remesh{$key}};
+        print FILE "$str\n";
+        close FILE;
+    }
+}
+
 open FILE, ">", "QDcandle.$id";
 for my $proc (sort {$a <=> $b} (keys %qds)) {
     next if ($proc == -1 or $proc == 1);
@@ -173,3 +196,25 @@ for my $proc (sort {$a <=> $b} (keys %qds)) {
     print FILE "$proc $min $max $qdMin $qd5th $qdMed $qd95th $qdMax $pos\n";
 }
 close FILE;
+
+# if the remeshing latency is in the file
+if (exists $scaling{REMESH_LATENCY}) {
+    my %remesh = %{$scaling{REMESH_LATENCY}};
+    open FILE, ">", "RMcandle.$id";
+    for my $proc (sort {$a <=> $b} (keys %remesh)) {
+        next if ($proc == -1 or $proc == 1);
+        my ($min, $max) = ($scaling{MIN_DEPTH}{$proc}, $scaling{MAX_DEPTH}{$proc});
+        my @qdSorted = sort {$a <=> $b} @{$scaling{QD_LATENCY}{$proc}};
+        die "incorrect number of QD values" if (@qdSorted + 5 < $scaling{MAX_ITER}{$proc} / 3);
+        my ($qdMin, $qdMax, $qdMed, $qd5th, $qd95th) = ($qdSorted[0],
+                                                        $qdSorted[@qdSorted - 1],
+                                                        $qdSorted[@qdSorted / 2],
+                                                        $qdSorted[@qdSorted * 0.05],
+                                                        $qdSorted[@qdSorted * 0.95]);
+        print "$id: {min=$qdMin, max=$qdMax, med=$qdMed, 5th=$qd5th, 95th=$qd95th}\n";
+        my $w = 0.19;
+        my $pos = $proc + $proc * $w * ($max - 10);
+        print FILE "$proc $min $max $qdMin $qd5th $qdMed $qd95th $qdMax $pos\n";
+    }
+    close FILE;
+}

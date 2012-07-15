@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-my ($output, $name1,$run1) = @ARGV;
+my ($output, $name1,$run1, $keyPos, $ymax) = @ARGV;
 
 my $out = <<OUT;
 set encoding utf8
@@ -19,17 +19,17 @@ set style line 6 pt 2 lt 5 lc rgb "#8299AA" lw 4
 set style line 7 pt 5 lt 7 lc rgb "#000000" lw 4
 set style line 8 pt 9 lt 8 lc rgb "brown" lw 4
 
-set key top left
+set key top $keyPos
 
-set logscale x
-#set yrange [-100:25000]
-set xrange [10:3000]
+#set logscale x
+set yrange [0:$ymax]
+set xrange [-50:2150]
 
-set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)
+#set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)
 
 set xlabel 'Iteration'
 set ylabel 'Iteration Time (ms)'
-set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048,4096,8192,16384,32768)
+#set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048,4096,8192,16384,32768)
 #set ytics autofreq 10
 #set mytics 5
 #set yrange [0.1:1000]

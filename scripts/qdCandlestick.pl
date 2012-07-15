@@ -3,7 +3,21 @@
 use strict;
 use warnings;
 
-my ($output, $d1,$d2,$d3) = @ARGV;
+my ($output, $d1,$d2,$d3, $machine) = @ARGV;
+
+my $xaxis;
+
+if ($machine eq "titan") {
+$xaxis = <<OUT
+set xrange [10:4000]
+set xtics autofreq nomirror (16,32,64,128,256,512,"1k" 1024, "2k" 2048)
+OUT
+} else {
+$xaxis = <<OUT
+set xrange [10:48000]
+set xtics autofreq nomirror (16,32,64,128,256,512,"1k" 1024, "2k" 2048, "4k" 4096, "8k" 8096, "16k" 16384, "32k" 32768)
+OUT
+}
 
 my $out = <<OUT;
 set encoding utf8
@@ -19,9 +33,8 @@ set key top left
 
 set logscale x
 set yrange [-100:6000]
-set xrange [10:3000]
 
-set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)
+$xaxis
 
 set ylabel "TD Delay Time (µs)"
 set xlabel "Number of Cores"

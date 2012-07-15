@@ -10,10 +10,10 @@ print "ARGV (len=$len) = @ARGV, f1=$f1\n";
 
 my $out = <<OUT;
 set encoding utf8
-set terminal post color font "Helvetica,16"
+set terminal post color font "Helvetica,22"
 set border 1+2+4+8 lw 1.3
 
-set pointsize 1
+set pointsize 1.5
 
 set style line 1 pt 1 lt 2 lc rgb "red" lw 4
 set style line 2 pt 3 lt 5 lc rgb "#ff8800" lw 4
@@ -26,14 +26,14 @@ set style line 6 pt 2 lt 5 lc rgb "#8299AA" lw 4
 # set style line 8 pt 9 lt 8 lc rgb "brown" lw 4
 set style line 10 pt 0 lw 2 lc rgb "black"
 
-set key top left
+set key bottom right
 #set grid mytics ytics
 
 set logscale xy
 
 set xlabel 'Number of Cores'
 set ylabel 'Timesteps / sec'
-set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048,4096,8192,16384,32768)
+set xtics autofreq nomirror (16,32,64,128,256,512,"1k" 1024,"2k" 2048,"4k" 4096,"8k" 8192,"16k" 16384,"32k" 32768)
 set ytics autofreq 10
 set mytics 5
 set yrange [0.1:1000]

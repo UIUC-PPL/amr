@@ -219,7 +219,7 @@ if (exists $scaling{REMESH_LATENCY}) {
     for my $proc (sort {$a <=> $b} (keys %remesh)) {
         next if ($proc == -1 or $proc == 1);
         my ($min, $max) = ($scaling{MIN_DEPTH}{$proc}, $scaling{MAX_DEPTH}{$proc});
-        my @qdSorted = sort {$a <=> $b} @{$scaling{QD_LATENCY}{$proc}};
+        my @qdSorted = sort {$a <=> $b} @{$scaling{REMESH_LATENCY}{$proc}};
         die "incorrect number of QD values" if (@qdSorted + 5 < $scaling{MAX_ITER}{$proc} / 3);
         my ($qdMin, $qdMax, $qdMed, $qd5th, $qd95th) = ($qdSorted[0],
                                                         $qdSorted[@qdSorted - 1],

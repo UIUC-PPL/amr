@@ -3,7 +3,21 @@
 use strict;
 use warnings;
 
-my ($output, $d1,$d2,$d3) = @ARGV;
+my ($output, $d1,$d2,$d3, $machine) = @ARGV;
+
+my $xaxis = "";
+
+if ($machine eq "titan") {
+$xaxis = <<OUT
+set xrange [10:4000]
+set xtics autofreq nomirror (16,32,64,128,256,512,"1k" 1024, "2k" 2048)
+OUT
+} else {
+$xaxis = <<OUT
+set xrange [10:48000]
+set xtics autofreq nomirror (16,32,64,128,256,512,"1k" 1024, "2k" 2048, "4k" 4096, "8k" 8096, "16k" 16384, "32k" 32768)
+OUT
+}
 
 my $out = <<OUT;
 set encoding utf8
@@ -15,13 +29,12 @@ set style line 2 pt 3 lt 1 lc rgb "#ff8800" lw 4
 set style line 3 pt 4 lt 1 lc rgb "blue" lw 4
 set style line 4 pt 6 lt 1 lc rgb "#006400" lw 4
 
-set key top left
+set key top right
 
 set logscale x
-set yrange [-100:7000]
-set xrange [10:3000]
+#set yrange [-100:4000]
 
-set xtics autofreq nomirror (16,32,64,128,256,512,1024,2048)
+$xaxis
 
 set ylabel "Remeshing Latency Time (µs)"
 set xlabel "Number of Cores"

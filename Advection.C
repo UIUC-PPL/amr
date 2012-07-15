@@ -877,7 +877,7 @@ void Advection::iterate() {
     return;
   }
 
-  myt = myt+mydt;
+  myt = myt+dt;
   if(myt < tmax){
     mydt = min(dx,dy)/v * cfl;
     if ((myt + mydt) >= tmax )

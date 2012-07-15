@@ -157,7 +157,7 @@ Main::Main(CkArgMsg* m){
   /*max_depth = 9;*/
 
   dt = min(dx,dy)/v * cfl;
-  dt /= 2*(max_depth - min_depth);
+  dt /= pow(2, max_depth - min_depth);
   if ((t + dt) >= tmax )
     dt = tmax - t;
   t = t+dt;

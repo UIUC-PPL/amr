@@ -5,16 +5,15 @@ BOOSTLIB = $(BOOST_ROOT)/lib
 
 CXX=$(CHARMC)
 
-CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) -I$(HOME)/projects/termdetection/newalg
-CPPFLAGS += -I$(BOOSTINC)
-LDFLAGS += -L$(BOOSTLIB)
+OPTS ?= -O3
+CXXFLAGS += -g -DAMR_REVISION=$(REVNUM) $(OPTS)
 
 OBJS = QuadIndex.o Advection.o
 
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(OPTS) $(CPPFLAGS) $(LDFLAGS) -language charm++ -o advection Main.C  $(OBJS) -lboost_filesystem -lboost_system  -tracemode projections
+	$(CHARMC)  -module liveViz $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer AmrLB
 
 advection.decl.h: advection.ci
 	$(CHARMC)  advection.ci

@@ -1,9 +1,14 @@
+
+#if !defined(ADVECTION_H)
+#define ADVECTION_H
+
 #ifdef LOGGER
 #define VB(x) do { x } while(false)
 #else
 #define VB(x) do { } while(false)
 #endif
 
+#include "Advection.decl.h"
 
 int inline map_nbr(int quad, int nbr){
     if(quad==0){
@@ -159,7 +164,7 @@ Advection_SDAG_CODE
         double dx, dy, nx, ny;
         double xmin, xmax, ymin, ymax;
         
-        double itBeginTime;
+        double itBeginTime, remeshStartTime;
         void mem_allocate(double* &p, int size);
         void mem_allocate_all();
         QuadIndex getRefinedNeighbor(int NBR);
@@ -194,7 +199,6 @@ usesAutoMeasure = CmiFalse;
 				void updateMesh();
         void applyInitialCondition();
         
-        void begin_iteration();
         void process(int, int, int, double*);
         void compute_and_iterate();
         void iterate();
@@ -205,13 +209,13 @@ usesAutoMeasure = CmiFalse;
 			
         //void doMeshRestructure();
         void resetMeshRestructureData();
-        void communicatePhase1Msgs();
-        void informParent(int, DECISION);
-        void recvParentDecision();
-        void updateNeighborsofChangeInDecision();
+        void communicatePhase1Msgs(int cascade_length);
+        void informParent(int, DECISION, int cascade_length);
+        void recvParentDecision(int cascade_length);
+        void updateNeighborsofChangeInDecision(int cascade_length);
         //void recvNeighborDecision(DIR);
         //void recvStatusUpdateFromParent(int);
-        void exchangePhase1Msg(int, DECISION);
+        void exchangePhase1Msg(int, DECISION, int cascade_length);
 
         /*Phase2 entry methods*/
         void setNbrStatus(int, ChildDataMsg*);
@@ -240,6 +244,8 @@ usesAutoMeasure = CmiFalse;
         void requestNextFrame(liveVizRequestMsg*);
 
         void rootTerminated2();
+
+	bool isRoot();
 };
 
 class InitRefineMsg: public CMessage_InitRefineMsg{
@@ -271,7 +277,23 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
         ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };
 
-class PerProcessorChare : public CBase_PerProcessorChare{
-    public:
-        PerProcessorChare();
+class PerProcessorChare : public CBase_PerProcessorChare {
+  vector<int> cascades;
+  std::vector<double> qdlatencies, remeshlatencies;
+  int workUnitCount;
+
+public:
+  PerProcessorChare();
+
+  void incrementWorkUnitCount();
+  void recordCascade(int iteration, int length);
+  void collectCascades(CkCallback cb);
+  void recordQDLatency(int iteration, double latency);
+  void recordRemeshLatency(int iteration, double latency);
+  void reduceWorkUnits();
+  void reduceLatencies();
 };
+
+extern readonly<CProxy_PerProcessorChare> ppc;
+
+#endif // ADVECTION_H

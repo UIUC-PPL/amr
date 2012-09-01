@@ -20,7 +20,6 @@ using namespace std;
 #include "Main.decl.h"
 #include "Main.h"
 
-extern double lastIdleTimeQD;
 
 extern CProxy_Main mainProxy;
 
@@ -58,7 +57,7 @@ double refine_cutoff=0.2, derefine_cutoff=0.05;
 
 #include "Advection.h"
 
-readonly<CProxy_PerProcessorChare> ppc;
+CProxy_PerProcessorChare ppc;
 
 PerProcessorChare::PerProcessorChare()
   : cascades(max_iterations)
@@ -1087,7 +1086,7 @@ void Advection::communicatePhase1Msgs(int cascade_length) {
 //  a) If the parent is a grandparent and also have children that are leaves
 //  b) when a child sends REFINE/STAY message to the parent
 void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
-  ppc->ckLocalBranch()->recordCascade(iterations, cascade_length);
+  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   cascade_length++;
   if(!hasReset){
     hasReset=true;
@@ -1117,7 +1116,7 @@ void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
 }
 
 void Advection::recvParentDecision(int cascade_length) {
-  ppc->ckLocalBranch()->recordCascade(iterations, cascade_length);
+  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
     if(!hasReset){
       hasReset=true;
@@ -1148,7 +1147,7 @@ void Advection::updateNeighborsofChangeInDecision(int cascade_length) {
 
 // Phase1 Msgs are either REFINE or STAY messages
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_length) {
-  ppc->ckLocalBranch()->recordCascade(iterations, cascade_length);
+  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
   if(!hasReset){

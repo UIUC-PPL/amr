@@ -12,7 +12,7 @@
 #include "charm++.h"
 #include "trace-projections.h"
 //#include <boost/assign/list_of.hpp>
-#include "boost/filesystem.hpp"
+//#include "boost/filesystem.hpp"
 
 using namespace std;
 
@@ -80,8 +80,8 @@ Main::Main(CkArgMsg* m){
   mainProxy = thisProxy;
   //boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
   //boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
-  boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/log");
-  boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/log");
+  //boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/log");
+  //boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/log");
 
   iterations = 0;
 
@@ -159,7 +159,7 @@ Main::Main(CkArgMsg* m){
   /*max_depth = 9;*/
 
   dt = min(dx,dy)/v * cfl;
-  dt /= pow(2, max_depth - min_depth);
+  dt /= pow(2., max_depth - min_depth);
   if ((t + dt) >= tmax )
     dt = tmax - t;
   t = t+dt;
@@ -233,7 +233,7 @@ void Main::startRunning(){
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
-  ppc->collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
+  ppc.collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
                                   thisProxy));
 }
 
@@ -242,7 +242,7 @@ void Main::reportCascadeStats(int *cascade_lengths, int size) {
   for (int i = 0; i < size; ++i)
     ckout << cascade_lengths[i] << ", ";
   ckout << endl;
-  ppc->reduceLatencies();
+  ppc.reduceLatencies();
 }
 
 void Main::qdlatency(double* elems, int size) {
@@ -257,7 +257,7 @@ void Main::remeshlatency(double* elems, int size) {
     if (elems[i] != std::numeric_limits<double>::max())
       CkPrintf("iteration %u, Remesh latency = %0.20f\n", i, elems[i]);
   }
-  ppc->reduceWorkUnits();
+  ppc.reduceWorkUnits();
 }
 
 void Main::totalWorkUnits(int total) {
@@ -283,8 +283,7 @@ struct AdvMap : public CBase_AdvMap {
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());
     int baseBits = 8;
 
-    QuadIndex baseIndex(base.c_str());
-    unsigned long long val = baseIndex.bitVector >> (sizeof(unsigned int)*8 - baseIndex.nbits);
+    unsigned long long val = idx.bitVector >> (sizeof(unsigned int)*8 - baseBits);
     unsigned long long hash = GOLDEN_RATIO_PRIME_64 * val;
 
     int basePE = hash >> (64 - bits);

@@ -58,7 +58,7 @@ int inline getNbrDir(int quad, int dir){
         else if(dir==DOWN)
             return DOWN_LEFT;
     }
-    else if(quad==3){
+    else{// if(quad==3){
         if(dir==RIGHT)
             return RIGHT_DOWN;
         else if(dir==DOWN)
@@ -171,6 +171,7 @@ Advection_SDAG_CODE
         int getSourceDirection(int NBR);
         double* getGhostBuffer(int dir);
         int getGhostCount(int dir);
+	double lastIdleTimeQD;
 
         ~Advection();
         void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
@@ -294,6 +295,6 @@ public:
   void reduceLatencies();
 };
 
-extern readonly<CProxy_PerProcessorChare> ppc;
+extern CProxy_PerProcessorChare ppc;
 
 #endif // ADVECTION_H

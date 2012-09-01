@@ -31,6 +31,7 @@ mainmodule Main{
   readonly int refine_frequency;
 
   initproc TurnManualLBOn();
+  readonly CProxy_PerProcessorChare ppc;
 
   mainchare Main{
     entry Main(CkArgMsg *m);
@@ -167,8 +168,8 @@ module Advection{
 	  double now = CkWallTimer();
           double localQDLatency = now - lastIdleTimeQD;
 	  double localRemeshLatency = now - remeshStartTime;
-          ppc->ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
-          ppc->ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
+          ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
+          ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
           if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
             CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
             CkCallback cb;
@@ -223,7 +224,7 @@ module Advection{
 
     entry void doStep(){
       atomic "begin iteration"{
-        ppc->ckLocalBranch()->incrementWorkUnitCount();
+        ppc.ckLocalBranch()->incrementWorkUnitCount();
         if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
           ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations 
 		 << " dt: " << dt << " mydt: " << mydt << " myt " << myt << endl;

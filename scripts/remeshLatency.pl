@@ -36,16 +36,16 @@ set logscale x
 
 $xaxis
 
-set ylabel "Remeshing Latency Time (µs)"
+set ylabel "Remeshing Latency Time (ms)"
 set xlabel "Number of Cores"
 
 set bars 4.0
 set style fill empty
-plot '$output/$d1' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 title "Depth 9" whiskerbars,\\
+plot '$output/$d1' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 title "Depth Range 4-9" whiskerbars,\\
      '$output/$d1' using 9:6:6:6:6 with candlesticks ls 1 lw 2 lt -1 notitle,\\
-     '$output/$d2' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 title "Depth 10" whiskerbars,\\
+     '$output/$d2' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 title "Depth Range 4-10" whiskerbars,\\
      '$output/$d2' using 9:6:6:6:6 with candlesticks ls 4 lw 2 lt -1 notitle,\\
-     '$output/$d3' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 title "Depth 11" whiskerbars,\\
+     '$output/$d3' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 title "Depth Range 4-11" whiskerbars,\\
      '$output/$d3' using 9:6:6:6:6 with candlesticks ls 3 lw 2 lt -1 notitle
 OUT
 

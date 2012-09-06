@@ -32,20 +32,20 @@ set style line 4 pt 6 lt 1 lc rgb "#006400" lw 4
 set key top left
 
 set logscale x
-set yrange [-100:6000]
+set yrange [-0.1:6]
 
 $xaxis
 
-set ylabel "TD Delay Time (µs)"
+set ylabel "TD Delay Time (ms)"
 set xlabel "Number of Cores"
 
 set bars 4.0
 set style fill empty
-plot '$output/$d1' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 title "Depth 9" whiskerbars,\\
+plot '$output/$d1' using 9:5:4:8:7 with candlesticks ls 1 lw 2 fs pattern 0 title "Depth Range 4-9" whiskerbars,\\
      '$output/$d1' using 9:6:6:6:6 with candlesticks ls 1 lw 2 lt -1 notitle,\\
-     '$output/$d2' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 title "Depth 10" whiskerbars,\\
+     '$output/$d2' using 9:5:4:8:7 with candlesticks ls 4 lw 2 fs pattern 4 title "Depth Range 4-10" whiskerbars,\\
      '$output/$d2' using 9:6:6:6:6 with candlesticks ls 4 lw 2 lt -1 notitle,\\
-     '$output/$d3' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 title "Depth 11" whiskerbars,\\
+     '$output/$d3' using 9:5:4:8:7 with candlesticks ls 3 lw 2 fs pattern 5 title "Depth Range 4-11" whiskerbars,\\
      '$output/$d3' using 9:6:6:6:6 with candlesticks ls 3 lw 2 lt -1 notitle
 OUT
 

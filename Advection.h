@@ -129,8 +129,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
 
-  bool has_terminated; //used to inform parent about termination so that it can contribute to the final reduction
-
   QuadIndex nbr[4], parent;
   int xc, yc;
 
@@ -189,7 +187,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void advection();// common function for initialization
 
   void printState();
-  void done();
   void pup(PUP::er &p);
 
   /* initial mesh generation*/       

@@ -223,7 +223,6 @@ void Advection::mem_allocate(double* &p, int size){
   p = new double[size];
 }
 
-
 void Advection::mem_allocate_all(){
   VB(logFile << "Allocating Memory for " << thisIndex.getIndexString() << std::endl;);
   mem_allocate(u, (block_width+2)*(block_height+2));
@@ -249,7 +248,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 
   usesAtSync = CmiTrue;
 
-  has_terminated=false;
   shouldDestroy = false;
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
@@ -848,16 +846,6 @@ void Advection::compute_and_iterate(){
   outFile.flush();
   outFile.close();
 #endif
-}
-
-void Advection::done(){
-  if(!has_terminated){
-    has_terminated=true;
-    //contribute();
-    ckout << thisIndex.getIndexString().c_str()  << " is now terminating" << endl;
-    if(thisIndex.getDepth()!=min_depth)
-      thisProxy(thisIndex.getParent()).done();
-  }
 }
 
 void Advection::iterate() {
@@ -1522,7 +1510,6 @@ Advection::Advection(InitRefineMsg* msg)
   shouldDestroy = false;
   //rootTerminated();
   usesAtSync=CmiTrue;
-  has_terminated=false;
   resetMeshRestructureData();
 
   char fname[100];

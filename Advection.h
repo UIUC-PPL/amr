@@ -109,10 +109,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   ofstream outFile;
   //tree information
   bool isRefined;
-  bool isGrandParent;
   int depth;
 
   bool child_isRefined[NUM_CHILDREN];
+  bool isGrandParent();
 
   bool nbr_exists[NUM_NEIGHBORS];
   bool nbr_isRefined[NUM_NEIGHBORS];

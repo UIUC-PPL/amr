@@ -269,7 +269,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   /*Nodes constructed here will not have any parent as this 
     is the coarsest level of the Mesh*/
   parent = thisIndex;
-  isGrandParent = false;
   /*Lets set the nieghbors status if this is the root node */
   for(int i=0; i<NUM_NEIGHBORS; i++){
     nbr_exists[i]=true;
@@ -382,7 +381,6 @@ void Advection::pup(PUP::er &p){
   __sdag_pup(p);
 
   p|isRefined;
-  p|isGrandParent;
   p|depth;
 
   for(int i=0; i<NUM_CHILDREN; i++)
@@ -1022,7 +1020,7 @@ void Advection::doRemeshing(){
       //thisProxy(parent).doMeshRestructure();
     }
   }
-  else if(isGrandParent && !parentHasAlreadyMadeDecision){
+  else if(isGrandParent() && !parentHasAlreadyMadeDecision){
     //CkPrintf("%s was a grandparent %d\n", thisIndex.getIndexString().c_str(), iterations);
     informParent(-1, INV, 1);
   } else {
@@ -1087,7 +1085,6 @@ void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
 
   if(dec==REFINE){
     child_isRefined[childNum]=true;
-    isGrandParent = true;
   }
   if(parentHasAlreadyMadeDecision == false){
     VB(logFile << "settin parentHasAlreadyMadeDecision to true, iterations " << iterations << std::endl;);
@@ -1268,7 +1265,7 @@ void Advection::doPhase2(){
 
   //CkPrintf("%s middle of phase 2 %d\n", thisIndex.getIndexString().c_str(), iterations);
 
-  if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
+  if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
     //Get Data From the Children and extrapolate it
   }
   else if(decision == DEREFINE && !isRefined){//send data to the parent
@@ -1336,21 +1333,16 @@ void Advection::updateNbrStatus(){
   }
   else if(decision == REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
     isRefined=true;
-    isGrandParent=false;
-  }else if(isRefined && !isGrandParent && !parentHasAlreadyMadeDecision){// parent going to destroy its children
+  } else if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){// parent going to destroy its children
     isRefined = false;
   }
-  if(isGrandParent){
+  if(isGrandParent()) {
     for(int i=0; i<NUM_CHILDREN; i++){
       if(child_decision[i]==INV && child_isRefined[i])//did not receive any message
         child_isRefined[i]=false;
     }
-    isGrandParent=false;
-    for(int i=0; i<NUM_CHILDREN; i++)
-      if(child_isRefined[i])
-        isGrandParent=true;
   }
-  VB(logFile << "isGrandparent = " << isGrandParent << ", iteration = " << iterations << std::endl;);
+  VB(logFile << "isGrandparent = " << isGrandParent() << ", iteration = " << iterations << std::endl;);
 
 }
 
@@ -1519,6 +1511,13 @@ void Advection::refine(){
   VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
 
+bool Advection::isGrandParent() {
+  bool ret = false;
+  for (int i = 0; i < NUM_CHILDREN; ++i)
+    ret = ret || child_isRefined[i];
+  return ret;
+}
+
 Advection::Advection(InitRefineMsg* msg)
 /*: AdvTerm(thisProxy, thisIndex, true), CBase_Advection()*/
 {usesAutoMeasure = CmiFalse;
@@ -1545,7 +1544,6 @@ Advection::Advection(InitRefineMsg* msg)
   if(thisIndex.nbits!=0)
     parent = thisIndex.getParent();
 
-  isGrandParent = false;
   /*set the status of the neighbors
     1. If parent of the neighbor is same as mine, 
     then the status is also the same, 

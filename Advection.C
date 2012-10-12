@@ -399,7 +399,6 @@ void Advection::pup(PUP::er &p){
   p|decision;
   p|parentHasAlreadyMadeDecision;
   p|hasReceivedParentDecision;
-  p|hasAllocatedMemory;
 
   p|parent;
   for(int i=0; i<NUM_NEIGHBORS; i++)
@@ -987,9 +986,6 @@ void Advection::resetMeshRestructureData(){
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;);
   parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
-
-  /*Phase2 resetting*/
-  hasAllocatedMemory=false;
 }
 
 void Advection::doRemeshing(){
@@ -1354,10 +1350,10 @@ void Advection::recvChildData(ChildDataMsg *msg){
   iterations = msg->iterations;
   meshGenIterations = msg->meshGenIterations;
 
-  if(!hasAllocatedMemory){
-    hasAllocatedMemory=true;
+  if(u == NULL) {
     mem_allocate_all();
   }
+
   int st_i, end_i, st_j, end_j;
   switch(msg->childNum){
   case 0:  st_i = block_width/2+1;  end_i = block_width;    st_j = 1;                 end_j = block_height/2;  break;

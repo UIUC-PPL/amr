@@ -129,7 +129,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
 
-  bool hasAllocatedMemory;//for Use of Node who is going to derefine
   bool has_terminated; //used to inform parent about termination so that it can contribute to the final reduction
 
   QuadIndex nbr[4], parent;

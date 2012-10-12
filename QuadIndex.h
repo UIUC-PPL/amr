@@ -1,3 +1,6 @@
+#ifndef QUADINDEX_H
+#define QUADINDEX_H
+
 #include <string>
 
 const int bits_per_int = 8*sizeof(int);
@@ -103,3 +106,5 @@ public:
     return *this;
   }
 };
+
+#endif

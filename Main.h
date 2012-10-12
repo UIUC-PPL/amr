@@ -1,4 +1,7 @@
-class Main:public CBase_Main{
+#ifndef MAIN_H
+#define MAIN_H
+
+class Main: public CBase_Main {
 
  public:
   int num_chares;
@@ -16,3 +19,5 @@ class Main:public CBase_Main{
   void remeshlatency(double* elems, int size);
   void totalWorkUnits(int total);
 };
+
+#endif

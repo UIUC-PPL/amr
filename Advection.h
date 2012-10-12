@@ -126,7 +126,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   DECISION nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
   DECISION child_decision[NUM_CHILDREN];
 
-  bool hasReset;
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
 

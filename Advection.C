@@ -250,7 +250,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   usesAtSync = CmiTrue;
 
   has_terminated=false;
-  hasReset = false;
   shouldDestroy = false;
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
@@ -299,6 +298,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   VB(logFile << "xmin: " << this->xmin << ", ymin: " << this->ymin << std::endl;);
 
   advection();
+  resetMeshRestructureData();
 }
 
 void Advection::printState(){
@@ -398,7 +398,6 @@ void Advection::pup(PUP::er &p){
   }
 
   p|hasReceived;
-  p|hasReset;
   p|decision;
   p|parentHasAlreadyMadeDecision;
   p|hasReceivedParentDecision;
@@ -444,6 +443,9 @@ void Advection::pup(PUP::er &p){
   p|dx; p|dy; p|nx; p|ny; p|xmin; p|xmax; p|ymin; p|ymax;
   
   p|itBeginTime;
+
+  if(p.isUnpacking())
+      resetMeshRestructureData();
 }
     
 Advection::~Advection(){
@@ -997,11 +999,6 @@ void Advection::doRemeshing(){
 
   remeshStartTime = CkWallTimer();
 
-  if(!hasReset){
-    hasReset=true;
-    resetMeshRestructureData();
-  }
-
   if(!isRefined) {//run this on leaf nodes
     /*Done Resetting Old Data*/
     /* It is possible that some Message has alreasdy been processed
@@ -1083,10 +1080,7 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
 void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   cascade_length++;
-  if(!hasReset){
-    hasReset=true;
-    resetMeshRestructureData();
-  }
+
   VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << ", iteration " << iterations << std::endl;);
   if(childNum >= 0)
     child_decision[childNum]=dec;
@@ -1113,10 +1107,6 @@ void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
 void Advection::recvParentDecision(int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
-  if(!hasReset){
-    hasReset=true;
-    resetMeshRestructureData();
-  }
 
   hasReceivedParentDecision = true;
   DECISION newDecision = std::max(STAY, decision);
@@ -1133,10 +1123,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
-  if(!hasReset){
-    hasReset=true;
-    resetMeshRestructureData();
-  }
 
   DECISION newDecision = decision;
 
@@ -1309,8 +1295,6 @@ void Advection::doPhase2(){
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
   parentHasAlreadyMadeDecision = false;
-  hasReset=false;
-
 }
 
 void Advection::updateNbrStatus(){
@@ -1420,7 +1404,9 @@ void Advection::recvChildData(ChildDataMsg *msg){
   setNbrStatus(c1, msg);
   setNbrStatus(c2, msg);
   
-  decision=DEREFINE;
+  resetMeshRestructureData();
+  if(msg->isInMeshGenerationPhase)
+    decision=DEREFINE;
   delete msg;
 }
 
@@ -1538,11 +1524,11 @@ Advection::Advection(InitRefineMsg* msg)
 {usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
-  hasReset = false;
   shouldDestroy = false;
   //rootTerminated();
   usesAtSync=CmiTrue;
   has_terminated=false;
+  resetMeshRestructureData();
 
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
@@ -1611,7 +1597,6 @@ Advection::Advection(InitRefineMsg* msg)
   }
 
   //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
-  hasReset=false;
   dx = msg->dx;
   dy = msg->dy;
 
@@ -1666,7 +1651,8 @@ Advection::Advection(InitRefineMsg* msg)
     logFile << std::endl;
   }
 #endif
-  decision=REFINE;//to be used for reduction while doing mesh generation
+  if(msg->isInMeshGenerationPhase)
+    decision=REFINE;//to be used for reduction while doing mesh generation
                   // to keep track if any change happened in the last mesh gen iteration 
   //delete the message
   delete msg;
@@ -1718,7 +1704,6 @@ void Advection::updateMesh(){
     decision=INV;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
   parentHasAlreadyMadeDecision = false;
-  hasReset = false;
 }
 
 void Advection::ResumeFromSync(){

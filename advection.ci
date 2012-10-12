@@ -138,6 +138,7 @@ module Advection{
         else
           contri=0;
         contribute(sizeof(int), &contri, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));
+        resetMeshRestructureData();
       }
       when meshUpdateReductionClient(int result) atomic{
         if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
@@ -151,6 +152,7 @@ module Advection{
           VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
           if(isRefined)
             iterations++;//set it to 1
+          resetMeshRestructureData();
           phase2Done();
         }
       }
@@ -180,6 +182,7 @@ module Advection{
           CkStartQD(cb);
         }
         doPhase2();
+        resetMeshRestructureData();
       }
     };
     

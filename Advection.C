@@ -402,8 +402,6 @@ void Advection::pup(PUP::er &p){
   p|decision;
   p|parentHasAlreadyMadeDecision;
   p|hasReceivedParentDecision;
-  p|hasCommunicatedSTAY;
-  p|hasCommunicatedREFINE;
   p|hasAllocatedMemory;
 
   p|parent;
@@ -989,8 +987,6 @@ void Advection::resetMeshRestructureData(){
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;);
   parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
-  hasCommunicatedSTAY=false;
-  hasCommunicatedREFINE=false;
 
   /*Phase2 resetting*/
   hasAllocatedMemory=false;
@@ -1012,14 +1008,13 @@ void Advection::doRemeshing(){
        MeshRestructure Phase was called*/
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
 
-    if (decision == REFINE);//no need to call getGranularityDecision
-    else
-      decision = max(decision, getGranularityDecision());
-
+    DECISION newDecision = decision;
+    if (decision != REFINE)
+      newDecision = max(decision, getGranularityDecision());
 
     //ckout << thisIndex.getIndexString().c_str() << " decision = " << decision << ", iteration = " << iterations << endl;
     //initiate Phase1 of the computation
-    updateNeighborsofChangeInDecision(1);
+    updateDecisionState(1, newDecision);
     //Inform Parent About Start of the Restructure Phase 
     // Think of a better way to do this because right now as many as 
     // number of unrefined children are informing the parent about the
@@ -1040,44 +1035,44 @@ void Advection::doRemeshing(){
 }
 
 /***** PHASE1 FUNCTIONS****/
-void Advection::communicatePhase1Msgs(int cascade_length) {
+void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
   cascade_length++;
-  if(decision == REFINE || decision == STAY){
-    //tell the neighbor if it exists, also tell to children of the neighbor 
-    // if that neighbor is refined
-    //In case the neighbor does not exist, just tell to the parent of the 
-    //non-existing neighbor
+  if (decision == newDecision)
+    return;
 
-    for(int i=0; i<NUM_NEIGHBORS; i++){
-      if(nbr_exists[i] && !nbr_isRefined[i]){
-        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
-        // Since Phase1Msgs are only refinement messages
-        thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
-      }
-      //just send your direction w.r.t. to the receiving neighbor
-      else if(nbr_exists[i] && nbr_isRefined[i]){
-        //Get Corresponding Children of the neighbor
-        QuadIndex q1, q2;
-        getChildren(nbr[i], SENDER_DIR[i], q1, q2);
-        VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
-        VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
-                    
-                    
-        thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
-        thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
-      }
-      else{//send to the parent of the non-existing neighbor
-        VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
-        thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision, cascade_length);
-      }
+  decision = newDecision;
+  if (decision == DEREFINE)
+    return; // Don't communicate the 'default' decision
+
+  //tell the neighbor if it exists, also tell to children of the neighbor
+  // if that neighbor is refined
+  //In case the neighbor does not exist, just tell to the parent of the
+  //non-existing neighbor
+
+  for(int i=0; i<NUM_NEIGHBORS; i++){
+    if(nbr_exists[i] && !nbr_isRefined[i]){
+      VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
+      // Since Phase1Msgs are only refinement messages
+      thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
+    }
+    //just send your direction w.r.t. to the receiving neighbor
+    else if(nbr_exists[i] && nbr_isRefined[i]){
+      //Get Corresponding Children of the neighbor
+      QuadIndex q1, q2;
+      getChildren(nbr[i], SENDER_DIR[i], q1, q2);
+      VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
+      VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
+
+      thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
+      thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
+    }
+    else{//send to the parent of the non-existing neighbor
+      VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
+      thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision, cascade_length);
     }
   }
-  else{//No Need to do anything, just wait for 
-    //neighbors to tell if they wish to derefine
-  }
 
-  //If my DECISION is to stay or to REFINE, tell the parent
-  if((decision == REFINE || decision == STAY) && (parent != thisIndex)){
+  if(parent != thisIndex){
     thisProxy(parent).informParent(thisIndex.getChildNum(), decision, cascade_length);
   }
 }
@@ -1124,25 +1119,13 @@ void Advection::recvParentDecision(int cascade_length) {
   }
 
   hasReceivedParentDecision = true;
-  decision = std::max(STAY, decision);
+  DECISION newDecision = std::max(STAY, decision);
   if(!isRefined)
-    updateNeighborsofChangeInDecision(cascade_length);
+    updateDecisionState(cascade_length, newDecision);
 }
 
 bool isDirectionSimple(int dir) {
   return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
-}
-
-void Advection::updateNeighborsofChangeInDecision(int cascade_length) {
-  //CkPrintf("%d %s cascade of length %d\n",
-  //       CkMyPe(), thisIndex.getIndexString().c_str(), cascade_length);
-  if(decision == REFINE && !hasCommunicatedREFINE){
-    hasCommunicatedREFINE=true;
-    communicatePhase1Msgs(cascade_length);
-  }else if(decision == STAY && !hasCommunicatedSTAY){
-    hasCommunicatedSTAY=true;
-    communicatePhase1Msgs(cascade_length);
-  }
 }
 
 // Phase1 Msgs are either REFINE or STAY messages
@@ -1154,7 +1137,9 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
     hasReset=true;
     resetMeshRestructureData();
   }
-  
+
+  DECISION newDecision = decision;
+
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
 
@@ -1177,8 +1162,7 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
     if(remoteDecision == STAY);
     //decision=std::max(STAY, decision);
     else if(remoteDecision == REFINE)
-      decision = std::max(STAY, decision);
-    //decision = std::max(STAY, decision);
+      newDecision = std::max(STAY, decision);
   }
   else if (isDirectionSimple(dir) && !nbr_exists[dir])
     /*{
@@ -1189,16 +1173,14 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
   else if(!isDirectionSimple(dir)){
     //logFile << "i am here3" << std::endl;
     VB(CkAssert(isDirectionSimple(dir) == false););
-    decision = std::max(decision, remoteDecision);      
-
+    newDecision = std::max(decision, remoteDecision);
   }
   else{
     CkAbort("unacceptable condition");
   }
 
-
   VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
-  updateNeighborsofChangeInDecision(cascade_length);
+  updateDecisionState(cascade_length, newDecision);
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)

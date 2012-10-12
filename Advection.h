@@ -129,7 +129,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool hasReset;
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
-  bool hasCommunicatedSTAY, hasCommunicatedREFINE;
 
   bool hasAllocatedMemory;//for Use of Node who is going to derefine
   bool has_terminated; //used to inform parent about termination so that it can contribute to the final reduction
@@ -209,10 +208,9 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   //void doMeshRestructure();
   void resetMeshRestructureData();
-  void communicatePhase1Msgs(int cascade_length);
+  void updateDecisionState(int cascade_length, DECISION newDecision);
   void informParent(int, DECISION, int cascade_length);
   void recvParentDecision(int cascade_length);
-  void updateNeighborsofChangeInDecision(int cascade_length);
   //void recvNeighborDecision(DIR);
   //void recvStatusUpdateFromParent(int);
   void exchangePhase1Msg(int, DECISION, int cascade_length);

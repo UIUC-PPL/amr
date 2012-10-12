@@ -535,8 +535,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
       CkPrintf("noop send\n");
       return false;
     };
-    thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary,
-                                      thisIndex, val);
+    thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary);
     lastSent = nbr[dir];
     return true;
   }
@@ -568,10 +567,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
     VB(logFile << std::endl;);
     CkAssert(k == count);
 
-    if (which)
-      thisProxy(receiver).receiveRefGhosts(iterations, sender_direction, count, boundary);
-    else
-      thisProxy(receiver).receiveGhosts   (iterations, sender_direction, count, boundary, thisIndex, rand());
+    thisProxy(receiver).receiveGhosts(iterations, sender_direction, count, boundary);
 
     lastSent = receiver;
     return true;
@@ -770,7 +766,7 @@ void Advection::interpolateAndSend(int NBR) {
   }
 
   QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(map_child(cdir));
-  thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary, thisIndex, rand());
+  thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary);
 
 #ifdef LOGGER
   logFile << "sending interpolated data to " << receiver.getIndexString().c_str() << std::endl;

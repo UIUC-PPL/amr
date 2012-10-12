@@ -93,7 +93,7 @@ module Advection{
     entry Advection(InitRefineMsg*);
     entry void printState();
 
-    entry void receiveGhosts(int iter, int dir, int width, double u[width], QuadIndex sender, int tag);
+    entry void receiveGhosts(int iter, int dir, int width, double u[width]);
     entry void informParent(int, DECISION, int cascade_length);
     entry void recvParentDecision(int cascade_length);
     entry void exchangePhase1Msg(int, DECISION, int cascade_length);
@@ -277,11 +277,9 @@ module Advection{
       }
 
       for(imsg = 0; imsg < 4;) {
-        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
-                                        QuadIndex sender, int tag) atomic "receive ghosts" {
+        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) atomic "receive ghosts" {
           VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
-             << dir << ", " << width << ", " << sender.getIndexString() << ", "
-             << tag << std::endl;);
+             << dir << ", " << width << std::endl;);
           process(iter, dir, width, u1);
           sendReadyData();
         }
@@ -295,8 +293,7 @@ module Advection{
 
     entry void getGhostsAndRefine(){
       for(;imsg<4;) {
-        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
-                                        QuadIndex sender, int tag) atomic "save ghosts" {
+        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) atomic "save ghosts" {
           process(iter, dir, width, u1);
           sendReadyData2RefiningNeighbors();
           //cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
@@ -310,12 +307,11 @@ module Advection{
     };
 
     //happens in doPhase2()
-    entry void receiveRefGhosts(int ,int, int width, double u[width]);
     entry void getAndSendGhost(){
       atomic{
         VB(logFile << "getAndSendGhost called" << endl;); 
       }
-      when receiveRefGhosts[iterations] (int iter, int dir, int width,
+      when receiveGhosts[iterations] (int iter, int dir, int width,
                                          double u1[width]) atomic "interpolate and send"{
         process(iter, dir, width, u1);
         sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);

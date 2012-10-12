@@ -150,7 +150,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   int iterations;
   int meshGenIterations;
-  bool shouldDestroy;
         
   double up;
   double un;

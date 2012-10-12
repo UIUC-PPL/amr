@@ -248,7 +248,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 
   usesAtSync = CmiTrue;
 
-  shouldDestroy = false;
   char fname[100];
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
   VB(logFile.open(fname););
@@ -429,7 +428,6 @@ void Advection::pup(PUP::er &p){
  
   p|iterations;
   p|meshGenIterations;
-  p|shouldDestroy;
   p|up;
   p|un;
   p|myt;
@@ -1261,7 +1259,6 @@ void Advection::doPhase2(){
     thisProxy(parent).recvChildData(msg);
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
-    shouldDestroy = true;
     thisProxy[thisIndex].ckDestroy();
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
   }
@@ -1507,7 +1504,6 @@ Advection::Advection(InitRefineMsg* msg)
 {usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
-  shouldDestroy = false;
   //rootTerminated();
   usesAtSync=CmiTrue;
   resetMeshRestructureData();
@@ -1673,7 +1669,6 @@ void Advection::updateMesh(){
       thisProxy(parent).recvChildData(msg);
       //deallocate all your memory and destroy yourself
       VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
-      shouldDestroy = true;
       //ckout << thisIndex.getIndexString().c_str() << " is now coarsening" << endl;
       thisProxy[thisIndex].ckDestroy();
     }

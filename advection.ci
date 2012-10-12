@@ -105,82 +105,82 @@ module Advection{
     entry [reductiontarget] void meshUpdateReductionClient(int result);
 
     entry void generateMesh(){
-        atomic "call remeshing for mesh update"{
-            doRemeshing();
-            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
-                ckout << "making refinement decisions" << endl;
-                CkStartQD(CkCallback(CkIndex_Advection::phase1OfMeshGenerationDone(), thisProxy));
-            }
-        }
-        when phase1OfMeshGenerationDone() atomic{
-            updateMesh();
-            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
-                ckout << "now in phase 2 of mesh generation" << endl;
-                CkStartQD(CkCallback(CkIndex_Advection::phase2OfMeshGenerationDone(), thisProxy));
-            }
-        }
+      atomic "call remeshing for mesh update"{
+	doRemeshing();
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
+	  ckout << "making refinement decisions" << endl;
+	  CkStartQD(CkCallback(CkIndex_Advection::phase1OfMeshGenerationDone(), thisProxy));
+	}
+      }
+      when phase1OfMeshGenerationDone() atomic{
+	updateMesh();
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0){
+	  ckout << "now in phase 2 of mesh generation" << endl;
+	  CkStartQD(CkCallback(CkIndex_Advection::phase2OfMeshGenerationDone(), thisProxy));
+	}
+      }
     };
 
     entry void phase2OfMeshGenerationDone(){
-        atomic{
-            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
-                ckout << "participating in reduction to determine mesh stability" << endl;
+      atomic{
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
+	  ckout << "participating in reduction to determine mesh stability" << endl;
 
-            int contri;
-            //if(decision==DEREFINE)
-            //    isRefined=false;
+	int contri;
+	//if(decision==DEREFINE)
+	//    isRefined=false;
 
-            //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
-            if(decision==DEREFINE || decision==REFINE){
-                //ckout << thisIndex.getIndexString().c_str() << " contributing 1, decision = " << decision << endl;
-                contri=1;
-            }
-            else
-                contri=0;
-            contribute(sizeof(int), &contri, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));
-        }
-        when meshUpdateReductionClient(int result) atomic{
-            if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
-                ckout << "nUpdates: " << result << endl;
-            meshGenIterations++;
-            if(result > 0){
-                VB(logFile << "calling generateMesh on myself, iteration " << meshGenIterations << std::endl;);
-                generateMesh();
-            }
-            else{
-                VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
-                if(isRefined)
-                    iterations++;//set it to 1
-                phase2Done();
-            }
-        }
+	//ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
+	if(decision==DEREFINE || decision==REFINE){
+	  //ckout << thisIndex.getIndexString().c_str() << " contributing 1, decision = " << decision << endl;
+	  contri=1;
+	}
+	else
+	  contri=0;
+	contribute(sizeof(int), &contri, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));
+      }
+      when meshUpdateReductionClient(int result) atomic{
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
+	  ckout << "nUpdates: " << result << endl;
+	meshGenIterations++;
+	if(result > 0){
+	  VB(logFile << "calling generateMesh on myself, iteration " << meshGenIterations << std::endl;);
+	  generateMesh();
+	}
+	else{
+	  VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
+	  if(isRefined)
+	    iterations++;//set it to 1
+	  phase2Done();
+	}
+      }
     };
 
     entry void updateMesh();
     entry void startRemesh() {
-        atomic "doMeshRestructure" {
-          iterations++;
-          doMeshRestructure();
-          if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
-            CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
-        }
-        when phase1Done() atomic {
-	  double now = CkWallTimer();
-          double localQDLatency = now - lastIdleTimeQD;
-	  double localRemeshLatency = now - remeshStartTime;
-          ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
-          ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
-          if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
-            CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
-            CkCallback cb;
-            if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
-              cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
-            else
-              cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
-            CkStartQD(cb);
-          }
-          doPhase2();
-        }
+      atomic "doMeshRestructure" {
+	iterations++;
+	doMeshRestructure();
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0)
+	  CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
+      }
+      when phase1Done() atomic {
+	double now = CkWallTimer();
+	double localQDLatency = now - lastIdleTimeQD;
+	double localRemeshLatency = now - remeshStartTime;
+	ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
+	ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
+	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
+	  CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
+	  CkCallback cb;
+	  if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
+	    cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
+	  else
+	    cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
+	  CkStartQD(cb);
+	}
+	doPhase2();
+      }
     };
     
     // Separated for newly created chares from refinement
@@ -232,69 +232,69 @@ module Advection{
         iterations++;
         char fname[100];
 
-      sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-      VB(outFile.open(fname););
-      VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
+	sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
+	VB(outFile.open(fname););
+	VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
 
-			exchangeGhosts();
-    }
-		when signalExchangeGhostsCompletion() atomic "doWork" {
-      compute_and_iterate();
-      iterate();
-    }
-  };
+	exchangeGhosts();
+      }
+      when signalExchangeGhostsCompletion() atomic "doWork" {
+	compute_and_iterate();
+	iterate();
+      }
+    };
 	
-	entry void doMeshRestructure(){
-		if (!isRefined){
-			atomic "exchange ghosts before remeshing"{
-				exchangeGhosts();
-			}
-			when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
-				doRemeshing();
-			}
-		}
-		else {
-			atomic "do remeshing on internal nodes"{
-				doRemeshing();
-			}
-		}
-	};
+    entry void doMeshRestructure(){
+      if (!isRefined){
+	atomic "exchange ghosts before remeshing"{
+	  exchangeGhosts();
+	}
+	when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
+	  doRemeshing();
+	}
+      }
+      else {
+	atomic "do remeshing on internal nodes"{
+	  doRemeshing();
+	}
+      }
+    };
 
 
-  entry void exchangeGhosts(){
-    atomic "send whatever data you can"{
-			for(int i=0; i<3*NUM_NEIGHBORS; i++)
-				nbr_dataSent[i]=false;
+    entry void exchangeGhosts(){
+      atomic "send whatever data you can"{
+	for(int i=0; i<3*NUM_NEIGHBORS; i++)
+	  nbr_dataSent[i]=false;
 						
-			hasReceived.clear();
+	hasReceived.clear();
 
-			for(int j=1; j<=block_height; j++){
-				left_edge[j-1] = u[index(1,j)];
-				right_edge[j-1] = u[index(block_width,j)];
-			}
-			for(int i=0; i<NUM_NEIGHBORS; i++){
-				sendGhost(i);
-			}
-			VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);
-    }
+	for(int j=1; j<=block_height; j++){
+	  left_edge[j-1] = u[index(1,j)];
+	  right_edge[j-1] = u[index(block_width,j)];
+	}
+	for(int i=0; i<NUM_NEIGHBORS; i++){
+	  sendGhost(i);
+	}
+	VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);
+      }
 
-    for(imsg = 0; imsg < 4;) {
+      for(imsg = 0; imsg < 4;) {
     	when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],
-                                 QuadIndex sender, int tag) atomic "receive ghosts" {
-      	VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
-                     << dir << ", " << width << ", " << sender.getIndexString() << ", "
-                     << tag << std::endl;);
-      	process(iter, dir, width, u1);
-      	sendReadyData();
+					QuadIndex sender, int tag) atomic "receive ghosts" {
+	  VB(logFile << thisIndex.getIndexString() << " process: " << iter << ", "
+	     << dir << ", " << width << ", " << sender.getIndexString() << ", "
+	     << tag << std::endl;);
+	  process(iter, dir, width, u1);
+	  sendReadyData();
     	}
-    }
-		atomic "signal exchange ghost completion"{
-			thisProxy[thisIndex].signalExchangeGhostsCompletion();
-		}
-  };
+      }
+      atomic "signal exchange ghost completion"{
+	thisProxy[thisIndex].signalExchangeGhostsCompletion();
+      }
+    };
 
     entry void phase1Done();
-            
+
     entry void getGhostsAndRefine(){
       for(;imsg<4;) {
         when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width],

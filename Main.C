@@ -206,8 +206,8 @@ Main::Main(CkArgMsg* m){
     thisProxy.printTreeInformation(v);*/
   //setup - liveViz
   CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
-    liveVizConfig cfg(liveVizConfig::pix_color, true);
-    liveVizInit(cfg, qtree, c);
+  liveVizConfig cfg(liveVizConfig::pix_color, true);
+  liveVizInit(cfg, qtree, c);
       
   /*int size = q.size();
     ckout << "Size of Queue " << size << endl;
@@ -234,7 +234,7 @@ void Main::startRunning(){
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
   ppc.collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
-                                  thisProxy));
+				 thisProxy));
 }
 
 void Main::reportCascadeStats(int *cascade_lengths, int size) {

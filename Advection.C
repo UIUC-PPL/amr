@@ -150,7 +150,7 @@ void Advection::applyInitialCondition(){
     for(int j=0; j<block_height+2; j++){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
       if(rsq <= radius*radius)
-	u[index(i, block_height+1-j)] = 2;
+        u[index(i, block_height+1-j)] = 2;
       else u[index(i, block_height+1-j)] = 1;
     }
   }
@@ -166,7 +166,7 @@ void Advection::applyInitialCondition(){
       x = xarray[i]*100; y = yarray[j]*100;
       u[index(i, block_height+1-j)] = 1;
       if (!(y >= 42 && y < 58))
-	continue;
+        continue;
       if (x >= 8 && x < 16){//its the C
         //get corresponding y1max, y1min and y2ax, y2min
         double y1max, y1min, y2min, y2max;
@@ -181,31 +181,31 @@ void Advection::applyInitialCondition(){
         if(rx <= 2 || rx >= 6 || (ry >= 6 && ry < 10))
           u[index(i, block_height+1-j)] = 2;
       }else if(x >= 32 && x < 40){//its A
-	rx = x - 32; ry = y - 42;
-	if ((ry >= 8 && ry < 8 + t) || (ry >= 14))
-	  u[index(i, block_height+1-j)] = 2;
-	if ((rx < t) || (rx >= 8 - t))
-	  u[index(i, block_height+1-j)] = 2;
+        rx = x - 32; ry = y - 42;
+        if ((ry >= 8 && ry < 8 + t) || (ry >= 14))
+          u[index(i, block_height+1-j)] = 2;
+        if ((rx < t) || (rx >= 8 - t))
+          u[index(i, block_height+1-j)] = 2;
       }else if(x >= 44 && x < 52){//its R
-	rx = x - 44; ry = y - 42;
-	if (rx < t || (rx >= 6 && ry >= 8))
-	  u[index(i, block_height+1-j)] = 2;
-	if ((ry >= 8 && ry <= 10) || (ry >= 14))
-	  u[index(i, block_height+1-j)] = 2;
-	if (rx >= 2){
-	  double ymax = -1*(4.0/3.0)*rx + (32./3.);
-	  double ymin = ymax - t;
-	  if (ry >= ymin && ry < ymax)
-	    u[index(i, block_height+1-j)] = 2;
-	}
+        rx = x - 44; ry = y - 42;
+        if (rx < t || (rx >= 6 && ry >= 8))
+          u[index(i, block_height+1-j)] = 2;
+        if ((ry >= 8 && ry <= 10) || (ry >= 14))
+          u[index(i, block_height+1-j)] = 2;
+        if (rx >= 2){
+          double ymax = -1*(4.0/3.0)*rx + (32./3.);
+          double ymin = ymax - t;
+          if (ry >= ymin && ry < ymax)
+            u[index(i, block_height+1-j)] = 2;
+        }
       }else if(x >= 56 && x < 64){//its M
         rx = x - 56; ry = y - 42;
         if ((rx < t) || (rx >= 8 - t))
-	  u[index(i, block_height+1-j)] = 2;
+          u[index(i, block_height+1-j)] = 2;
         if (ry >= 12)
-	  u[index(i, block_height+1-j)] = 2;
+          u[index(i, block_height+1-j)] = 2;
         if (rx >= 3 && rx < 5 && ry >= 8)
-	  u[index(i, block_height+1-j)] = 2;
+          u[index(i, block_height+1-j)] = 2;
       }else if(x >= 68 && x < 76){//its +
         rx = x - 69; ry = y - 42;
         if ((ry >= 5 && ry <= 10) || (rx >= 2 && rx <= 4))
@@ -366,8 +366,8 @@ void Advection::advection(){ usesAutoMeasure = CmiFalse;
     for(int j=1; j<=block_height; j++){
       //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
       outFile << xmin + (double(i))*dx - 0.5*dx << " "\
-	      << ymin + (double(j))*dy - 0.5*dy << " "\
-	      << u[index(i,block_height+1-j)] << std::endl;
+              << ymin + (double(j))*dy - 0.5*dy << " "\
+              << u[index(i,block_height+1-j)] << std::endl;
     }
   }
   outFile.flush();
@@ -543,7 +543,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
       return false;
     };
     thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary,
-				      thisIndex, val);
+                                      thisIndex, val);
     lastSent = nbr[dir];
     return true;
   }
@@ -693,13 +693,13 @@ void Advection::sendReadyData(){
       int sidea, sideb, cornera, cornerb;
       switch(i) {
       case LEFT:  sidea   = LEFT_UP;    sideb   = LEFT_DOWN;
-                  cornera = UP_LEFT;    cornerb = DOWN_LEFT;  break;
+        cornera = UP_LEFT;    cornerb = DOWN_LEFT;  break;
       case RIGHT: sidea   = RIGHT_UP;   sideb   = RIGHT_DOWN;
-                  cornera = UP_RIGHT;   cornerb = DOWN_RIGHT; break;
+        cornera = UP_RIGHT;   cornerb = DOWN_RIGHT; break;
       case UP:    sidea   = UP_RIGHT;   sideb   = UP_LEFT;
-                  cornera = RIGHT_UP;   cornerb = LEFT_UP;    break;
+        cornera = RIGHT_UP;   cornerb = LEFT_UP;    break;
       case DOWN:  sidea   = DOWN_RIGHT; sideb   = DOWN_LEFT;
-                  cornera = RIGHT_DOWN; cornerb = LEFT_DOWN;  break;
+        cornera = RIGHT_DOWN; cornerb = LEFT_DOWN;  break;
       }
 
       if ( hasReceivedFromDir(sidea) && hasReceivedFromDir(sideb) &&
@@ -752,14 +752,14 @@ void Advection::interpolateAndSend(int NBR) {
   double sx_r, sx_l, sy_u, sy_d;
   double *sx1, *sx2, *sy1, *sy2;
   switch(NBR) {
-  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); sx1 = &sx_l; 	sx2 = &sx_r;    sy1 = &sy_u; 	sy2 = &sy_u;  cdir = DOWN_LEFT;  break;
-  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = &sx_l; 	sx2 = &sx_r;    sy1 = &sy_u; 	sy2 = &sy_u;  cdir = DOWN_RIGHT; break;
-  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = &sx_l; 	sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_LEFT;    break;
-  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = &sx_l; 	sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_RIGHT;   break;
-  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = &sx_l; 	sx2 = &sx_l; 	  sy1 = &sy_u; 	sy2 = &sy_d;  cdir = RIGHT_UP;   break;
-  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = &sx_l; 	sx2 = &sx_l;    sy1 = &sy_u; 	sy2 = &sy_d;  cdir = RIGHT_DOWN; break;
-  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = &sx_r; 	sx2 = &sx_r;    sy1 = &sy_u; 	sy2 = &sy_d;  cdir = LEFT_UP;    break;
-  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = &sx_r; 	sx2 = &sx_r;    sy1 = &sy_u; 	sy2 = &sy_d;  cdir = LEFT_DOWN;  break;
+  case UP_LEFT:    in = boundary_iterator(u, 1,             1, 1,              0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_u;  cdir = DOWN_LEFT;  break;
+  case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_u;  cdir = DOWN_RIGHT; break;
+  case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_LEFT;    break;
+  case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_RIGHT;   break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = &sx_l; sx2 = &sx_l;   sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_UP;   break;
+  case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = &sx_l; sx2 = &sx_l;    sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_DOWN; break;
+  case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_UP;    break;
+  case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_DOWN;  break;
   default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
   out = boundary = getGhostBuffer(NBR);
@@ -771,7 +771,7 @@ void Advection::interpolateAndSend(int NBR) {
     // Possible inversion in definitions of up/down
     sy_u = -1*(*in - in.down())  / 4;
     sy_d = (in.up() - *in)  / 4;
-	  
+  
     *out = *in + *sx1 + *sy1; out++;
     *out = *in + *sx2 + *sy2; out++;
   }
@@ -785,7 +785,7 @@ void Advection::interpolateAndSend(int NBR) {
     logFile << boundary[i] << '\t';
   }
   logFile << std::endl;
-	
+
 #endif
 
   return;
@@ -946,22 +946,22 @@ DECISION Advection::getGranularityDecision(){
       delu2[3] = (delu[1][i][j+1] - delu[1][i][j-1])*dely_f;
       delu3[3] = (abs(delu[1][i][j+1]) + abs(delu[1][i][j-1]))*dely_f;
       delu4[3] = (delua[1][i][j+1] + delua[1][i][j-1])*dely_f;
-		
+
       // compute the error
       double num = 0.;
       double denom = 0.;
 
       for (int kk = 0; kk < ndim2; kk++){  // kk= 1, 2, 3, 4
-	num = num + pow(delu2[kk],2.);
-	denom = denom + pow(delu3[kk], 2.) + (refine_filter*delu4[kk])*2;
-	// refine_filter is the epsilon in my writing sheet
-	// refine_filter = 0.01 by default
+        num = num + pow(delu2[kk],2.);
+        denom = denom + pow(delu3[kk], 2.) + (refine_filter*delu4[kk])*2;
+        // refine_filter is the epsilon in my writing sheet
+        // refine_filter = 0.01 by default
       }
       // compare the square of the error
       if (denom == 0. && num != 0.){
-	error = std::numeric_limits<double>::max();
+        error = std::numeric_limits<double>::max();
       }else if (denom != 0.0){
-	error = std::max(error, num/denom);
+        error = std::max(error, num/denom);
       }
     }
   }
@@ -1005,7 +1005,7 @@ void Advection::doRemeshing(){
     hasReset=true;
     resetMeshRestructureData();
   }
-	
+
   if(!isRefined) {//run this on leaf nodes
     /*Done Resetting Old Data*/
     /* It is possible that some Message has alreasdy been processed
@@ -1337,34 +1337,34 @@ void Advection::updateNbrStatus(){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
     for(int i=0; i<NUM_NEIGHBORS; i++){
       if(!nbr_exists[i]){
-	switch(nbr_decision[i]){
-	case DEREFINE:
-	  logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
-	  ckout << thisIndex.getIndexString().c_str() << " 's nbr in direction " << i << " is set to derefine" << endl; 
-	  CkAbort("undefined state");
-	case REFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-	case STAY: nbr_exists[i]=false; break;
-	default: CkAbort("nbr_decision not set");
-	}
+        switch(nbr_decision[i]){
+        case DEREFINE:
+          logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
+          ckout << thisIndex.getIndexString().c_str() << " 's nbr in direction " << i << " is set to derefine" << endl; 
+          CkAbort("undefined state");
+        case REFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+        case STAY: nbr_exists[i]=false; break;
+        default: CkAbort("nbr_decision not set");
+        }
       }
       else if(nbr_exists[i] && !nbr_isRefined[i]){
-	switch(nbr_decision[i]){
-	case REFINE: nbr_isRefined[i]=true; break;
-	case STAY: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-	case DEREFINE: nbr_exists[i]=false; break;
-	default: CkAbort("nbr_decision not set");
-	}
+        switch(nbr_decision[i]){
+        case REFINE: nbr_isRefined[i]=true; break;
+        case STAY: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+        case DEREFINE: nbr_exists[i]=false; break;
+        default: CkAbort("nbr_decision not set");
+        }
       }
       else if(nbr_exists[i] && nbr_isRefined[i]){
-	int d1, d2;
-	getRefinedNbrDirections(i, d1, d2);
+        int d1, d2;
+        getRefinedNbrDirections(i, d1, d2);
           
-	switch(nbr_decision[d1]){
-	case STAY:    nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
-	case DEREFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-	case REFINE:  CkAbort("unacceptable decision");
-	default:      CkAbort("nbr_decision not set");
-	}
+        switch(nbr_decision[d1]){
+        case STAY:    nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
+        case DEREFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+        case REFINE:  CkAbort("unacceptable decision");
+        default:      CkAbort("nbr_decision not set");
+        }
       }
     }
   }
@@ -1377,12 +1377,12 @@ void Advection::updateNbrStatus(){
   if(isGrandParent){
     for(int i=0; i<NUM_CHILDREN; i++){
       if(child_decision[i]==INV && child_isRefined[i])//did not receive any message
-	child_isRefined[i]=false;
+        child_isRefined[i]=false;
     }
     isGrandParent=false;
     for(int i=0; i<NUM_CHILDREN; i++)
       if(child_isRefined[i])
-	isGrandParent=true;
+        isGrandParent=true;
   }
   VB(logFile << "isGrandparent = " << isGrandParent << ", iteration = " << iterations << std::endl;);
 
@@ -1520,7 +1520,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 
   size_t sz = (block_width)*(block_height);
   vector<double> refined_u(sz);
-	
+
   VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
@@ -1601,29 +1601,29 @@ Advection::Advection(InitRefineMsg* msg)
       //at this moment but a notification has been sent that they
       //should be generated
       if (msg->parent_nbr_exists[dir] && !msg->parent_nbr_isRefined[dir]){
-	switch(msg->parent_nbr_decision[dir]){
-	case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
-	case STAY:   nbr_exists[dir]=false; break;
-	case DEREFINE: CkAbort("this neighbor cannot derefine");
-	default: VB(logFile << thisIndex.getIndexString() << " nbr decision not set" << endl;); 
-	  CkAbort("nbr decision not set");
-	}
+        switch(msg->parent_nbr_decision[dir]){
+        case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
+        case STAY:   nbr_exists[dir]=false; break;
+        case DEREFINE: CkAbort("this neighbor cannot derefine");
+        default: VB(logFile << thisIndex.getIndexString() << " nbr decision not set" << endl;); 
+          CkAbort("nbr decision not set");
+        }
       }
       else if (msg->parent_nbr_exists[dir] && msg->parent_nbr_isRefined[dir]){
-	int nbr_dir_wrt_parent = getNbrDir(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
-	switch(msg->parent_nbr_decision[nbr_dir_wrt_parent]){
-	case DEREFINE: nbr_exists[dir]=false; break;
-	case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;
-	case REFINE: nbr_exists[dir]=true; nbr_isRefined[dir]=true; break;
-	default: CkAbort("nbr decision not set");
-	}
+        int nbr_dir_wrt_parent = getNbrDir(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
+        switch(msg->parent_nbr_decision[nbr_dir_wrt_parent]){
+        case DEREFINE: nbr_exists[dir]=false; break;
+        case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;
+        case REFINE: nbr_exists[dir]=true; nbr_isRefined[dir]=true; break;
+        default: CkAbort("nbr decision not set");
+        }
       }
       else if (!msg->parent_nbr_exists[dir]){
-	VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
-	nbr_exists[dir]=false;
+        VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
+        nbr_exists[dir]=false;
       }
       else{
-	CkAbort("huh.. we should never reach here");
+        CkAbort("huh.. we should never reach here");
       }
     }
   }
@@ -1657,7 +1657,7 @@ Advection::Advection(InitRefineMsg* msg)
   //x[i] and y[i] need not be initialized they are needed only for setting initial conditions
   //delete [] x;
   //delete [] y;
- 	
+ 
   if(msg->isInMeshGenerationPhase){//setup x[i] and y[i] and initial values
     for(int i=0; i<block_width+2; i++)
       x[i] = xmin + double(i)*dx - 0.5*dx;
@@ -1673,7 +1673,7 @@ Advection::Advection(InitRefineMsg* msg)
     int ctr=0;
     for(int j=1; j<=block_height; j++)
       for(int i=1; i<=block_width; i++)
-	u[index(i,j)]=msg->refined_u[ctr++];
+        u[index(i,j)]=msg->refined_u[ctr++];
   }
 
 #ifdef LOGGER
@@ -1701,25 +1701,25 @@ void Advection::updateMesh(){
       QuadIndex child;
       std::vector<double> eVector; //empty vector
       for(int childNum=0; childNum<NUM_CHILDREN; childNum++){
-	switch(childNum){
-	case 0:  cxmin = xmin + (nx*dx)/2; cymin = ymin + (ny*dy)/2; break;
-	case 1:  cxmin = xmin;             cymin = ymin + (ny*dy)/2; break;
-	case 2:  cxmin = xmin;             cymin = ymin;             break;
-	case 3:  cxmin = xmin + (nx*dx)/2; cymin = ymin;             break;
-	default: CkAbort("this is impossible");
-	}
-	child = thisIndex.getChild(childNum);
-	InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-	  InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
-	thisProxy(child).insert(msg);
+        switch(childNum){
+        case 0:  cxmin = xmin + (nx*dx)/2; cymin = ymin + (ny*dy)/2; break;
+        case 1:  cxmin = xmin;             cymin = ymin + (ny*dy)/2; break;
+        case 2:  cxmin = xmin;             cymin = ymin;             break;
+        case 3:  cxmin = xmin + (nx*dx)/2; cymin = ymin;             break;
+        default: CkAbort("this is impossible");
+        }
+        child = thisIndex.getChild(childNum);
+        InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
+          InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
+        thisProxy(child).insert(msg);
       }
       //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;
       //thisProxy.doneInserting();
     }
     else if(decision==DEREFINE){
       ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-	ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, 
-		     u, nbr_exists, nbr_isRefined, nbr_decision);
+        ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, 
+                     u, nbr_exists, nbr_isRefined, nbr_decision);
 
       thisProxy(parent).recvChildData(msg);
       //deallocate all your memory and destroy yourself

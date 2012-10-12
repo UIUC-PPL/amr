@@ -124,7 +124,7 @@ Main::Main(CkArgMsg* m){
   //call colormap
   dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;
   dy = (ymax - ymin)/double(array_height);//ckout << "dy: " << dy << endl;
-  //ckout << min(dx, dy) << endl;	
+  //ckout << min(dx, dy) << endl;
   //ckout << "dt: " << dt << endl;
   xctr = 0.3;
   yctr = 0.5;
@@ -234,7 +234,7 @@ void Main::startRunning(){
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
   ppc.collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
-				 thisProxy));
+                                 thisProxy));
 }
 
 void Main::reportCascadeStats(int *cascade_lengths, int size) {

@@ -101,8 +101,7 @@ class ChildDataMsg;
 
 /*typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;*/
 
-class Advection: public CBase_Advection/*,
-					 public AdvTerm */{
+class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection_SDAG_CODE
     public:
         
@@ -134,7 +133,7 @@ class Advection: public CBase_Advection/*,
 
   bool hasAllocatedMemory;//for Use of Node who is going to derefine
   bool has_terminated; //used to inform parent about termination so that it can contribute to the final reduction
-	
+
   QuadIndex nbr[4], parent;
   int xc, yc;
 
@@ -195,7 +194,7 @@ class Advection: public CBase_Advection/*,
   void printState();
   void done();
   void pup(PUP::er &p);
- 				
+
   /* initial mesh generation*/       
   void updateMesh();
   void applyInitialCondition();
@@ -207,7 +206,7 @@ class Advection: public CBase_Advection/*,
   /*Phase1 Entry Methods*/
   void doRemeshing();
   DECISION getGranularityDecision();
-			
+
   //void doMeshRestructure();
   void resetMeshRestructureData();
   void communicatePhase1Msgs(int cascade_length);
@@ -261,7 +260,7 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
 
   InitRefineMsg(){};
   InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
-		int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
+                int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };
 
 class ChildDataMsg: public CMessage_ChildDataMsg{

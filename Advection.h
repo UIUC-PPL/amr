@@ -171,7 +171,12 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
         
   /*Constructors*/
   Advection(double, double, double, double);
-  Advection(InitRefineMsg*);
+  Advection(bool isInMeshGenerationPhase, double dx, double dy,
+            double myt, double mydt, double xmin, double ymin,
+            int meshGenIterations_, int iterations_, 
+            vector<double> refined_u, bool *parent_nbr_exists, 
+            bool *parent_nbr_isRefined, DECISION *parent_nbr_decision);
+
   Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{
     usesAutoMeasure = CmiFalse;
     //advection(); 
@@ -237,7 +242,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool isRoot();
 };
 
-class InitRefineMsg: public CMessage_InitRefineMsg{
+/*class InitRefineMsg: public CMessage_InitRefineMsg{
 
  public:
   bool isInMeshGenerationPhase;
@@ -250,7 +255,7 @@ class InitRefineMsg: public CMessage_InitRefineMsg{
   InitRefineMsg(){};
   InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
                 int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
-};
+};*/
 
 class ChildDataMsg: public CMessage_ChildDataMsg{
  public:

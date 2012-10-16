@@ -54,7 +54,7 @@ mainmodule Main{
 
 module Advection{
 
-  message InitRefineMsg {
+  /*message InitRefineMsg {
     bool isInMeshGenerationPhase;
     double dx;
     double dy;
@@ -64,7 +64,7 @@ module Advection{
     bool parent_nbr_exists[];
     bool parent_nbr_isRefined[];
     DECISION parent_nbr_decision[];
-  };
+  };*/
 
   message ChildDataMsg{
     bool isInMeshGenerationPhase;
@@ -90,7 +90,10 @@ module Advection{
   array [QuadIndex] Advection {
     entry Advection();
     entry Advection(double, double, double, double);
-    entry Advection(InitRefineMsg*);
+    entry Advection(bool, double, double, double, double,
+                    double, double, int, int, vector<double>,
+                    bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
+                    DECISION p3[3*NUM_NEIGHBORS]);
     entry void printState();
 
     entry void receiveGhosts(int iter, int dir, int width, double u[width]);

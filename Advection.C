@@ -122,7 +122,7 @@ void PerProcessorChare::reduceWorkUnits() {
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 
+/*InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 
                              double myt, double mydt, double xmin, double  ymin, 
                              int meshGenIterations_, int iterations_, vector<double>& refined_u, 
                              bool *nbr_exists,
@@ -141,7 +141,7 @@ InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy,
   memcpy(this->parent_nbr_exists, nbr_exists, sizeof(bool)*NUM_NEIGHBORS);
   memcpy(this->parent_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
   memcpy(this->parent_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
-}
+}*/
 
 void Advection::applyInitialCondition(){
   double rsq;
@@ -1439,9 +1439,9 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
-  InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-    InitRefineMsg(0, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
-  thisProxy(child).insert(msg);
+  /*InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
+    InitRefineMsg(0, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);*/
+  thisProxy(child).insert(false, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
 }
 
 void Advection::refine(){
@@ -1473,9 +1473,13 @@ bool Advection::isGrandParent() {
   return ret;
 }
 
-Advection::Advection(InitRefineMsg* msg)
+Advection::Advection(bool isInMeshGenerationPhase, double dx, double dy,
+                     double myt, double mydt, double xmin, double ymin,
+                     int meshGenIterations, int iterations, vector<double> refined_u,
+                     bool *parent_nbr_exists, bool *parent_nbr_isRefined, DECISION* parent_nbr_decision)
 /*: AdvTerm(thisProxy, thisIndex, true), CBase_Advection()*/
-{usesAutoMeasure = CmiFalse;
+{
+  usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
   //rootTerminated();
@@ -1519,8 +1523,8 @@ Advection::Advection(InitRefineMsg* msg)
       //so it is possible that my parents neighbor do not exist
       //at this moment but a notification has been sent that they
       //should be generated
-      if (msg->parent_nbr_exists[dir] && !msg->parent_nbr_isRefined[dir]){
-        switch(msg->parent_nbr_decision[dir]){
+      if (parent_nbr_exists[dir] && !parent_nbr_isRefined[dir]){
+        switch(parent_nbr_decision[dir]){
         case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
         case STAY:   nbr_exists[dir]=false; break;
         case DEREFINE: CkAbort("this neighbor cannot derefine");
@@ -1528,17 +1532,17 @@ Advection::Advection(InitRefineMsg* msg)
           CkAbort("nbr decision not set");
         }
       }
-      else if (msg->parent_nbr_exists[dir] && msg->parent_nbr_isRefined[dir]){
+      else if (parent_nbr_exists[dir] && parent_nbr_isRefined[dir]){
         int nbr_dir_wrt_parent = getNbrDir(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
-        switch(msg->parent_nbr_decision[nbr_dir_wrt_parent]){
+        switch(parent_nbr_decision[nbr_dir_wrt_parent]){
         case DEREFINE: nbr_exists[dir]=false; break;
         case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;
         case REFINE: nbr_exists[dir]=true; nbr_isRefined[dir]=true; break;
         default: CkAbort("nbr decision not set");
         }
       }
-      else if (!msg->parent_nbr_exists[dir]){
-        VB(CkAssert(msg->parent_nbr_decision[dir]==REFINE););
+      else if (!parent_nbr_exists[dir]){
+        VB(CkAssert(parent_nbr_decision[dir]==REFINE););
         nbr_exists[dir]=false;
       }
       else{
@@ -1548,14 +1552,14 @@ Advection::Advection(InitRefineMsg* msg)
   }
 
   //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
-  dx = msg->dx;
-  dy = msg->dy;
+  this->dx = dx;
+  this->dy = dy;
 
-  myt = msg->myt;
-  mydt = msg->mydt;
+  this->myt = myt;
+  this->mydt = mydt;
 
-  xmin = msg->xmin;
-  ymin = msg->ymin;
+  this->xmin = xmin;
+  this->ymin = ymin;
     
   nx = array_height/(num_chare_cols);
   ny = array_width/(num_chare_rows);
@@ -1564,8 +1568,8 @@ Advection::Advection(InitRefineMsg* msg)
   VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
 
   thisIndex.getCoordinates(xc, yc);
-  meshGenIterations = msg->meshGenIterations;
-  iterations = msg->iterations;
+  this->meshGenIterations = meshGenIterations;
+  this->iterations = iterations;
 
   mem_allocate_all();
 
@@ -1576,7 +1580,7 @@ Advection::Advection(InitRefineMsg* msg)
   //delete [] x;
   //delete [] y;
  
-  if(msg->isInMeshGenerationPhase){//setup x[i] and y[i] and initial values
+  if(isInMeshGenerationPhase){//setup x[i] and y[i] and initial values
     for(int i=0; i<block_width+2; i++)
       x[i] = xmin + double(i)*dx - 0.5*dx;
 
@@ -1591,7 +1595,7 @@ Advection::Advection(InitRefineMsg* msg)
     int ctr=0;
     for(int j=1; j<=block_height; j++)
       for(int i=1; i<=block_width; i++)
-        u[index(i,j)]=msg->refined_u[ctr++];
+        u[index(i,j)]=refined_u[ctr++];
   }
 
 #ifdef LOGGER
@@ -1602,11 +1606,11 @@ Advection::Advection(InitRefineMsg* msg)
     logFile << std::endl;
   }
 #endif
-  if(msg->isInMeshGenerationPhase)
+  if(isInMeshGenerationPhase)
     decision=REFINE;//to be used for reduction while doing mesh generation
                   // to keep track if any change happened in the last mesh gen iteration 
   //delete the message
-  delete msg;
+  //delete msg;
 
   //call Quiesence detection to begin next iteration*/
   //CkStartQD(CkIndex_Advection::doStep(), &thishandle);
@@ -1628,9 +1632,10 @@ void Advection::updateMesh(){
         default: CkAbort("this is impossible");
         }
         child = thisIndex.getChild(childNum);
-        InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-          InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
-        thisProxy(child).insert(msg);
+        /*InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
+          InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);*/
+
+        thisProxy(child).insert(true, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
       }
       //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;
       //thisProxy.doneInserting();

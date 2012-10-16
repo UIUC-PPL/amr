@@ -1,4 +1,4 @@
-CHARMC=~/charm/bin/charmc -module liveViz
+CHARMC=~/charm/bin/charmc -module liveViz -DLOGGER
 BOOST_ROOT = $(HOME)/boost_1_46_1
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
@@ -13,7 +13,7 @@ OBJS = QuadIndex.o Advection.o Main.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC)  -module liveViz $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RotateLB
+	$(CHARMC)  -module liveViz $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RotateLB -lboost_filesystem
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci

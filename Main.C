@@ -17,7 +17,6 @@
 using namespace std;
 
 #include "charm++.h"
-#include "liveViz.h"
 #include "Constants.h"
 #include "QuadIndex.h"
 #include "Advection.h"
@@ -204,10 +203,6 @@ Main::Main(CkArgMsg* m){
     v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));
     
     thisProxy.printTreeInformation(v);*/
-  //setup - liveViz
-  CkCallback c(CkIndex_Advection::requestNextFrame(0), qtree);
-  liveVizConfig cfg(liveVizConfig::pix_color, true);
-  liveVizInit(cfg, qtree, c);
       
   /*int size = q.size();
     ckout << "Size of Queue " << size << endl;

@@ -232,9 +232,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void ResumeFromSync();
   void UserSetLBLoad();
 
-  /*LiveViz*/
-  void requestNextFrame(liveVizRequestMsg*);
-
   void rootTerminated2();
 
   bool isRoot();

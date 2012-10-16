@@ -318,8 +318,6 @@ module Advection{
       }
     };
 
-    //for LiveViz
-    entry void requestNextFrame(liveVizRequestMsg *m);
     entry void free_memory();
     entry void doPhase2();
     entry void recvChildData(ChildDataMsg*);

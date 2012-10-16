@@ -11,7 +11,6 @@
 using namespace std;
 
 #include "charm++.h"
-#include "liveViz.h"
 #include "pup_stl.h"
 #include "trace-projections.h"
 
@@ -1406,27 +1405,6 @@ inline void Advection::setNbrStatus(int dir, ChildDataMsg* msg){
   }    
 }
 
-void Advection::requestNextFrame(liveVizRequestMsg *m){
-  if (isRefined){
-    liveVizDeposit(m, 0, 0, 0, 0, NULL, this);//submit a zero size array
-  }
-
-  int sy = yc;//thisIndex%num_chare_cols;
-  int sx = xc;//thisIndex/num_chare_rows;
-  int w= block_width, h = block_height;
-
-  unsigned char *intensity = new unsigned char[3*w*h];
-  for(int j=0; j<h; j++){
-    for(int i=0; i<w; i++){
-      // logFile << u[i+1][j+1] << std::endl;
-      intensity[3*(i+j*w)+ 0] = 255;// red component
-      intensity[3*(i+j*w)+ 1] = 255 - (u[index(i+1,j+1)]-1)*255;// BLUE component
-      intensity[3*(i+j*w)+ 2] = 255 - (u[index(i+1,j+1)]-1)*255;// green component
-    }
-  }
-  liveVizDeposit(m, sy*w,sx*h, w,h, intensity, this);
-  delete[] intensity;
-}
 #define index_l(i,j)  (int)((j)*(block_width) + i)
 
 void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, int xend, int ystart, int yend){

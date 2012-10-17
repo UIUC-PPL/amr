@@ -237,7 +237,7 @@ module Advection{
         exchangeGhosts();
       }
       when signalExchangeGhostsCompletion() atomic "doWork" {
-        compute_and_iterate();
+        compute();
         iterate();
       }
     };

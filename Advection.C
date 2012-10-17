@@ -770,7 +770,7 @@ void Advection::interpolateAndSend(int NBR) {
   return;
 }
 
-void Advection::compute_and_iterate(){
+void Advection::compute(){
   //logFile << "dt: " << dt << " ap:" << ap << " an:" << an << std::endl;
   //logFile << iterations << std::endl;
   logFile << "entire u before updating" << std::endl;

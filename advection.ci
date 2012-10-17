@@ -117,7 +117,8 @@ module Advection{
         }
       }
       when phase1OfMeshGenerationDone() atomic{
-        updateMesh();
+        //updateMesh();
+        doPhase2();
         if (isRoot()){
           ckout << "now in phase 2 of mesh generation" << endl;
           CkStartQD(CkCallback(CkIndex_Advection::phase2OfMeshGenerationDone(), thisProxy));
@@ -152,7 +153,7 @@ module Advection{
       }
     };
 
-    entry void updateMesh();
+    //entry void updateMesh();
 
     entry void startRemesh() {
       atomic "doMeshRestructure" {

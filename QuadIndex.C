@@ -90,41 +90,6 @@ QuadIndex::QuadIndex(int x, int y, int depth){
   }
 }
 
-
-void QuadIndex::getPhysicalCoordinates(int &x, int &y) const{
-    
-  int depth = nbits/2;
-  int r1 = 0, r2 = std::pow(2.0, (double)depth)-1, c1 = 0, c2 = std::pow(2.0, (double)depth)-1;
-  for(int i=0; i<nbits; i+=2){
-    int bit0 = (bitVector & (1<<(bits_per_int - 1 - i)))>0?1:0;
-    int bit1 = (bitVector & (1<<(bits_per_int - 1 - (i+1))))>0?1:0;
-        
-    int quad = 2*bit0 + bit1;
-    //   cout << "quad: " << quad << endl;
-    if(quad==0){
-      r1 = (r1+r2)/2+1;
-      c1 = (c1+c2)/2+1;
-    }
-    else if(quad==1){
-      r1 = (r1+r2)/2+1;
-      c2 = (c1+c2)/2;
-    }
-    else if(quad==2){
-      r2 = (r1+r2)/2;
-      c2 = (c1+c2)/2;
-    }
-    else{
-      r2 = (r1+r2)/2;
-      c1 = (c1+c2)/2 + 1;
-    }
-    //           cout << r1 << ", " << r2 << ", " << c1 << ", " << c2 << endl;
-  }
-  //       cout << "getCoordinates for " << getIndexString() << ": " << x << ", " << y << endl;     
-  x = c1;//at the end of for loop r1=r2
-  y = r1;// at the end of for loop c1=c2
-}
-
-
 /*
   |                   r2 _____________
   |                      |            |

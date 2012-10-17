@@ -55,7 +55,6 @@ public:
   }
 
   void getCoordinates(int&, int&)const;
-  void getPhysicalCoordinates(int &x, int &y) const;
   std::string getIndexString() const;
   inline int getDepth() const{
     return nbits/2;

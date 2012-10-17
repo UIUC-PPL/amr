@@ -1123,7 +1123,6 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, iteration " << iterations << std::endl;);
-
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
 
   if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
@@ -1131,19 +1130,19 @@ void Advection::doPhase2(){
   }
   else if(decision == DEREFINE && !isRefined){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
-    size_t sz = ((block_height)*(block_width))/4;
-    /*ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-      ChildDataMsg(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);*/
-    vector<double> child_u(block_width*block_height/4);
-    for(int i=1; i<= block_width; i+=2){
-      for(int j=1; j<=block_height; j+=2){
-        int idx = index_c(i/2, j/2);
-        child_u[idx] = downSample(u, i, j);
+    
+    vector<double> child_u;
+    if(isInMeshGenerationPhase==false){
+      size_t sz = ((block_height)*(block_width))/4;
+      child_u.resize(sz);
+      for(int i=1; i<= block_width; i+=2){
+        for(int j=1; j<=block_height; j+=2){
+          int idx = index_c(i/2, j/2);
+          child_u[idx] = downSample(u, i, j);
+        }
       }
     }
     thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
-    //deallocate all your memory and destroy yourself
-    VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     thisProxy[thisIndex].ckDestroy();
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
   }
@@ -1154,7 +1153,10 @@ void Advection::doPhase2(){
   }
    
   updateNbrStatus();
-
+  if(isInMeshGenerationPhase){
+    if(decision==REFINE || decision==DEREFINE)
+      decision=INV;
+  }
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
   parentHasAlreadyMadeDecision = false;
@@ -1325,11 +1327,13 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
 void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin) {
   QuadIndex child = thisIndex.getChild(sChild);
 
-  size_t sz = (block_width)*(block_height);
-  vector<double> refined_u(sz);
-
   VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
-  interpolate(u, refined_u, xstart, xend, ystart, yend);
+  vector<double> refined_u;
+  if(!isInMeshGenerationPhase){
+    size_t sz = (block_width)*(block_height);
+    refined_u.resize(sz);
+    interpolate(u, refined_u, xstart, xend, ystart, yend);
+  }
 
   thisProxy(child).insert(dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
 }
@@ -1500,7 +1504,7 @@ Advection::Advection(double dx, double dy,
   //CkStartQD(CkIndex_Advection::doStep(), &thishandle);
 }
 
-void Advection::updateMesh(){
+/*void Advection::updateMesh(){
   if(!isRefined){
     //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
     if(decision==REFINE){
@@ -1516,13 +1520,9 @@ void Advection::updateMesh(){
         default: CkAbort("this is impossible");
         }
         child = thisIndex.getChild(childNum);
-        /*InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-          InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);*/
 
         thisProxy(child).insert(dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
       }
-      //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;
-      //thisProxy.doneInserting();
     }
     else if(decision==DEREFINE){
       thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
@@ -1540,7 +1540,7 @@ void Advection::updateMesh(){
     decision=INV;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
   parentHasAlreadyMadeDecision = false;
-}
+}*/
 
 void Advection::ResumeFromSync(){
   phase2Done();

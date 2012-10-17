@@ -194,7 +194,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void pup(PUP::er &p);
 
   /* initial mesh generation*/       
-  void updateMesh();
+  //void updateMesh();
   void applyInitialCondition();
         
   void process(int, int, int, double*);

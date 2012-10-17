@@ -240,8 +240,8 @@ void Advection::mem_allocate_all(){
 
 Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 /*: AdvTerm(thisProxy, thisIndex, true)*/
-{usesAutoMeasure = CmiFalse;
-  //ckout << thisIndex.getIndexString().c_str() << " created" << endl;
+{
+  usesAutoMeasure = CmiFalse;
   //Constructor for the Initial Grid Zones
   __sdag_init();
 
@@ -251,16 +251,10 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
   VB(logFile.open(fname););
     
-  //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
-
   this->isRefined = false;
     
   for(int dir=UP; dir<=RIGHT; ++dir)
     nbr[dir] = thisIndex.getNeighbor(dir);
-  /*    
-        if(thisIndex.nbits!=0)
-        parent = thisIndex.getParent();
-        else parent = thisIndex;*/
 
   /*Nodes constructed here will not have any parent as this 
     is the coarsest level of the Mesh*/
@@ -289,8 +283,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 
   for (int i = 0; i < NUM_CHILDREN; ++i)
     child_isRefined[i] = false;
-
-  VB(logFile << "xmin: " << this->xmin << ", ymin: " << this->ymin << std::endl;);
 
   advection();
   resetMeshRestructureData();
@@ -522,8 +514,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
   double* boundary;
 
   if(nbr_exists[dir] && !nbr_isRefined[dir]){
-    int val = rand();
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << val << std::endl;);
+    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << std::endl;);
 
     switch (dir) {
     case LEFT:  boundary = left_edge;                  break;
@@ -813,8 +804,6 @@ void Advection::compute_and_iterate(){
   for(int j=1; j<=block_height; j++)
     for(int i=1; i<=block_width; i++){
       u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
-      if(u[index(i,j)] <=1);
-
     }
     
 #ifdef LOGGER
@@ -847,10 +836,6 @@ void Advection::iterate() {
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
     if (isRoot())
       CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
-    //contribute(CkCallback(CkIndex_Main::terminate(), mainProxy));
-    //contribute();
-    //if(thisIndex.getDepth()!=min_depth)
-    //  thisProxy(thisIndex.getParent()).done();
     return;
   }
 
@@ -873,8 +858,6 @@ void Advection::iterate() {
   }
   else {
     CkPrintf("Contribute from %s\n", thisIndex.getIndexString().c_str());
-
-    //contribute();
   }
 }
 
@@ -991,18 +974,10 @@ void Advection::doRemeshing(){
     // Think of a better way to do this because right now as many as 
     // number of unrefined children are informing the parent about the
     // start of the restructure phase while only one of them need to do so
-    if(parent!=thisIndex) {
-      //CkPrintf("%s -> %s startRemesh %d\n", thisIndex.getIndexString().c_str(),
-      //parent.getIndexString().c_str(), iterations);
-      //thisProxy(parent).doMeshRestructure();
-    }
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision){
     //CkPrintf("%s was a grandparent %d\n", thisIndex.getIndexString().c_str(), iterations);
     informParent(-1, INV, 1);
-  } else {
-    //CkPrintf("%s was a parent %d\n", thisIndex.getIndexString().c_str(), iterations);
-    //thisProxy[thisIndex].startRemesh();
   }
 }
 
@@ -1144,31 +1119,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)
-/*ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, double mdt, int meshGenIterations, int iter, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision){
-  //logFile << child_nbr_isRefined << std::endl;
-  if(isInMeshGenerationPhase==false){
-    for(int i=1; i<= block_width; i+=2){
-      for(int j=1; j<=block_height; j+=2){
-        int idx = index_c(i/2, j/2);
-        child_u[idx] = downSample(u, i, j);
-        //logFile << child_u[idx] << "\t";
-      }
-      //logFile << std::endl;
-    }
-  }
-  this->isInMeshGenerationPhase = isInMeshGenerationPhase;
-  this->meshGenIterations = meshGenIterations;
-  childNum = cnum;
-  iterations=iter;
-  myt=mt;
-  mydt=mdt;
-  //logFile << child_nbr_exists << ", " << child_nbr_isRefined << ", " << child_nbr_decision << std::endl;
-  memcpy(child_nbr_exists, nbr_exists, sizeof(bool)*NUM_NEIGHBORS);
-  //logFile << NUM_NEIGHBORS << std::endl;
-  memcpy(child_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
-  memcpy(child_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
-
-}*/
 
 void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction numbers of the refined neighbors in direction 'dir'
   switch(dir){
@@ -1185,62 +1135,6 @@ void Advection::doPhase2(){
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, iteration " << iterations << std::endl;);
 
   VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
-
-  /*
-  //Send Appropriate Data to the Neighbors based on their New Status
-  if(isRefined==false) {// can send data only if I am a leaf node
-  for(int i=0; i<NUM_NEIGHBORS; i++) {//check if any of the neighbors need data for its refinement
-  //if(nbr_decision[i]==REFINE){
-  if(((nbr_exists[i] &&!nbr_isRefined[i])||!nbr_exists[i]) && nbr_decision[i]==REFINE){
-  if(i==LEFT){
-  for(int j=1; j<=block_height; j++)
-  left_edge[j-1] = u[index(1,j)];
-  }
-  else if(i==RIGHT){
-  for(int j=1; j<=block_height; j++)
-  right_edge[j-1] = u[index(block_width,j)];
-  }
-
-  //to serve getGhostsAndRefine()
-  if(sendGhost(i))
-  ;
-  }else{
-  //wait for data to arrive and then send it back
-  int d1, d2;
-  if(i==RIGHT){d1=RIGHT_UP; d2=RIGHT_DOWN;}
-  else if(i==LEFT){d1=LEFT_UP; d2=LEFT_DOWN;}
-  else if(i==UP){d1=UP_LEFT; d2=UP_RIGHT;}
-  else if(i==DOWN){d1=DOWN_LEFT; d2=DOWN_RIGHT;}
-  if(nbr_decision[d1]==REFINE) {
-  thisProxy[thisIndex].getAndSendGhost();
-  }
-  if(nbr_decision[d2]==REFINE) {
-  thisProxy[thisIndex].getAndSendGhost();
-  }
-  }
-  }
-
-  //If I am going to refine check if any of the neighbor needs my ghosts for it to send its boundaries to me
-  if(decision==REFINE)
-  for(int i=0; i<NUM_NEIGHBORS; i++){
-  if(!nbr_exists[i] && nbr_decision[i]!=REFINE){//send the ghost layer; dont send if the neighbors decision is refine because in that case we
-  //already sent the ghost layer in the loop above
-  if(i==LEFT){
-  for(int j=1; j<=block_height; j++)
-  left_edge[j-1] = u[index(1,j)];
-  }
-  else if(i==RIGHT){
-  for(int j=1; j<=block_height; j++)
-  right_edge[j-1] = u[index(block_width,j)];
-  }
-  //to serve getGhostsAndRefine()
-  if(sendGhost(i))
-  ;
-  }
-  }
-  }*/
-
-  //CkPrintf("%s middle of phase 2 %d\n", thisIndex.getIndexString().c_str(), iterations);
 
   if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
     //Get Data From the Children and extrapolate it
@@ -1447,8 +1341,6 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
-  /*InitRefineMsg * msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
-    InitRefineMsg(0, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);*/
   thisProxy(child).insert(false, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
 }
 
@@ -1464,12 +1356,6 @@ void Advection::refine(){
   refineChild(0, block_width/2+1, block_width,   1,                block_height/2, xmin+(nx*dx)/2, ymin+(ny*dy)/2);
   refineChild(2, 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
   refineChild(3, block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
-
-  //thisProxy.doneInserting();
-
-  //CkPrintf("%s parent phase 2b iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-  //fflush(stdout);
-  //   contribute(CkCallback(CkReductionTarget(Advection, phase2Done), thisProxy));
 
   VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
@@ -1649,13 +1535,8 @@ void Advection::updateMesh(){
       //thisProxy.doneInserting();
     }
     else if(decision==DEREFINE){
-      /*ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-        ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, 
-                     u, nbr_exists, nbr_isRefined, nbr_decision);*/
-        
-      vector<double> child_u;
       thisProxy(parent).recvChildData(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
-                                      child_u, nbr_exists, nbr_isRefined, nbr_decision);
+                                      vector<double>(), nbr_exists, nbr_isRefined, nbr_decision);
       //deallocate all your memory and destroy yourself
       VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
       //ckout << thisIndex.getIndexString().c_str() << " is now coarsening" << endl;

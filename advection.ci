@@ -129,12 +129,8 @@ module Advection{
           ckout << "participating in reduction to determine mesh stability" << endl;
 
         int contri;
-//if(decision==DEREFINE)
-//    isRefined=false;
 
-//ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
         if(decision==DEREFINE || decision==REFINE){
-          //ckout << thisIndex.getIndexString().c_str() << " contributing 1, decision = " << decision << endl;
           contri=1;
         }
         else
@@ -219,6 +215,7 @@ module Advection{
         }
       }
     };
+
     entry void doRemeshing();
     entry void startLdb();
     entry void signalExchangeGhostsCompletion();
@@ -306,18 +303,6 @@ module Advection{
       atomic "refine"{
         //cout << thisIndex.getIndexString() << " now refining\n";
         refine();
-      }
-    };
-
-    //happens in doPhase2()
-    entry void getAndSendGhost(){
-      atomic{
-        VB(logFile << "getAndSendGhost called" << endl;); 
-      }
-      when receiveGhosts[iterations] (int iter, int dir, int width,
-                                         double u1[width]) atomic "interpolate and send"{
-        process(iter, dir, width, u1);
-        sendReadyData2RefiningNeighbors();//interpolateAndSend(dir);
       }
     };
 

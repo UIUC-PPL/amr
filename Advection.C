@@ -122,27 +122,6 @@ void PerProcessorChare::reduceWorkUnits() {
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-/*InitRefineMsg::InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, 
-                             double myt, double mydt, double xmin, double  ymin, 
-                             int meshGenIterations_, int iterations_, vector<double>& refined_u, 
-                             bool *nbr_exists,
-                             bool *nbr_isRefined, DECISION *nbr_decision) {
-  this->isInMeshGenerationPhase = isInMeshGenerationPhase;
-  this->meshGenIterations = meshGenIterations_;
-  this->dx = dx;
-  this->dy = dy;
-  this->myt = myt;
-  this->mydt = mydt;
-  this->xmin = xmin;
-  this->ymin = ymin;
-  this->iterations = iterations_;
-  if (!isInMeshGenerationPhase) 
-    memcpy(this->refined_u, &refined_u[0], sizeof(double)*block_height*block_width);
-  memcpy(this->parent_nbr_exists, nbr_exists, sizeof(bool)*NUM_NEIGHBORS);
-  memcpy(this->parent_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
-  memcpy(this->parent_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
-}*/
-
 void Advection::applyInitialCondition(){
   double rsq;
   for(int i=0; i<block_width+2; i++){

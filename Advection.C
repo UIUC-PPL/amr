@@ -780,31 +780,37 @@ void Advection::compute(){
     logFile << std::endl;
   }
 
-  for(int i=1; i<=block_width; i++){
-    for(int j=1; j<=block_height; j++){
+  //for(int i=1; i<=block_width; i++){
+  //  for(int j=1; j<=block_height; j++){
+  FOR_EACH_ZONE
       up = (u[index(i+1,j)] - u[index(i,j)])/dx;
       un = (u[index(i,j)]-u[index(i-1,j)])/dx;
 
       u2[index(i,j)] = u[index(i,j)] - dt* (ap*un + an*up);
       //logFile << u[index(i,j+1)] << ", " << u[index(i,j)] << ", " << u[index(i,j-1)] << std::endl;
       //logFile << thisIndex.getIndexString() << " u2: " << u2[index(i,j)] << std::endl;
-    }
-  }
+  END_FOR
+  //  }
+  //}
 
-  for(int i=1; i<=block_width; i++)
-    for(int j=1; j<=block_height; j++){
+  //for(int i=1; i<=block_width; i++)
+  //  for(int j=1; j<=block_height; j++){
+  FOR_EACH_ZONE
       up = (u[index(i,j+1)] - u[index(i,j)])/dy;
       un = (u[index(i,j)] - u[index(i,j-1)])/dy;
 
       u3[index(i,j)] = u[index(i,j)] - dt*(ap*un + an*up);
       //logFile << u[index(i,j+1)] << ", " << u[index(i,j)] << ", " << u[index(i,j-1)] << std::endl;
       //logFile << thisIndex.getIndexString() << "dx " << dx << ", dy " << dy << ", up: " << up << " un: " << un << " u3: " << u3[index(i,j)] << std::endl;
-    }
+  END_FOR
+  //  }
 
-  for(int j=1; j<=block_height; j++)
-    for(int i=1; i<=block_width; i++){
+  //for(int j=1; j<=block_height; j++)
+  //  for(int i=1; i<=block_width; i++){
+  FOR_EACH_ZONE
       u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
-    }
+  END_FOR
+  //  }
     
 #ifdef LOGGER
   logFile << "Values of " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;

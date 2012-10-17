@@ -97,7 +97,7 @@ inline int map_child(int child){
   else return -1;
 }
 
-class ChildDataMsg;
+//class ChildDataMsg;
 
 /*typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;*/
 
@@ -215,7 +215,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void exchangePhase1Msg(int, DECISION, int cascade_length);
 
   /*Phase2 entry methods*/
-  void setNbrStatus(int, ChildDataMsg*);
+  void setNbrStatus(int, bool*, bool*, DECISION*);
   void sendReadyData();
   void sendReadyData2RefiningNeighbors();
   // Returns whether a message was sent
@@ -224,7 +224,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void doPhase2();
   void updateNbrStatus();
 
-  void recvChildData(ChildDataMsg*);
+  void recvChildData(bool, int, double, double, int, int, vector<double>, bool*, bool*, DECISION*);
   void interpolateAndSend(int);
   void refine();
   void interpolate(double*, vector<double>&, int, int, int, int);
@@ -257,7 +257,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
                 int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
 };*/
 
-class ChildDataMsg: public CMessage_ChildDataMsg{
+/*class ChildDataMsg: public CMessage_ChildDataMsg{
  public:
   bool isInMeshGenerationPhase;
   int childNum;
@@ -269,7 +269,7 @@ class ChildDataMsg: public CMessage_ChildDataMsg{
   DECISION *child_nbr_decision;
         
   ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
-};
+};*/
 
 class PerProcessorChare : public CBase_PerProcessorChare {
   vector<int> cascades;

@@ -1144,7 +1144,7 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
 }
 
 #define index_c(i,j) (int)((j)*(block_width/2) + i)
-ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, double mdt, int meshGenIterations, int iter, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision){
+/*ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, double mdt, int meshGenIterations, int iter, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision){
   //logFile << child_nbr_isRefined << std::endl;
   if(isInMeshGenerationPhase==false){
     for(int i=1; i<= block_width; i+=2){
@@ -1168,7 +1168,7 @@ ChildDataMsg::ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double mt, do
   memcpy(child_nbr_isRefined, nbr_isRefined, sizeof(bool)*NUM_NEIGHBORS);
   memcpy(child_nbr_decision, nbr_decision, sizeof(DECISION)*3*NUM_NEIGHBORS);
 
-}
+}*/
 
 void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction numbers of the refined neighbors in direction 'dir'
   switch(dir){
@@ -1248,10 +1248,16 @@ void Advection::doPhase2(){
   else if(decision == DEREFINE && !isRefined){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     size_t sz = ((block_height)*(block_width))/4;
-    ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
-      ChildDataMsg(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);
-
-    thisProxy(parent).recvChildData(msg);
+    /*ChildDataMsg *msg = new (sz, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
+      ChildDataMsg(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, u, nbr_exists, nbr_isRefined, nbr_decision);*/
+    vector<double> child_u(block_width*block_height/4);
+    for(int i=1; i<= block_width; i+=2){
+      for(int j=1; j<=block_height; j+=2){
+        int idx = index_c(i/2, j/2);
+        child_u[idx] = downSample(u, i, j);
+      }
+    }
+    thisProxy(parent).recvChildData(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     thisProxy[thisIndex].ckDestroy();
@@ -1322,35 +1328,38 @@ void Advection::updateNbrStatus(){
 
 }
 
-void Advection::recvChildData(ChildDataMsg *msg){
+void Advection::recvChildData(bool isInMeshGenerationPhase, int childNum, double myt, double mydt, 
+                              int meshGenIterations, int iterations, vector<double> child_u, 
+                              bool *child_nbr_exists, bool *child_nbr_isRefined, 
+                              DECISION *child_nbr_decision){
   VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);
-  VB(logFile << thisIndex.getIndexString() << " received data from Child " << msg->childNum << " for coarsening" << std::endl;);
-  myt = msg->myt;
-  mydt = msg->mydt;
-  iterations = msg->iterations;
-  meshGenIterations = msg->meshGenIterations;
+  VB(logFile << thisIndex.getIndexString() << " received data from Child " << childNum << " for coarsening" << std::endl;);
+  this->myt = myt;
+  this->mydt = mydt;
+  this->iterations = iterations;
+  this->meshGenIterations = meshGenIterations;
 
   if(u == NULL) {
     mem_allocate_all();
   }
 
   int st_i, end_i, st_j, end_j;
-  switch(msg->childNum){
-  case 0:  st_i = block_width/2+1;  end_i = block_width;    st_j = 1;                 end_j = block_height/2;  break;
-  case 1:  st_i = 1;                end_i = block_width/2;  st_j = 1;                 end_j = block_height/2;  break;
-  case 2:  st_i = 1;                end_i = block_width/2;  st_j = block_height/2+1;  end_j = block_height;    break;
-  case 3:  st_i = block_width/2+1;  end_i = block_width;    st_j = block_height/2+1;  end_j = block_height;    break;
-  default: CkAbort("undefined child number");
+  switch(childNum){
+    case 0:  st_i = block_width/2+1;  end_i = block_width;    st_j = 1;                 end_j = block_height/2;  break;
+    case 1:  st_i = 1;                end_i = block_width/2;  st_j = 1;                 end_j = block_height/2;  break;
+    case 2:  st_i = 1;                end_i = block_width/2;  st_j = block_height/2+1;  end_j = block_height;    break;
+    case 3:  st_i = block_width/2+1;  end_i = block_width;    st_j = block_height/2+1;  end_j = block_height;    break;
+    default: CkAbort("undefined child number");
   }
     
   int ctr=0; double rsq;
-  if(msg->isInMeshGenerationPhase)
+  if(isInMeshGenerationPhase)
     applyInitialCondition();
   else{
     for(int j=st_j; j<=end_j; j++){
       for(int i=st_i; i<=end_i; i++){
-        u[index(i,j)]=msg->child_u[ctr];
-        VB(logFile << msg->child_u[ctr] << ", " << u[index(i,j)] << "\t";);
+        u[index(i,j)]=child_u[ctr];
+        VB(logFile << child_u[ctr] << ", " << u[index(i,j)] << "\t";);
         ctr++;
       }
       VB(logFile << std::endl;);
@@ -1359,50 +1368,49 @@ void Advection::recvChildData(ChildDataMsg *msg){
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
   int c1, c2;
-  switch(msg->childNum){
-  case 0: c1=RIGHT; c2=UP;   break;
-  case 1: c1=LEFT;  c2=UP;   break;
-  case 2: c1=LEFT;  c2=DOWN; break;
-  case 3: c1=RIGHT; c2=DOWN; break;
+  switch(childNum){
+    case 0: c1=RIGHT; c2=UP;   break;
+    case 1: c1=LEFT;  c2=UP;   break;
+    case 2: c1=LEFT;  c2=DOWN; break;
+    case 3: c1=RIGHT; c2=DOWN; break;
   }
     
-  this->iterations=msg->iterations;
-  this->myt=msg->myt;
-  this->mydt=msg->mydt;
-  setNbrStatus(c1, msg);
-  setNbrStatus(c2, msg);
+  this->iterations  = iterations;
+  this->myt         = myt;
+  this->mydt        = mydt;
+  setNbrStatus(c1, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
+  setNbrStatus(c2, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
   
   resetMeshRestructureData();
-  if(msg->isInMeshGenerationPhase)
+  if(isInMeshGenerationPhase)
     decision=DEREFINE;
-  delete msg;
 }
 
-inline void Advection::setNbrStatus(int dir, ChildDataMsg* msg){
-  if(msg->child_nbr_exists[dir]){
+inline void Advection::setNbrStatus(int dir, bool *child_nbr_exists, bool *child_nbr_isRefined, DECISION *child_nbr_decision){
+  if(child_nbr_exists[dir]){
     nbr_exists[dir]=true;
-    if(msg->child_nbr_isRefined[dir])
+    if(child_nbr_isRefined[dir])
       nbr_isRefined[dir]=true;
-    if(!msg->child_nbr_isRefined[dir] && msg->child_nbr_decision[dir]==DEREFINE){
+    if(!child_nbr_isRefined[dir] && child_nbr_decision[dir]==DEREFINE){
       nbr_isRefined[dir]=false;
     }
-    if(!msg->child_nbr_isRefined[dir] && msg->child_nbr_decision[dir]==STAY){
+    if(!child_nbr_isRefined[dir] && child_nbr_decision[dir]==STAY){
       nbr_isRefined[dir]=true;
     }
   }
-  else if(!msg->child_nbr_exists[dir]){
-    if(msg->child_nbr_decision[dir]==REFINE){
+  else if(!child_nbr_exists[dir]){
+    if(child_nbr_decision[dir]==REFINE){
       nbr_exists[dir]=true;
       nbr_isRefined[dir]=true;
     }
-    else if(msg->child_nbr_decision[dir]==STAY){
+    else if(child_nbr_decision[dir]==STAY){
       nbr_exists[dir]=true;
       nbr_isRefined[dir]=false;
     }
     else {//DEREFNE
       nbr_exists[dir]=false;
     }
-  }    
+  }
 }
 
 #define index_l(i,j)  (int)((j)*(block_width) + i)
@@ -1641,11 +1649,13 @@ void Advection::updateMesh(){
       //thisProxy.doneInserting();
     }
     else if(decision==DEREFINE){
-      ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
+      /*ChildDataMsg *msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS) 
         ChildDataMsg(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, 
-                     u, nbr_exists, nbr_isRefined, nbr_decision);
-
-      thisProxy(parent).recvChildData(msg);
+                     u, nbr_exists, nbr_isRefined, nbr_decision);*/
+        
+      vector<double> child_u;
+      thisProxy(parent).recvChildData(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
+                                      child_u, nbr_exists, nbr_isRefined, nbr_decision);
       //deallocate all your memory and destroy yourself
       VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
       //ckout << thisIndex.getIndexString().c_str() << " is now coarsening" << endl;

@@ -171,7 +171,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
         
   /*Constructors*/
   Advection(double, double, double, double);
-  Advection(bool isInMeshGenerationPhase, double dx, double dy,
+  Advection(double dx, double dy,
             double myt, double mydt, double xmin, double ymin,
             int meshGenIterations_, int iterations_, 
             vector<double> refined_u, bool *parent_nbr_exists, 
@@ -224,7 +224,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void doPhase2();
   void updateNbrStatus();
 
-  void recvChildData(bool, int, double, double, int, int, vector<double>, bool*, bool*, DECISION*);
+  void recvChildData(int, double, double, int, int, vector<double>, bool*, bool*, DECISION*);
   void interpolateAndSend(int);
   void refine();
   void interpolate(double*, vector<double>&, int, int, int, int);
@@ -286,6 +286,7 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   void recordRemeshLatency(int iteration, double latency);
   void reduceWorkUnits();
   void reduceLatencies();
+  void meshGenerationPhaseIsOver();
 };
 
 extern CProxy_PerProcessorChare ppc;

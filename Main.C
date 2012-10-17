@@ -56,6 +56,7 @@ double xctr, yctr, radius;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
+bool isInMeshGenerationPhase;
 
 char* decimal_to_binary_string(int num, int len){
   char* _ret = new char[len+1];
@@ -119,6 +120,7 @@ Main::Main(CkArgMsg* m){
   nframe = 20;
   io_tout = tmax/nframe;
   refine_frequency = 3;
+  isInMeshGenerationPhase = true;
 
   //call colormap
   dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;

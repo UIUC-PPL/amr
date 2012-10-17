@@ -32,7 +32,8 @@ mainmodule Main{
 
   initproc TurnManualLBOn();
   readonly CProxy_PerProcessorChare ppc;
-
+    
+  readonly bool isInMeshGenerationPhase;
   mainchare Main{
     entry Main(CkArgMsg *m);
     entry void printTreeInformation(CkVec<QuadIndex>);
@@ -84,13 +85,14 @@ module Advection{
     entry void collectCascades(CkCallback cb);
     entry void reduceLatencies();
     entry void reduceWorkUnits();
+    entry void meshGenerationPhaseIsOver();
   };
 
 
   array [QuadIndex] Advection {
     entry Advection();
     entry Advection(double, double, double, double);
-    entry Advection(bool, double, double, double, double,
+    entry Advection(double, double, double, double,
                     double, double, int, int, vector<double>,
                     bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
                     DECISION p3[3*NUM_NEIGHBORS]);
@@ -183,6 +185,8 @@ module Advection{
     entry  [reductiontarget] void phase2Done() {
       atomic {
         CkAssert(usesAutoMeasure == CmiFalse);
+        isInMeshGenerationPhase = false;
+        ppc.meshGenerationPhaseIsOver();
         if (isRoot()) {
           //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
           ckout << "time for iteration " << iterations - refine_frequency + 1 << " to " << iterations << ": " << CmiWallTimer() - itBeginTime << endl;
@@ -210,6 +214,21 @@ module Advection{
         }
       }
     };
+    
+    /*entry void doRemeshing(){
+        if(isInMeshGenerationPhase) atomic "start error estimation 1" {
+            doErrorEstimationAndCommunicate();
+        }
+        else {
+            atomic "exchange ghosts before error estimation"{
+                exchangeGhosts();
+            }
+            when signalExchangeGhostsCompletion() atomic "start error estimation 2"{
+                doErrorEstimationAndCommunicate();
+            }
+        }
+        CkStartQD();
+    };*/
 
     entry void doRemeshing();
     entry void startLdb();
@@ -303,7 +322,7 @@ module Advection{
 
     entry void free_memory();
     entry void doPhase2();
-    entry void recvChildData(bool, int, double, double, int, int, vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);
+    entry void recvChildData(int, double, double, int, int, vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);
 
   };
 };

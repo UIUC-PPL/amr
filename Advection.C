@@ -42,6 +42,7 @@ extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency;
+extern bool isInMeshGenerationPhase;
 
 #define index(i,j)  (int)((j)*(block_width+2) + i)
 
@@ -120,6 +121,10 @@ void PerProcessorChare::reduceLatencies() {
 void PerProcessorChare::reduceWorkUnits() {
   CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
+}
+
+void PerProcessorChare::meshGenerationPhaseIsOver(){
+  isInMeshGenerationPhase=false;
 }
 
 void Advection::applyInitialCondition(){
@@ -1136,7 +1141,7 @@ void Advection::doPhase2(){
         child_u[idx] = downSample(u, i, j);
       }
     }
-    thisProxy(parent).recvChildData(0, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
+    thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
     //deallocate all your memory and destroy yourself
     VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
     thisProxy[thisIndex].ckDestroy();
@@ -1207,7 +1212,7 @@ void Advection::updateNbrStatus(){
 
 }
 
-void Advection::recvChildData(bool isInMeshGenerationPhase, int childNum, double myt, double mydt, 
+void Advection::recvChildData(int childNum, double myt, double mydt, 
                               int meshGenIterations, int iterations, vector<double> child_u, 
                               bool *child_nbr_exists, bool *child_nbr_isRefined, 
                               DECISION *child_nbr_decision){
@@ -1326,7 +1331,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   interpolate(u, refined_u, xstart, xend, ystart, yend);
 
-  thisProxy(child).insert(false, dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
+  thisProxy(child).insert(dx/2, dy/2, myt, mydt, xmin, ymin, meshGenIterations, iterations, refined_u, nbr_exists, nbr_isRefined, nbr_decision);
 }
 
 void Advection::refine(){
@@ -1352,7 +1357,7 @@ bool Advection::isGrandParent() {
   return ret;
 }
 
-Advection::Advection(bool isInMeshGenerationPhase, double dx, double dy,
+Advection::Advection(double dx, double dy,
                      double myt, double mydt, double xmin, double ymin,
                      int meshGenIterations, int iterations, vector<double> refined_u,
                      bool *parent_nbr_exists, bool *parent_nbr_isRefined, DECISION* parent_nbr_decision)
@@ -1514,13 +1519,13 @@ void Advection::updateMesh(){
         /*InitRefineMsg * msg = new (0, NUM_NEIGHBORS, NUM_NEIGHBORS, 3*NUM_NEIGHBORS)
           InitRefineMsg(1, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);*/
 
-        thisProxy(child).insert(true, dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
+        thisProxy(child).insert(dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
       }
       //ckout << thisIndex.getIndexString().c_str() << " is now refining" << endl;
       //thisProxy.doneInserting();
     }
     else if(decision==DEREFINE){
-      thisProxy(parent).recvChildData(1, thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
+      thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
                                       vector<double>(), nbr_exists, nbr_isRefined, nbr_decision);
       //deallocate all your memory and destroy yourself
       VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);

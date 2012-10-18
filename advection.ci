@@ -203,22 +203,6 @@ module Advection{
     };
 
     entry void phase1Done();
-
-    entry void getGhostsAndRefine(){
-      for(;imsg<4;) {
-        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) atomic "save ghosts" {
-          process(iter, dir, width, u1);
-          sendReadyData2RefiningNeighbors();
-          //cout << "In getGHostsAndRefine: " << thisIndex.getIndexString()
-          //<< " received data from " << dir << ", imsg: " << imsg << ", iteration " << iterations << "\n";
-        }
-      }
-      atomic "refine"{
-        //cout << thisIndex.getIndexString() << " now refining\n";
-        refine();
-      }
-    };
-
     entry void free_memory();
     entry void doPhase2();
     entry void recvChildData(int, double, double, int, int, vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);

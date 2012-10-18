@@ -28,8 +28,7 @@ public:
   QuadIndex():bitVector(0), nbits(0){}
   QuadIndex(const QuadIndex& qindex):bitVector(qindex.bitVector), nbits(qindex.nbits){}
   QuadIndex(int _bitVector, int _nbits):bitVector(_bitVector), nbits(_nbits){}
-  QuadIndex(const char*);
-  QuadIndex(int, int, int);
+  QuadIndex(int x, int y, int depth);
 
   void operator = (const QuadIndex& qidx) {
     nbits = qidx.nbits;

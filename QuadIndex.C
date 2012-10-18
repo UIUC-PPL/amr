@@ -27,37 +27,6 @@
   v        |_10_|_11_|
 
 */
-QuadIndex::QuadIndex(const char* index){
-  nbits = strlen(index);
-  bitVector=0;
-  //cout << "nbits: " << nbits << endl;
-  int nElements = ceil((double)nbits/bits_per_int);// number of integers requries in the bit vector
-    
-  if(nElements > 1){
-    ckout << "Tree Size exceeded" << endl;
-    return;
-  }
-  if(nbits%2!=0){
-    ckout << "Invalid Index String, Index length should be a multiple of 2" << endl;
-    ckout << "nbits: " << nbits << ", " << index << endl;
-    return;
-  }
-  //reset bit vector
-    
-  bitVector = 0;
-    
-  //set bit vector
-  for(int i=0; i<nbits; i++){
-    int bit = (int)index[i]-48;
-        
-    if(bit!=0 && bit !=1){
-      ckout << "Invalid Index String" <<endl;
-      return;
-    }
-    bitVector = bitVector | bit<<(bits_per_int - 1 - i);
-  }
-  //cout << bitVector << endl;
-}
     
 //contructor- given the coordinates of the node and its depth, generate the index vector
 QuadIndex::QuadIndex(int x, int y, int depth){ 

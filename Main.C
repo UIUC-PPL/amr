@@ -139,12 +139,10 @@ Main::Main(CkArgMsg* m){
     dt = tmax - t;
   t = t+dt;
 
-  QuadIndex qindex;
-  for(int i=0; i < num_chares; i++){
-    char* str = decimal_to_binary_string(i,  2*depth);
-    qindex = QuadIndex(str);
-    qtree[qindex].insert(xmin, xmax, ymin, ymax);
-  }
+  for (int i = 0; i < num_chare_rows; ++i)
+    for (int j = 0; j < num_chare_cols; ++j)
+      qtree[QuadIndex(i, j, min_depth)].insert(xmin, xmax, ymin, ymax);
+
   qtree.doneInserting();
 
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));

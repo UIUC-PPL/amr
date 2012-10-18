@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include "Main.decl.h"
 class Main: public CBase_Main {
 
  public:

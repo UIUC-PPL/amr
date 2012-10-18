@@ -1,24 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
-#include <cmath>
-#include <cstring>
-#include <queue>
-#include <cstdlib>
-#include <ctime>
-#include <algorithm>
-#include <limits>
-using namespace std;
-
-#include "charm++.h"
-#include "pup_stl.h"
-#include "trace-projections.h"
-
-#include "Constants.h"
-#include "QuadIndex.h"
-#include "Main.decl.h"
-#include "Main.h"
-
+#include "Headers.h"
 
 extern CProxy_Main mainProxy;
 extern CProxy_Advection qtree;
@@ -55,8 +35,6 @@ double delu2[ndim2], delu3[ndim2], delu4[ndim2];
 double delx, dely, dely_f;
 double refine_filter = 0.01;
 double refine_cutoff=0.2, derefine_cutoff=0.05;
-
-#include "Advection.h"
 
 CProxy_PerProcessorChare ppc;
 

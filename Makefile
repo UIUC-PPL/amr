@@ -20,8 +20,8 @@ advection.ci.stamp: advection.ci
 	$(CHARMC) $<
 	touch $@
 
-Advection.o: Advection.C Advection.h Main.decl.h Advection.decl.h
-Main.o: Main.C Advection.h Main.decl.h Advection.decl.h
+Advection.o: Advection.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
+Main.o: Main.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
 QuadIndex.o: QuadIndex.C QuadIndex.h
 
 test: all

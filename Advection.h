@@ -9,7 +9,7 @@
 
 #include "Advection.decl.h"
 
-int inline map_nbr(int quad, int nbr){
+int inline myDirectionWrtUncle(int quad, int nbr){
     switch(quad){
         case 0: return (nbr==RIGHT)?LEFT_UP:DOWN_RIGHT; break;
         case 1: return (nbr==LEFT)?RIGHT_UP:DOWN_LEFT;  break;

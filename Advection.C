@@ -534,7 +534,7 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
   int count = getGhostCount(dir);
   double* boundary;
 
-  if(nbr_exists[dir] && !nbr_isRefined[dir]){
+  if(isFriend(nbr_exists[dir], nbr_isRefined[dir])){
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << std::endl;);
 
     switch (dir) {
@@ -551,9 +551,9 @@ bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent duri
     return true;
   }
 
-  if(!nbr_exists[dir]) {
+  if(isUncle(nbr_exists[dir], nbr_isRefined[dir])) {
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
-    int sender_direction = map_nbr(thisIndex.getQuadI(), dir);
+    int sender_direction = myDirectionWrtUncle(thisIndex.getQuadI(), dir);
     boundary = getGhostBuffer(dir);
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
     count /= 2;
@@ -1041,7 +1041,7 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
     }
     else{//send to the parent of the non-existing neighbor
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
-      thisProxy(nbr[i].getParent()).exchangePhase1Msg(map_nbr(thisIndex.getQuadI(), i), decision, cascade_length);
+      thisProxy(nbr[i].getParent()).exchangePhase1Msg(myDirectionWrtUncle(thisIndex.getQuadI(), i), decision, cascade_length);
     }
   }
 
@@ -1418,7 +1418,6 @@ Advection::Advection(double dx, double dy,
   sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
 
   VB(logFile.open(fname););
-  //srand(thisIndex.getQuadI() + atoi(thisIndex.getIndexString()));
 
   //Called as a result of refinement of parent
   VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);

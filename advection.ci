@@ -56,31 +56,6 @@ mainmodule Main{
 
 module Advection{
 
-  /*message InitRefineMsg {
-    bool isInMeshGenerationPhase;
-    double dx;
-    double dy;
-    double myt;
-    double mydt;
-    double refined_u[];
-    bool parent_nbr_exists[];
-    bool parent_nbr_isRefined[];
-    DECISION parent_nbr_decision[];
-  };*/
-
-  /*message ChildDataMsg{
-    bool isInMeshGenerationPhase;
-    int childNum;
-    int iterations;
-    double myt;
-    double mydt;
-    double child_u[];
-    bool child_nbr_exists[];
-    bool child_nbr_isRefined[];
-    DECISION child_nbr_decision[];
-  };*/
-
-
   group PerProcessorChare{
     entry PerProcessorChare();
     entry void collectCascades(CkCallback cb);
@@ -109,117 +84,6 @@ module Advection{
 
     entry void rootTerminated() {};
     
-    /*entry void phase1OfMeshGenerationDone();
-    entry [reductiontarget] void meshUpdateReductionClient(int result);
-
-    entry void generateMesh(){
-      atomic "call remeshing for mesh update"{
-        doRemeshing();
-        if (isRoot()){
-          ckout << "making refinement decisions" << endl;
-          CkStartQD(CkCallback(CkIndex_Advection::phase1OfMeshGenerationDone(), thisProxy));
-        }
-      }
-      when phase1OfMeshGenerationDone() atomic{
-        //updateMesh();
-        doPhase2();
-        if (isRoot()){
-          ckout << "now in phase 2 of mesh generation" << endl;
-          CkStartQD(CkCallback(CkIndex_Advection::phase2OfMeshGenerationDone(), thisProxy));
-        }
-      }
-    };
-
-    entry void phase2OfMeshGenerationDone(){
-      atomic{
-        if (isRoot())
-          ckout << "participating in reduction to determine mesh stability" << endl;
-        
-        int granularityHasChanged = (decision==DEREFINE || decision==REFINE) ? 1:0;
-        contribute(sizeof(int), &granularityHasChanged, CkReduction::sum_int, CkCallback(CkReductionTarget(Advection, meshUpdateReductionClient), thisProxy));
-        resetMeshRestructureData();
-      }
-      when meshUpdateReductionClient(int result) atomic{
-        if (isRoot())
-          ckout << "nUpdates: " << result << endl;
-        meshGenIterations++;
-        if(result > 0){
-          VB(logFile << "calling generateMesh on myself, iteration " << meshGenIterations << std::endl;);
-          generateMesh();
-        }
-        else{
-          VB(logFile << "mesh generation is over.... start advection now, isRefined = " << isRefined << std::endl;);
-          if(isRefined)
-            iterations++;//set it to 1
-          resetMeshRestructureData();
-          phase2Done();
-        }
-      }
-    };
-
-    //entry void updateMesh();
-
-    entry void startRemesh() {
-      atomic "doMeshRestructure" {
-        iterations++;
-        doMeshRestructure();
-        if (isRoot())
-          CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
-      }
-      when phase1Done() atomic {
-        double now = CkWallTimer();
-        double localQDLatency = now - lastIdleTimeQD;
-        double localRemeshLatency = now - remeshStartTime;
-        ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
-        ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
-        if (isRoot()) {
-          CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
-          CkCallback cb;
-          if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
-            cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
-          else
-            cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
-          CkStartQD(cb);
-        }
-        doPhase2();
-        resetMeshRestructureData();
-      }
-    };
-    
-    // Separated for newly created chares from refinement
-    entry  [reductiontarget] void phase2Done() {
-      atomic {
-        CkAssert(usesAutoMeasure == CmiFalse);
-        isInMeshGenerationPhase = false;
-        ppc.meshGenerationPhaseIsOver();
-        if (isRoot()) {
-          //CkPrintf("%s in phase 2c iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-          ckout << "time for iteration " << iterations - refine_frequency + 1 << " to " << iterations << ": " << CmiWallTimer() - itBeginTime << endl;
-          itBeginTime = CmiWallTimer();
-          fflush(stdout);
-        }
-        if (!isRefined) {
-          thisProxy[thisIndex].doStep();
-        }
-        else {
-          iterations += refine_frequency - 1;
-          if (iterations >= max_iterations) {
-            //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
-            VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-            if (isRoot())
-              CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
-          } else {
-            if (isRoot()) {
-              CkPrintf("%s in short phase 0 iteration %d\n", thisIndex.getIndexString().c_str(), iterations);
-              fflush(stdout);
-            }
-            //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-            startRemesh();
-          }
-        }
-      }
-    };
-    entry void phase2Done();*/
     entry void doMeshRestructure(){
         if(!isInMeshGenerationPhase && !isRefined) {
             atomic "trigger ghost exchange"{
@@ -312,23 +176,6 @@ module Advection{
         iterate();
       }
     };
-
-    /*entry void doMeshRestructure(){
-      if (!isRefined){
-        atomic "exchange ghosts before remeshing"{
-          exchangeGhosts();
-        }
-        when signalExchangeGhostsCompletion() atomic "do remeshing on leaves"{
-          doRemeshing();
-        }
-      }
-      else {
-        atomic "do remeshing on internal nodes"{
-          doRemeshing();
-        }
-      }
-    };*/
-
 
     entry void exchangeGhosts(){
       atomic "send whatever data you can"{

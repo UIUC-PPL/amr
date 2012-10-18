@@ -296,7 +296,7 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   this->xmin = xc*nx*dx;
   this->ymin = yc*ny*dy;
 
-  for (int i = 0; i < NUM_CHILDREN; ++i)
+  //for (int i = 0; i < NUM_CHILDREN; ++i)
   FOR_EACH_CHILD
     child_isRefined[i] = false;
   END_FOR
@@ -1093,6 +1093,18 @@ bool isDirectionSimple(int dir) {
   return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
 }
 
+bool isUncle(bool exists, bool isRefined){
+    return !exists;
+}
+
+bool isNephew(bool exists, bool isRefined){
+    return exists && isRefined;
+}
+
+bool isFriend(bool exists, bool isRefined){
+    return exists && !isRefined;
+}
+
 // Phase1 Msgs are either REFINE or STAY messages
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
@@ -1119,27 +1131,15 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
     myDecision = max(myDecision, remoteDecision)*/
   //logFile << nbr_exists[dir] << ", " << nbr_isRefined[dir] << std::endl;  
   if(isDirectionSimple(dir) && nbr_exists[dir]){
-    //logFile << "i am here1, remoteDecision = " << remoteDecision << ", " << decision << std::endl;
-    if(remoteDecision == STAY);
-    //decision=std::max(STAY, decision);
-    else if(remoteDecision == REFINE)
+    if(remoteDecision == REFINE)
       newDecision = std::max(STAY, decision);
   }
-  else if (isDirectionSimple(dir) && !nbr_exists[dir])
-    /*{
-      logFile << "i am here2" << std::endl;
-      decision=max(STAY, decision);*/
-    ;//decision = std::max(STAY, decision);
-  /*}*/
-  else if(!isDirectionSimple(dir)){
-    //logFile << "i am here3" << std::endl;
-    VB(CkAssert(isDirectionSimple(dir) == false););
+  else if (isDirectionSimple(dir) && !nbr_exists[dir]);
+  else if(!isDirectionSimple(dir))
     newDecision = std::max(decision, remoteDecision);
-  }
-  else{
+  else
     CkAbort("unacceptable condition");
-  }
-
+  
   VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
   updateDecisionState(cascade_length, newDecision);
 }
@@ -1205,7 +1205,7 @@ void Advection::updateNbrStatus(){
   if(!isRefined && decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
     for(int i=0; i<NUM_NEIGHBORS; i++){
-      if(!nbr_exists[i]){
+      if(isUncle(nbr_exists[i], nbr_isRefined[i])){
         switch(nbr_decision[i]){
         case DEREFINE:
           logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
@@ -1216,7 +1216,7 @@ void Advection::updateNbrStatus(){
         default: CkAbort("nbr_decision not set");
         }
       }
-      else if(nbr_exists[i] && !nbr_isRefined[i]){
+      else if(isFriend(nbr_exists[i], nbr_isRefined[i])){
         switch(nbr_decision[i]){
         case REFINE: nbr_isRefined[i]=true; break;
         case STAY: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
@@ -1224,7 +1224,7 @@ void Advection::updateNbrStatus(){
         default: CkAbort("nbr_decision not set");
         }
       }
-      else if(nbr_exists[i] && nbr_isRefined[i]){
+      else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
         int d1, d2;
         getRefinedNbrDirections(i, d1, d2);
           

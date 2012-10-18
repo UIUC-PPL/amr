@@ -102,9 +102,6 @@ module Advection{
             CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy[thisIndex]));
         }
 
-        /*if(isRoot()) atomic "start QD for phase1 completion detection"{
-          CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
-        }*/
         when phase1Done() atomic "start phase2"{
           double now = CkWallTimer();
           double localQDLatency = now - lastIdleTimeQD;

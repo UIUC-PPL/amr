@@ -1,8 +1,8 @@
-CHARMC ?= ~/charm/bin/charmc -DLOGGER
-BOOST_ROOT = $(HOME)/boost_1_46_1
+BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
 
+CHARMC=~/charm/bin/charmc -DLOGGER -I$(BOOSTINC) -L$(BOOSTLIB) 
 CXX=$(CHARMC)
 
 OPTS ?= -O3
@@ -13,7 +13,7 @@ OBJS = QuadIndex.o Advection.o Main.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RotateLB -lboost_filesystem
+	$(CHARMC) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -tracemode projections -balancer RotateLB -lboost_filesystem -lboost_system
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci

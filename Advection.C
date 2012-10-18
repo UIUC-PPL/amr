@@ -155,15 +155,11 @@ bool isFriend(bool exists, bool isRefined){
 
 void Advection::applyInitialCondition(){
   double rsq;
-  for(int i=0; i<block_width+2; i++){
+  for(int i=0; i<block_width+2; i++)
     for(int j=0; j<block_height+2; j++){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
-      if(rsq <= radius*radius)
-        u[index(i, block_height+1-j)] = 2;
-      else u[index(i, block_height+1-j)] = 1;
+      u[index(i, block_height+1-j)] = (rsq<=radius*radius) ? 2:1;
     }
-  }
-  return;
 
   /*double *xarray = x;
   double *yarray = y;
@@ -315,7 +311,8 @@ void Advection::printState(){
 #endif
 }
 
-void Advection::advection(){ usesAutoMeasure = CmiFalse;
+void Advection::advection(){ 
+    usesAutoMeasure = CmiFalse;
 
   //logFile << "In Advection: " << std::endl;
   myt = t;

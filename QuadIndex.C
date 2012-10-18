@@ -114,22 +114,6 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
         case 3: r2 = (r1+r2)/2;   c1 = (c1+c2)/2 + 1; break;
         default: CkAbort("invalid quad#");
     };
-    /*if(quad==0){
-      r1 = (r1+r2)/2+1;
-      c1 = (c1+c2)/2+1;
-    }
-    else if(quad==1){
-      r1 = (r1+r2)/2+1;
-      c2 = (c1+c2)/2;
-    }
-    else if(quad==2){
-      r2 = (r1+r2)/2;
-      c2 = (c1+c2)/2;
-    }
-    else{
-      r2 = (r1+r2)/2;
-      c1 = (c1+c2)/2 + 1;
-    }*/
   }
   x = c1;//at the end of for loop r1=r2
   y = r1;// at the end of for loop c1=c2
@@ -160,22 +144,6 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
       case RIGHT:   yc = y;                     xc = (x+1)%range;           break;
       default: CkAbort("invald dir#");
   };
-  /*if(dir==UP){
-    yc = (y+1)%range;
-    xc = x;
-  }
-  else if(dir==DOWN){
-    yc = (y==0)?(range-1):y-1;
-    xc = x;
-  }
-  else if(dir==LEFT){
-    yc = y;
-    xc = (x==0)?(range-1):x-1;
-  }
-  else if(dir==RIGHT){
-    yc = y;
-    xc = (x+1)%range;
-  }*/
   return QuadIndex(xc, yc, depth);
 }
 

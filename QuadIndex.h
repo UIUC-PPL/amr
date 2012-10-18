@@ -6,9 +6,7 @@
 const int bits_per_int = 8*sizeof(int);
 
 inline bool liesin(int x, int st, int end){
-  if (x<=end && x>=st)
-    return true;
-  else return false;
+  return (x<=end && x>=st)?true:false;
 }
 
 enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP=4, LEFT_DOWN=5, RIGHT_UP=6, 
@@ -19,7 +17,6 @@ static DIR SENDER_DIR[NUM_NEIGHBORS] = {DOWN,UP,RIGHT,LEFT};
 
 enum DECISION {INV=-1, DEREFINE=0, STAY=1, REFINE=2};
 PUPbytes(DECISION);
-
 
 class QuadIndex{
 public:
@@ -42,16 +39,13 @@ public:
     bitVector = qidx.bitVector;
   }
 
-  bool operator !=(QuadIndex qidx) const{
-    if(nbits==qidx.nbits && bitVector==qidx.bitVector)
-      return false;
-    return true;
+  bool operator != (QuadIndex qidx) const{
+    //return (nbits==qidx.nbits && bitVector==qidx.bitVector)? false : true;
+    return !(*this == qidx);
   }
     
-  bool operator ==(QuadIndex qidx) const{
-    if(nbits==qidx.nbits && getIndexString() == qidx.getIndexString())
-      return true;
-    return false;
+  bool operator == (QuadIndex qidx) const{
+    return (nbits==qidx.nbits && getIndexString() == qidx.getIndexString())? true: false;
   }
 
   void getCoordinates(int&, int&)const;
@@ -74,8 +68,6 @@ public:
     p|nbits;
     p|bitVector;
   }
-
-  void getSiblingInDirection(DIR, int&, int&) const;
 
   bool operator<(const QuadIndex& rhs) const {
     if (nbits < rhs.nbits) return true;

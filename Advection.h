@@ -11,7 +11,14 @@
 #include "Advection.decl.h"
 
 int inline map_nbr(int quad, int nbr){
-  if(quad==0){
+    switch(quad){
+        case 0: return (nbr==RIGHT)?LEFT_UP:DOWN_RIGHT; break;
+        case 1: return (nbr==LEFT)?RIGHT_UP:DOWN_LEFT;  break;
+        case 2: return (nbr==LEFT)?RIGHT_DOWN:UP_LEFT; break;
+        case 3: return (nbr==RIGHT)?LEFT_DOWN:UP_RIGHT; break;
+        default: CkAbort("invalid quad#");
+    };
+  /*if(quad==0){
     if(nbr == RIGHT)
       return LEFT_UP;
     else if(nbr == UP)
@@ -35,7 +42,7 @@ int inline map_nbr(int quad, int nbr){
     else if(nbr == DOWN)
       return UP_RIGHT;
   }
-  return -1;
+  return -1;*/
 }
 
 //returns the direction of the neighbor in direction 'dir' with repsect to the parent

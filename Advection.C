@@ -170,7 +170,7 @@ void Advection::applyInitialCondition(){
   }
   return;
 
-  double *xarray = x;
+  /*double *xarray = x;
   double *yarray = y;
 
   double x, y, rx, ry;
@@ -230,7 +230,7 @@ void Advection::applyInitialCondition(){
           u[index(i, block_height+1-j)] = 2;
       }
     }
-  }
+  }*/
 }
 
 void Advection::mem_allocate(double* &p, int size){

@@ -1,22 +1,17 @@
 #include <limits>
-#include <iostream>
 #include <fstream>
-#include <stdio.h>
 #include <cmath>
 #include <cstring>
 #include <queue>
 #include <set>
 #include <vector>
 #include <algorithm>
-#include <limits>
 #include "charm++.h"
-#include "trace-projections.h"
 #include <boost/assign/list_of.hpp>
 #include "boost/filesystem.hpp"
 
 using namespace std;
 
-#include "charm++.h"
 #include "Constants.h"
 #include "QuadIndex.h"
 #include "Advection.h"

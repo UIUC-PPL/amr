@@ -1,6 +1,5 @@
 #include <cmath>
 #include <cstring>
-#include "math.h"
 #include "charm++.h"
 #include "Constants.h"
 #include "QuadIndex.h"
@@ -108,8 +107,14 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
     int bit1 = (bitVector & (1<<(bits_per_int - 1 - (i+1))))>0?1:0;
         
     int quad = 2*bit0 + bit1;
-    //   cout << "quad: " << quad << endl;
-    if(quad==0){
+    switch(quad){
+        case 0: r1 = (r1+r2)/2+1; c1 = (c1+c2)/2+1; break;
+        case 1: r1 = (r1+r2)/2+1; c2 = (c1+c2)/2;   break;
+        case 2: r2 = (r1+r2)/2;   c2 = (c1+c2)/2;   break;
+        case 3: r2 = (r1+r2)/2;   c1 = (c1+c2)/2 + 1; break;
+        default: CkAbort("invalid quad#");
+    };
+    /*if(quad==0){
       r1 = (r1+r2)/2+1;
       c1 = (c1+c2)/2+1;
     }
@@ -124,18 +129,14 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
     else{
       r2 = (r1+r2)/2;
       c1 = (c1+c2)/2 + 1;
-    }
-    //           cout << r1 << ", " << r2 << ", " << c1 << ", " << c2 << endl;
+    }*/
   }
-  //       cout << "getCoordinates for " << getIndexString() << ": " << x << ", " << y << endl;     
   x = c1;//at the end of for loop r1=r2
   y = r1;// at the end of for loop c1=c2
 }
     
 // returns the Index String
 std::string QuadIndex::getIndexString() const{
-  //char* str = new char[nbits+1];
-  //int i;
   std::string str;
 
   CkAssert(bitVector != 548329052);
@@ -143,7 +144,6 @@ std::string QuadIndex::getIndexString() const{
   for(int i=0; i<nbits; i++){
     str += (bitVector & (1<<(bits_per_int - 1 - i)))>0?49:48;
   }
-  //str[i]='\0';
   return str;
 }
     
@@ -153,7 +153,14 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
   int range = 1 << depth;
   int x, y, xc, yc;
   getCoordinates(x, y);
-  if(dir==UP){
+  switch(dir){
+      case UP:      yc = (y+1)%range;           xc = x;                     break;
+      case DOWN:    yc = (y==0)?(range-1):y-1;  xc = x;                     break;
+      case LEFT:    yc = y;                     xc = (x==0)?(range-1):x-1;  break;
+      case RIGHT:   yc = y;                     xc = (x+1)%range;           break;
+      default: CkAbort("invald dir#");
+  };
+  /*if(dir==UP){
     yc = (y+1)%range;
     xc = x;
   }
@@ -168,7 +175,7 @@ QuadIndex QuadIndex::getNeighbor(int dir) const{
   else if(dir==RIGHT){
     yc = y;
     xc = (x+1)%range;
-  }
+  }*/
   return QuadIndex(xc, yc, depth);
 }
 
@@ -197,16 +204,4 @@ int QuadIndex::getChildNum() const{
 int QuadIndex::getQuadI() const{
   return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
 }
-
-void QuadIndex::getSiblingInDirection(DIR dir, int &c1, int &c2) const{
-  if(dir==RIGHT){
-    c1=0; c2=3;}
-  else if(dir==UP){
-    c1=0; c2=1;}
-  else if(dir==LEFT){
-    c1=1; c2=2;}
-  else if(dir==DOWN){
-    c1=2; c2=3;}
-}
-
 

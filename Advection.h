@@ -241,8 +241,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void refine();
   void interpolate(double*, vector<double>&, int, int, int, int);
   void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
-  template<class T>
-    void print_Array(T*,int,int);
 
   /*Load Balancing functions*/
   void startLdb();

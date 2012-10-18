@@ -576,33 +576,18 @@ void Advection::sendGhost(int dir){
     }
     end = begin + count;
 
-    int k = 0;
-    for (; begin != end; ++k, ++begin) {
+    for (int k=0; begin != end; ++k, ++begin) {
       boundary[k] = downSample(u, begin.x, begin.y);
       VB(logFile << boundary[k] << "\t";);
     }
     VB(logFile << std::endl;);
-    CkAssert(k == count);
 
     thisProxy(receiver).receiveGhosts(iterations, sender_direction, count, boundary);
   }
   VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);
 }
 
-
-template<class T>
-void Advection::print_Array(T* array, int size, int row_size){
-#ifdef LOGGER
-  for(int i=0; i<size; i++){
-    if(i%row_size==0)
-      logFile << std::endl;
-    logFile << array[i] << '\t';
-  }
-#endif
-}
-
 void Advection::process(int iteration, int dir, int size, double gh[]){
-  //printf("[%d] process %d %d\n", thisIndex, iter, dir);
   VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iteration << ", " << iterations << std::endl;);
   for(int i=0; i<size; i++){
     VB(logFile << gh[i] << '\t';);
@@ -613,10 +598,7 @@ void Advection::process(int iteration, int dir, int size, double gh[]){
 
   boundary_iterator iter;
 
-  if (dir <= RIGHT)
-    imsg += 1;
-  else
-    imsg += 0.5;
+  imsg += (dir<=RIGHT) ? 1:0.5;
 
   switch(dir){
   case UP:         iter = boundary_iterator(u, 1,                 1, 0,                  0); break;
@@ -1148,8 +1130,7 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
-  VB(logFile << thisIndex.getIndexString() << " Entering Phase2, iteration " << iterations << std::endl;);
-  VB(logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;);
+  VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
 
   if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
     //Get Data From the Children and extrapolate it
@@ -1174,7 +1155,6 @@ void Advection::doPhase2(){
   }
   else if(decision == REFINE){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
-    //thisProxy[thisIndex].getGhostsAndRefine();
     refine();
   }
    

@@ -542,7 +542,7 @@ int Advection::getGhostCount(int dir) {
   }
 }
 
-bool Advection::sendGhost(int dir, bool which=0){//which = 0 - message sent during remeshing, which=1 - during normal course of iteration
+bool Advection::sendGhost(int dir){
   int count = getGhostCount(dir);
   double* boundary;
 

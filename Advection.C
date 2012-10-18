@@ -634,18 +634,6 @@ bool Advection::hasReceivedFromAroundCorner(int aroundCorner) {
     hasReceivedFromDir(simpleDirectionFromComplex(aroundCorner));
 }
 
-void Advection::sendReadyData2RefiningNeighbors(){
-  for(int i=NUM_NEIGHBORS; i<3*NUM_NEIGHBORS; i++) {
-    if(nbr_decision[i] == REFINE && !nbr_dataSent[i]) {
-      if (hasReceivedFromDir(i) &&
-          hasReceivedFromAroundCorner(cornerDirection(i))) {
-        interpolateAndSend(i);
-        nbr_dataSent[i]=true;
-      }
-    }
-  }
-}
-
 void Advection::sendReadyData(){
   //check if data can be sent to any of the refined neighbors
   //If the neighbors are at the same level or do not exist at all 

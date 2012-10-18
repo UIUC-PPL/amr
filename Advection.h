@@ -230,7 +230,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   /*Phase2 entry methods*/
   void setNbrStatus(int, bool*, bool*, DECISION*);
   void sendReadyData();
-  void sendReadyData2RefiningNeighbors();
   // Returns whether a message was sent
   void sendGhost(int);
   void doPhase2();

@@ -1,4 +1,4 @@
-CHARMC=~/charm/bin/charmc -DLOGGER
+CHARMC ?= ~/charm/bin/charmc -DLOGGER
 BOOST_ROOT = $(HOME)/boost_1_46_1
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib

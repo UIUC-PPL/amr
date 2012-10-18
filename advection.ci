@@ -233,19 +233,21 @@ module Advection{
                 thisProxy[thisIndex].signalExchangeGhostsCompletion();
             }
         }
-        when signalExchangeGhostsCompletion() atomic "start error estimation"{
+        when signalExchangeGhostsCompletion() atomic "start error estimation and phase1 QD"{
             doRemeshing();
+            CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy[thisIndex]));
         }
 
-        if(isRoot()) atomic "start QD for phase1 completion detection"{
+        /*if(isRoot()) atomic "start QD for phase1 completion detection"{
           CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
-        }
+        }*/
         when phase1Done() atomic "start phase2"{
           double now = CkWallTimer();
           double localQDLatency = now - lastIdleTimeQD;
           double localRemeshLatency = now - remeshStartTime;
           ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
           ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
+
           if(isRoot()) ckout << "in doPhase2" << endl;
           doPhase2();
           resetMeshRestructureData();
@@ -254,6 +256,7 @@ module Advection{
           }
         }
     };
+
     entry void phase2Done() atomic "done phase2"{
         if(isInMeshGenerationPhase){
             meshGenIterations++;

@@ -158,6 +158,18 @@ void PerProcessorChare::resetMeshUpdateCounters(){
 
 }
 
+bool isUncle(bool exists, bool isRefined){
+    return !exists;
+}
+
+bool isNephew(bool exists, bool isRefined){
+    return exists && isRefined;
+}
+
+bool isFriend(bool exists, bool isRefined){
+    return exists && !isRefined;
+}
+
 void Advection::applyInitialCondition(){
   double rsq;
   for(int i=0; i<block_width+2; i++){
@@ -1093,17 +1105,6 @@ bool isDirectionSimple(int dir) {
   return dir == LEFT || dir == RIGHT || dir == UP || dir == DOWN;
 }
 
-bool isUncle(bool exists, bool isRefined){
-    return !exists;
-}
-
-bool isNephew(bool exists, bool isRefined){
-    return exists && isRefined;
-}
-
-bool isFriend(bool exists, bool isRefined){
-    return exists && !isRefined;
-}
 
 // Phase1 Msgs are either REFINE or STAY messages
 void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_length) {
@@ -1460,7 +1461,7 @@ Advection::Advection(double dx, double dy,
         }
       }
       else if (parent_nbr_exists[dir] && parent_nbr_isRefined[dir]){
-        int nbr_dir_wrt_parent = getNbrDir(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
+        int nbr_dir_wrt_parent = nbrDirectionWrtParent(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
         switch(parent_nbr_decision[nbr_dir_wrt_parent]){
         case DEREFINE: nbr_exists[dir]=false; break;
         case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;

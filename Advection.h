@@ -45,8 +45,15 @@ int inline myDirectionWrtUncle(int quad, int nbr){
 }
 
 //returns the direction of the neighbor in direction 'dir' with repsect to the parent
-int inline getNbrDir(int quad, int dir){
-  if(quad==0){
+int inline nbrDirectionWrtParent(int quad, int dir){
+  switch(quad){
+      case 0: return (dir==RIGHT)?RIGHT_UP:UP_RIGHT; break;
+      case 1: return (dir==LEFT)?LEFT_UP:UP_LEFT; break;
+      case 2: return (dir==LEFT)?LEFT_DOWN:DOWN_LEFT; break;
+      case 3: return (dir==RIGHT)?RIGHT_DOWN:DOWN_RIGHT;break;
+      default: CkAbort("invalid quad num");
+  };
+  /*if(quad==0){
     if(dir==RIGHT)
       return RIGHT_UP;
     else if(dir==UP)
@@ -69,7 +76,7 @@ int inline getNbrDir(int quad, int dir){
       return RIGHT_DOWN;
     else if(dir==DOWN)
       return DOWN_RIGHT;
-  }
+  }*/
 }
 
 inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){

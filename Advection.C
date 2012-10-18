@@ -557,7 +557,6 @@ void Advection::sendGhost(int dir){
     default: CkAbort("invalid send dir");
     };
     thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary);
-    lastSent = nbr[dir];
   }
 
   if(isUncle(nbr_exists[dir], nbr_isRefined[dir])) {
@@ -586,7 +585,6 @@ void Advection::sendGhost(int dir){
     CkAssert(k == count);
 
     thisProxy(receiver).receiveGhosts(iterations, sender_direction, count, boundary);
-    lastSent = receiver;
   }
   VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);
 }

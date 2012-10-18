@@ -233,7 +233,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void sendReadyData2RefiningNeighbors();
   // Returns whether a message was sent
   void sendGhost(int);
-  QuadIndex lastSent;
   void doPhase2();
   void updateNbrStatus();
 

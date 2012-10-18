@@ -21,6 +21,7 @@ using namespace std;
 
 
 extern CProxy_Main mainProxy;
+extern CProxy_Advection qtree;
 
 extern int array_height;
 extern int array_width;
@@ -84,6 +85,10 @@ PerProcessorChare::PerProcessorChare()
     delua[0][i] = new double[block_width+2];
     delua[1][i] = new double[block_width+2];
   }
+
+  numNotificationsExpected = qtree.ckLocMgr()->numLocalElements();
+  numNotificationsRecvd = 0;
+  nChanges=0;
 }
 
 void PerProcessorChare::incrementWorkUnitCount() {
@@ -128,13 +133,29 @@ void PerProcessorChare::meshGenerationPhaseIsOver(){
 }
 
 void PerProcessorChare::notifyMeshUpdate(DECISION dec){
-    numNotificationsRecvd++;
+    //ckout << CkMyPe() << " notified of mesh update" << numNotificationsRecvd << ", " << numNotificationsExpected << endl;
     if(dec==REFINE||dec==DEREFINE){
         nChanges++;
     }
-    if(numNotificationsRecvd == numNotificationsExpected){
-        contribute(sizeof(int), &nChanges, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy[0]));
+    if(++numNotificationsRecvd == numNotificationsExpected){
+        //ckout << CkMyPe() << " is contributing" << endl;
+        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy));
     }
+}
+
+void PerProcessorChare::meshUpdateReductionClient(int nChanges){
+    if(CkMyPe()==0)
+        ckout << "meshUpdateReductionClient: " << nChanges << endl;
+    meshUpdated = (nChanges > 0) ? true:false;
+}
+
+void PerProcessorChare::resetMeshUpdateCounters(){
+    nChanges = 0;
+    numNotificationsRecvd = 0;
+    numNotificationsExpected = qtree.ckLocMgr()->numLocalElements();
+    if(numNotificationsExpected==0)
+        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy));
+
 }
 
 void Advection::applyInitialCondition(){
@@ -849,7 +870,9 @@ void Advection::iterate() {
     if(iterations % refine_frequency == 0) {
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
       //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-      startRemesh();
+      //startRemesh();
+      iterations++;
+      doMeshRestructure();
     }
     else {
       VB(logFile << "calling doStep now, iteration " << iterations << std::endl;);
@@ -1166,6 +1189,7 @@ void Advection::doPhase2(){
   if(isInMeshGenerationPhase){
     /*if(decision==REFINE || decision==DEREFINE)
       decision=INV;*/
+    ckout << thisIndex.getIndexString().c_str() << ": notifying with decision = " << decision << endl;
     ppc.ckLocalBranch()->notifyMeshUpdate(decision);
   }
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
@@ -1236,9 +1260,9 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   this->iterations = iterations;
   this->meshGenIterations = meshGenIterations;
 
-  if(u == NULL) {
-    mem_allocate_all();
-  }
+  //if(u == NULL) {
+  //  mem_allocate_all();
+  //}
 
   int st_i, end_i, st_j, end_j;
   switch(childNum){
@@ -1501,8 +1525,8 @@ Advection::Advection(double dx, double dy,
 
 #ifdef LOGGER
   logFile << "New Child Values" << std::endl;
-  for(int i=0; i<block_height; i++){
-    for(int j=0; j<block_width; j++)
+  for(int i=0-1; i<block_height+1; i++){
+    for(int j=0-1; j<block_width+1; j++)
       logFile << u[index(j+1,i+1)] << "\t";
     logFile << std::endl;
   }

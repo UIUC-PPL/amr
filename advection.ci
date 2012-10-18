@@ -1,6 +1,7 @@
 mainmodule Main{
 
   readonly CProxy_Main mainProxy;
+  readonly CProxy_Advection qtree;
   readonly int block_height;
   readonly int block_width;
 
@@ -86,7 +87,9 @@ module Advection{
     entry void reduceLatencies();
     entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
-    entry void notifyMeshUpdate();
+    entry void notifyMeshUpdate(DECISION);
+    entry [reductiontarget] void meshUpdateReductionClient(int);
+    entry void resetMeshUpdateCounters();
   };
 
 
@@ -106,7 +109,7 @@ module Advection{
 
     entry void rootTerminated() {};
     
-    entry void phase1OfMeshGenerationDone();
+    /*entry void phase1OfMeshGenerationDone();
     entry [reductiontarget] void meshUpdateReductionClient(int result);
 
     entry void generateMesh(){
@@ -216,27 +219,70 @@ module Advection{
         }
       }
     };
-    
-    /*entry void doRemeshing(){
-        if(isInMeshGenerationPhase || isRefined) atomic "start error estimation 1" {
-            doErrorEstimationAndCommunicate();
+    entry void phase2Done();*/
+    entry void doMeshRestructure(){
+        if(!isInMeshGenerationPhase && !isRefined) {
+            atomic "trigger ghost exchange"{
+                exchangeGhosts();
+            }
         }
         else {
-            atomic "exchange ghosts before error estimation"{
-              exchangeGhosts();
+            atomic "signal exchange ghost completion without actually doing it"{
+                if(isRoot() && isInMeshGenerationPhase){ckout << "in mesh generation phase" << endl;}
+                VB(logFile << "in mesh gen iter" << std::endl;);
+                thisProxy[thisIndex].signalExchangeGhostsCompletion();
             }
-            when signalExchangeGhostsCompletion() atomic "start error estimation 2"{
-              doErrorEstimationAndCommunicate();
-          }
         }
+        when signalExchangeGhostsCompletion() atomic "start error estimation"{
+            doRemeshing();
+        }
+
         if(isRoot()) atomic "start QD for phase1 completion detection"{
           CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
         }
         when phase1Done() atomic "start phase2"{
+          double now = CkWallTimer();
+          double localQDLatency = now - lastIdleTimeQD;
+          double localRemeshLatency = now - remeshStartTime;
+          ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
+          ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
+          if(isRoot()) ckout << "in doPhase2" << endl;
           doPhase2();
           resetMeshRestructureData();
+          if(isRoot()){
+              CkStartQD(CkCallback(CkIndex_Advection::phase2Done(), thisProxy));
+          }
         }
-    };*/
+    };
+    entry void phase2Done() atomic "done phase2"{
+        if(isInMeshGenerationPhase){
+            meshGenIterations++;
+            if(ppc.ckLocalBranch()->meshUpdated && meshGenIterations<20){
+                thisProxy[thisIndex].doMeshRestructure();
+                ppc.ckLocalBranch()->resetMeshUpdateCounters();
+                return;
+            }
+        }
+        isInMeshGenerationPhase=false;
+        if(isRoot())ppc.meshGenerationPhaseIsOver();
+        if(isInMeshGenerationPhase && isRefined) iterations=1;
+        if(isRoot()){
+            itBeginTime=CmiWallTimer();
+        }
+        if(!isRefined)
+            thisProxy[thisIndex].doStep();
+        else{
+          iterations += refine_frequency - 1;
+          if (iterations >= max_iterations) {
+            VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
+            if (isRoot())
+              CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+          } 
+          else {
+            doMeshRestructure();
+          }
+        }
+    };
 
     entry void doRemeshing();
     entry void startLdb();
@@ -264,7 +310,7 @@ module Advection{
       }
     };
 
-    entry void doMeshRestructure(){
+    /*entry void doMeshRestructure(){
       if (!isRefined){
         atomic "exchange ghosts before remeshing"{
           exchangeGhosts();
@@ -278,7 +324,7 @@ module Advection{
           doRemeshing();
         }
       }
-    };
+    };*/
 
 
     entry void exchangeGhosts(){

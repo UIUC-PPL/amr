@@ -141,7 +141,6 @@ Main::Main(CkArgMsg* m){
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
   opts.setMap(map);
-  ppc = CProxy_PerProcessorChare::ckNew();
   qtree = CProxy_Advection::ckNew(opts);
 
   //save the total number of worker chares we have in this simulation
@@ -174,6 +173,7 @@ Main::Main(CkArgMsg* m){
   qtree.doneInserting();
 
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
+  ppc = CProxy_PerProcessorChare::ckNew();
 
   //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
   //CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
@@ -219,7 +219,9 @@ Main::Main(CkArgMsg* m){
 void Main::startMeshGeneration() {
   //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
   start_time = CkWallTimer();
-  qtree.generateMesh();
+  //qtree.generateMesh();
+  qtree.doMeshRestructure();
+  ppc.resetMeshUpdateCounters();
   //CkStartQD(CkCallback(CkIndex_Main::startRunning(), mainProxy));
 }
 

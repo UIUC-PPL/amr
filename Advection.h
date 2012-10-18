@@ -275,6 +275,10 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   vector<int> cascades;
   std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
+  int numNotificationsExpected, numNotificationsRecvd;
+  int nChanges;
+  public:
+  bool meshUpdated;
 
  public:
   PerProcessorChare();
@@ -287,6 +291,9 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   void reduceWorkUnits();
   void reduceLatencies();
   void meshGenerationPhaseIsOver();
+  void notifyMeshUpdate(DECISION);
+  void meshUpdateReductionClient(int);
+  void resetMeshUpdateCounters();
 };
 
 extern CProxy_PerProcessorChare ppc;

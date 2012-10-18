@@ -127,6 +127,16 @@ void PerProcessorChare::meshGenerationPhaseIsOver(){
   isInMeshGenerationPhase=false;
 }
 
+void PerProcessorChare::notifyMeshUpdate(DECISION dec){
+    numNotificationsRecvd++;
+    if(dec==REFINE||dec==DEREFINE){
+        nChanges++;
+    }
+    if(numNotificationsRecvd == numNotificationsExpected){
+        contribute(sizeof(int), &nChanges, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy[0]));
+    }
+}
+
 void Advection::applyInitialCondition(){
   double rsq;
   for(int i=0; i<block_width+2; i++){
@@ -1154,8 +1164,9 @@ void Advection::doPhase2(){
    
   updateNbrStatus();
   if(isInMeshGenerationPhase){
-    if(decision==REFINE || decision==DEREFINE)
-      decision=INV;
+    /*if(decision==REFINE || decision==DEREFINE)
+      decision=INV;*/
+    ppc.ckLocalBranch()->notifyMeshUpdate(decision);
   }
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
@@ -1268,8 +1279,10 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   setNbrStatus(c2, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
   
   resetMeshRestructureData();
-  if(isInMeshGenerationPhase)
+  /*if(isInMeshGenerationPhase){
     decision=DEREFINE;
+    ppc.ckLocalBranch()->meshUpdated();
+  }*/
 }
 
 inline void Advection::setNbrStatus(int dir, bool *child_nbr_exists, bool *child_nbr_isRefined, DECISION *child_nbr_decision){
@@ -1494,8 +1507,11 @@ Advection::Advection(double dx, double dy,
     logFile << std::endl;
   }
 #endif
-  if(isInMeshGenerationPhase)
-    decision=REFINE;//to be used for reduction while doing mesh generation
+  /*if(isInMeshGenerationPhase){
+    decision=REFINE;
+    //tell ppc that you are newly created
+    ppc.ckLocalBranch()->meshUpdated();
+  }*///to be used for reduction while doing mesh generation
                   // to keep track if any change happened in the last mesh gen iteration 
   //delete the message
   //delete msg;

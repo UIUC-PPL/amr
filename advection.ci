@@ -86,6 +86,7 @@ module Advection{
     entry void reduceLatencies();
     entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
+    entry void notifyMeshUpdate();
   };
 
 
@@ -217,18 +218,24 @@ module Advection{
     };
     
     /*entry void doRemeshing(){
-        if(isInMeshGenerationPhase) atomic "start error estimation 1" {
+        if(isInMeshGenerationPhase || isRefined) atomic "start error estimation 1" {
             doErrorEstimationAndCommunicate();
         }
         else {
             atomic "exchange ghosts before error estimation"{
-                exchangeGhosts();
+              exchangeGhosts();
             }
             when signalExchangeGhostsCompletion() atomic "start error estimation 2"{
-                doErrorEstimationAndCommunicate();
-            }
+              doErrorEstimationAndCommunicate();
+          }
         }
-        CkStartQD();
+        if(isRoot()) atomic "start QD for phase1 completion detection"{
+          CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy));
+        }
+        when phase1Done() atomic "start phase2"{
+          doPhase2();
+          resetMeshRestructureData();
+        }
     };*/
 
     entry void doRemeshing();

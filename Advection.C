@@ -872,7 +872,7 @@ void Advection::iterate() {
       //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
       //startRemesh();
       iterations++;
-      doMeshRestructure();
+      doRemeshing();
     }
     else {
       VB(logFile << "calling doStep now, iteration " << iterations << std::endl;);

@@ -1097,6 +1097,7 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+  if(isRoot()) ckout << "in doPhase2" << endl;
   //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
 
@@ -1136,6 +1137,7 @@ void Advection::doPhase2(){
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
   parentHasAlreadyMadeDecision = false;
+  resetMeshRestructureData();
 }
 
 void Advection::updateNbrStatus(){

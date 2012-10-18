@@ -97,19 +97,17 @@ module Advection{
         }
         when signalExchangeGhostsCompletion() atomic "start error estimation and phase1 QD"{
             makeGranularityDecisionAndCommunicate();
-            CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy[thisIndex]));
+            CkStartQD(CkCallback(CkIndex_Advection::startPhase2(), thisProxy[thisIndex]));
         }
 
-        when phase1Done() atomic "start phase2"{
+        when startPhase2() atomic ""{
           double now = CkWallTimer();
           double localQDLatency = now - lastIdleTimeQD;
           double localRemeshLatency = now - remeshStartTime;
           ppc.ckLocalBranch()->recordQDLatency(iterations, localQDLatency);
           ppc.ckLocalBranch()->recordRemeshLatency(iterations, localRemeshLatency);
 
-          if(isRoot()) ckout << "in doPhase2" << endl;
           doPhase2();
-          resetMeshRestructureData();
           if(isRoot()){
               CkStartQD(CkCallback(CkIndex_Advection::phase2Done(), thisProxy));
           }
@@ -202,9 +200,8 @@ module Advection{
       }
     };
 
-    entry void phase1Done();
+    entry void startPhase2();
     entry void free_memory();
-    entry void doPhase2();
     entry void recvChildData(int, double, double, int, int, std::vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);
 
   };

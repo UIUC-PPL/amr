@@ -1,5 +1,8 @@
 #include "Headers.h"
 
+using std::max;
+using std::min;
+
 CProxy_Advection qtree;
 CProxy_Main mainProxy;
 

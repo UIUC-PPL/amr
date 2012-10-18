@@ -1,5 +1,10 @@
 #include "Headers.h"
 
+using std::vector;
+using std::ofstream;
+using std::max;
+using std::min;
+
 extern CProxy_Main mainProxy;
 extern CProxy_Advection qtree;
 

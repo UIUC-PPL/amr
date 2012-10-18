@@ -118,8 +118,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection_SDAG_CODE
     public:
         
-  ofstream logFile;
-  ofstream outFile;
+  std::ofstream logFile;
+  std::ofstream outFile;
   //tree information
   bool isRefined;
   int depth;
@@ -130,7 +130,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool nbr_exists[NUM_NEIGHBORS];
   bool nbr_isRefined[NUM_NEIGHBORS];
   bool nbr_dataSent[3*NUM_NEIGHBORS];
-  set<int> hasReceived;
+  std::set<int> hasReceived;
   bool hasReceivedFromDir(int dir);
   bool hasReceivedFromAroundCorner(int aroundCorner);
 
@@ -187,7 +187,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection(double dx, double dy,
             double myt, double mydt, double xmin, double ymin,
             int meshGenIterations_, int iterations_, 
-            vector<double> refined_u, bool *parent_nbr_exists, 
+            std::vector<double> refined_u, bool *parent_nbr_exists, 
             bool *parent_nbr_isRefined, DECISION *parent_nbr_decision);
 
   Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{
@@ -236,10 +236,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void doPhase2();
   void updateNbrStatus();
 
-  void recvChildData(int, double, double, int, int, vector<double>, bool*, bool*, DECISION*);
+  void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, DECISION*);
   void interpolateAndSend(int);
   void refine();
-  void interpolate(double*, vector<double>&, int, int, int, int);
+  void interpolate(double*, std::vector<double>&, int, int, int, int);
   void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
 
   /*Load Balancing functions*/
@@ -282,7 +282,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 };*/
 
 class PerProcessorChare : public CBase_PerProcessorChare {
-  vector<int> cascades;
+  std::vector<int> cascades;
   std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
   int numNotificationsExpected, numNotificationsRecvd;

@@ -188,9 +188,9 @@ module Advection{
           left_edge[j-1] = u[index(1,j)];
           right_edge[j-1] = u[index(block_width,j)];
         }
-        for(int i=0; i<NUM_NEIGHBORS; i++){
+        FOR_EACH_NEIGHBOR
           sendGhost(i);
-        }
+        END_FOR
         VB(logFile << "Done Sending Ghosts " << thisIndex.getIndexString() << std::endl;);
       }
 

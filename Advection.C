@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
-#include<limits>
+#include <limits>
 using namespace std;
 
 #include "charm++.h"
@@ -297,7 +297,9 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   this->ymin = yc*ny*dy;
 
   for (int i = 0; i < NUM_CHILDREN; ++i)
+  FOR_EACH_CHILD
     child_isRefined[i] = false;
+  END_FOR
 
   advection();
   resetMeshRestructureData();
@@ -386,17 +388,27 @@ void Advection::pup(PUP::er &p){
   p|isRefined;
   p|depth;
 
-  for(int i=0; i<NUM_CHILDREN; i++)
+  //for(int i=0; i<NUM_CHILDREN; i++)
+  /*FOR_EACH_CHILD
     p|child_isRefined[i];
+  END_FOR
 
-  for(int i=0; i<NUM_NEIGHBORS; i++){
+  //for(int i=0; i<NUM_NEIGHBORS; i++){
+  FOR_EACH_NEIGHBOR
+    p|nbr[i];
     p|nbr_exists[i];
     p|nbr_isRefined[i];
-  }
+  END_FOR
+  //}
 
   for(int i=0; i<3*NUM_NEIGHBORS; i++){
     p|nbr_dataSent[i];
-  }
+  }*/
+  PUParray(p, child_isRefined, NUM_CHILDREN);
+  PUParray(p, nbr, NUM_NEIGHBORS);
+  PUParray(p, nbr_exists, NUM_NEIGHBORS);
+  PUParray(p, nbr_isRefined, NUM_NEIGHBORS);
+  PUParray(p, nbr_dataSent, 3*NUM_NEIGHBORS);
 
   p|hasReceived;
   p|decision;
@@ -404,33 +416,30 @@ void Advection::pup(PUP::er &p){
   p|hasReceivedParentDecision;
 
   p|parent;
-  for(int i=0; i<NUM_NEIGHBORS; i++)
-    p|nbr[i];
 
   p|xc;
   p|yc;
   p|imsg;
 
-  if(p.isUnpacking())
+  if(p.isUnpacking()){
     mem_allocate_all();
+    resetMeshRestructureData();
+  }
     
-  for(int i=0; i<(block_width+2)*(block_height+2); i++){
+  /*for(int i=0; i<(block_width+2)*(block_height+2); i++){
     p|u[i];
-    //p|u2[i];
-    //p|u3[i];
   }
 
   for (int i=0; i<block_width+2; i++){
     p|x[i];
-    //p|top_edge[i];
-    //p|bottom_edge[i];
   }
 
   for (int i=0; i<block_height+2; i++){
     p|y[i];
-    //p|left_edge[i];
-    //p|right_edge[i];
-  }
+  }*/
+  PUParray(p, u, (block_width+2)*(block_height+2));
+  PUParray(p, x, block_width+2);
+  PUParray(p, y, block_height+2);
  
   p|iterations;
   p|meshGenIterations;
@@ -442,9 +451,6 @@ void Advection::pup(PUP::er &p){
   p|dx; p|dy; p|nx; p|ny; p|xmin; p|xmax; p|ymin; p|ymax;
   
   p|itBeginTime;
-
-  if(p.isUnpacking())
-      resetMeshRestructureData();
 }
     
 Advection::~Advection(){
@@ -853,7 +859,6 @@ void Advection::compute(){
 
 void Advection::iterate() {
   if(iterations >= max_iterations){
-    //ckout << thisIndex.getIndexString().c_str() << " now terminating" << endl;
     VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
     if (isRoot())
       CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
@@ -869,8 +874,6 @@ void Advection::iterate() {
     //time to check need for refinement/coarsening
     if(iterations % refine_frequency == 0) {
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      //contribute(CkCallback(CkIndex_Advection::startRemesh(), thisProxy));
-      //startRemesh();
       iterations++;
       doRemeshing();
     }

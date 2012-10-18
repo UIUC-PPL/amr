@@ -98,7 +98,7 @@ module Advection{
             }
         }
         when signalExchangeGhostsCompletion() atomic "start error estimation and phase1 QD"{
-            doRemeshing();
+            makeGranularityDecisionAndCommunicate();
             CkStartQD(CkCallback(CkIndex_Advection::phase1Done(), thisProxy[thisIndex]));
         }
 
@@ -151,7 +151,7 @@ module Advection{
         }
     };
 
-    entry void doRemeshing();
+    entry void makeGranularityDecisionAndCommunicate();
     entry void startLdb();
     entry void signalExchangeGhostsCompletion();
 

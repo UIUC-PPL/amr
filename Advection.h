@@ -209,7 +209,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void iterate();
 
   /*Phase1 Entry Methods*/
-  void doRemeshing();
+  void makeGranularityDecisionAndCommunicate();
   DECISION getGranularityDecision();
 
   //void doMeshRestructure();

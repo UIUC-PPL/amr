@@ -975,7 +975,7 @@ void Advection::resetMeshRestructureData(){
   hasReceivedParentDecision=false;
 }
 
-void Advection::doRemeshing(){
+void Advection::makeGranularityDecisionAndCommunicate(){
   //CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
 
   remeshStartTime = CkWallTimer();

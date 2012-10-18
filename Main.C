@@ -45,7 +45,6 @@ int max_iterations, refine_frequency;
 
 const char amrRevision[] = INQUOTES(AMR_REVISION);
 
-int nframe;
 double xmin, xmax, ymin, ymax;
 double xctr, yctr, radius;
 double dx, dy, v;
@@ -110,10 +109,6 @@ Main::Main(CkArgMsg* m){
   tmax = 10000;
   cfl = 0.4;
   v = 0.1;
-  io_outnum = 0;
-  io_tnext = 0;
-  nframe = 20;
-  io_tout = tmax/nframe;
   refine_frequency = 3;
   isInMeshGenerationPhase = true;
 

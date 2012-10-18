@@ -14,8 +14,6 @@ mainmodule Main{
   readonly int min_depth;
   readonly int max_depth;
 
-  readonly int nframe;
-
   readonly double xctr;
   readonly double yctr;
   readonly double radius;

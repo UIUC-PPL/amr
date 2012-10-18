@@ -542,7 +542,7 @@ int Advection::getGhostCount(int dir) {
   }
 }
 
-bool Advection::sendGhost(int dir){
+void Advection::sendGhost(int dir){
   int count = getGhostCount(dir);
   double* boundary;
 
@@ -554,13 +554,10 @@ bool Advection::sendGhost(int dir){
     case RIGHT: boundary = right_edge;                 break;
     case UP:    boundary = &u[index(1, 1)];            break;
     case DOWN:  boundary = &u[index(1, block_height)]; break;
-    default:
-      CkPrintf("noop send\n");
-      return false;
+    default: CkAbort("invalid send dir");
     };
     thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary);
     lastSent = nbr[dir];
-    return true;
   }
 
   if(isUncle(nbr_exists[dir], nbr_isRefined[dir])) {
@@ -576,9 +573,7 @@ bool Advection::sendGhost(int dir){
     case DOWN:  begin = boundary_iterator(u, 1,               2, block_height - 1, 0); break;
     case LEFT:  begin = boundary_iterator(u, 1,               0, 1,                2); break;
     case RIGHT: begin = boundary_iterator(u, block_width - 1, 0, 1,                2); break;
-    default:
-      CkPrintf("noop send\n");
-      return false;
+    default: CkAbort("invalid send dir\n");
     }
     end = begin + count;
 
@@ -591,13 +586,9 @@ bool Advection::sendGhost(int dir){
     CkAssert(k == count);
 
     thisProxy(receiver).receiveGhosts(iterations, sender_direction, count, boundary);
-
     lastSent = receiver;
-    return true;
   }
-
   VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);
-  return false;
 }
 
 

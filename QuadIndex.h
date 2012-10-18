@@ -5,9 +5,10 @@
 
 const int bits_per_int = 8*sizeof(int);
 
-inline bool liesin(int x, int st, int end){
+#define liesin(x, st, end) ((x<=end && x>=st) ? true:false)
+/*inline bool liesin(int x, int st, int end){
   return (x<=end && x>=st)?true:false;
-}
+}*/
 
 enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP=4, LEFT_DOWN=5, RIGHT_UP=6, 
             RIGHT_DOWN=7, UP_LEFT=8, UP_RIGHT=9, DOWN_LEFT=10, DOWN_RIGHT=11};
@@ -20,17 +21,13 @@ PUPbytes(DECISION);
 
 class QuadIndex{
 public:
-  int nbits;
+  int nbits;// number of bits in the index
   unsigned int bitVector;// bit vector storing the index bits
-  // number of bits in the index
         
 public:
-  QuadIndex(){bitVector=0;nbits=0;}
-  QuadIndex(const QuadIndex& qindex){bitVector = qindex.bitVector; nbits = qindex.nbits;}
-  QuadIndex(int bitVector, int nbits){
-    this->bitVector = bitVector; 
-    this->nbits = nbits;
-  }
+  QuadIndex():bitVector(0), nbits(0){}
+  QuadIndex(const QuadIndex& qindex):bitVector(qindex.bitVector), nbits(qindex.nbits){}
+  QuadIndex(int _bitVector, int _nbits):bitVector(_bitVector), nbits(_nbits){}
   QuadIndex(const char*);
   QuadIndex(int, int, int);
 
@@ -40,7 +37,6 @@ public:
   }
 
   bool operator != (QuadIndex qidx) const{
-    //return (nbits==qidx.nbits && bitVector==qidx.bitVector)? false : true;
     return !(*this == qidx);
   }
     
@@ -69,12 +65,12 @@ public:
     p|bitVector;
   }
 
-  bool operator<(const QuadIndex& rhs) const {
+  /*bool operator<(const QuadIndex& rhs) const {
     if (nbits < rhs.nbits) return true;
     if (nbits > rhs.nbits) return false;
     if (bitVector < rhs.bitVector) return true;
     return false;
-  }
+  }*/
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {

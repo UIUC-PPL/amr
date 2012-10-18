@@ -212,18 +212,15 @@ Main::Main(CkArgMsg* m){
 }
 
 void Main::startMeshGeneration() {
-  //CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
   start_time = CkWallTimer();
-  //qtree.generateMesh();
   qtree.doRemeshing();
   ppc.resetMeshUpdateCounters();
-  //CkStartQD(CkCallback(CkIndex_Main::startRunning(), mainProxy));
 }
 
-void Main::startRunning(){
+/*void Main::startRunning(){
   start_time = CkWallTimer();
   qtree.doStep();
-}
+}*/
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
@@ -259,12 +256,12 @@ void Main::totalWorkUnits(int total) {
   CkExit();
 }
 
-void Main::printTreeInformation(CkVec<QuadIndex> list){
+/*void Main::printTreeInformation(CkVec<QuadIndex> list){
   for(int i=0; i<list.size(); i++){
     QuadIndex qindex = list[i];
     qtree[qindex].printState();
   }   
-}
+}*/
 
 #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
 

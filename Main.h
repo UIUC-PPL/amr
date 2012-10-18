@@ -10,10 +10,10 @@ class Main: public CBase_Main {
   double io_outnum, io_tnext, io_tout; 
 
   Main(CkArgMsg* m);
-  void printTreeInformation(CkVec<QuadIndex>);
+  //void printTreeInformation(CkVec<QuadIndex>);
   void terminate();
   void startMeshGeneration();
-  void startRunning();
+  //void startRunning();
   void reportCascadeStats(int *cascade_lengths, int size);
   void qdlatency(double* elems, int size);
   void remeshlatency(double* elems, int size);

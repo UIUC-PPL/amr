@@ -37,10 +37,10 @@ mainmodule Main{
   readonly bool isInMeshGenerationPhase;
   mainchare Main{
     entry Main(CkArgMsg *m);
-    entry void printTreeInformation(CkVec<QuadIndex>);
+    //entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
     entry void startMeshGeneration();
-    entry void startRunning();
+    //entry void startRunning();
     entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
     entry [reductiontarget] void qdlatency(double elems[size], int size);
     entry [reductiontarget] void remeshlatency(double elems[size], int size);

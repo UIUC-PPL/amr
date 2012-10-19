@@ -34,21 +34,16 @@ QuadIndex::QuadIndex(int x, int y, int depth){
     
   int index = 0;
   for(int i=0; i<depth; i++){
-    if      (liesin(y, 0, (r1+r2)/2)        &&  liesin(x, (c1+c2)/2+1, c2))  quad=3;
-    else if (liesin(y, 0, (r1+r2)/2)        &&  liesin(x, c1, (c1+c2)/2))    quad=2;
-    else if (liesin(y, (r1+r2)/2 + 1, r2)   &&  liesin(x, c1, (c1+c2)/2))    quad=1;
-    else                                                                     quad=0;
+    if      (liesin(y,             0, (r1+r2)/2) &&  liesin(x, (c1+c2)/2+1,        c2))  quad=3;
+    else if (liesin(y,             0, (r1+r2)/2) &&  liesin(x,          c1, (c1+c2)/2))  quad=2;
+    else if (liesin(y, (r1+r2)/2 + 1,        r2) &&  liesin(x,          c1, (c1+c2)/2))  quad=1;
+    else                                                                                 quad=0;
         
-    //set bitVector
-    int bit = quad/2;
-    bitVector = bitVector | bit<<(bits_per_int - 1 - index);
-    bit = quad%2;
-    bitVector = bitVector | bit<<(bits_per_int - 1 - (index+1));
+    bitVector = bitVector | (quad << (8*sizeof(bitVector)-index-2));
     index += 2;
-         
+
     r2 = r2 - pow(2.0, (double)depth-i-1);
     c2 = c2 - pow(2.0, (double)depth-i-1);
-         
     x =  x%(r2+1);
     y =  y%(r2+1);
   }
@@ -70,7 +65,6 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
   for(int i=0; i<nbits; i+=2){
     int bit0 = (bitVector & (1<<(bits_per_int - 1 - i)))>0?1:0;
     int bit1 = (bitVector & (1<<(bits_per_int - 1 - (i+1))))>0?1:0;
-        
     int quad = 2*bit0 + bit1;
     switch(quad){
         case 0: r1 = (r1+r2)/2+1; c1 = (c1+c2)/2+1; break;
@@ -87,9 +81,6 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
 // returns the Index String
 std::string QuadIndex::getIndexString() const{
   std::string str;
-
-  CkAssert(bitVector != 548329052);
-  CkAssert(nbits != 548329052);
   for(int i=0; i<nbits; i++){
     str += (bitVector & (1<<(bits_per_int - 1 - i)))>0?49:48;
   }

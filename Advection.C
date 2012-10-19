@@ -268,7 +268,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
     nbr_dataSent[i]=false;
   }
     
-  int xc, yc;
   thisIndex.getCoordinates(xc, yc);
 
   dx = (xmax - xmin)/double(array_height);
@@ -308,15 +307,12 @@ void Advection::printState(){
 }
 
 void Advection::advection(){ 
-    usesAutoMeasure = CmiFalse;
 
   //logFile << "In Advection: " << std::endl;
   myt = t;
   mem_allocate_all();
   iterations=0;
   meshGenIterations=0;
-
-  thisIndex.getCoordinates(xc, yc);
 
   for(int i=0; i<block_width+2; i++){
     x[i] = xmin + double(i)*dx - 0.5*dx;
@@ -330,9 +326,6 @@ void Advection::advection(){
   }
   //logFile << std::endl;
 
-  double rsq;
-    
-  //logFile << "In Adfvection2" << std::endl;
   VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
   applyInitialCondition();
 #if 1
@@ -442,7 +435,6 @@ void Advection::pup(PUP::er &p){
 }
     
 Advection::~Advection(){
-  //CkPrintf("%s destructor %d\n", thisIndex.getIndexString().c_str(), iterations);
   VB(logFile << "In Destructor" << std::endl;);
   delete [] u;
   delete [] u2;

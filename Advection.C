@@ -26,8 +26,6 @@ extern double tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency;
 extern bool isInMeshGenerationPhase;
 
-#define index(i,j)  (int)((j)*(block_width+2) + i)
-
 const int ndim=2;
 const int ndim2 = 4; //ndim*ndim
 
@@ -984,7 +982,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
   updateDecisionState(cascade_length, newDecision);
 }
 
-#define index_c(i,j) (int)((j)*(block_width/2) + i)
 
 void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction numbers of the refined neighbors in direction 'dir'
   switch(dir){
@@ -997,20 +994,18 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
+  if(isInMeshGenerationPhase){
+    ppc.ckLocalBranch()->notifyMeshUpdate(decision);
+  }
   if(isRoot()) ckout << "in doPhase2" << endl;
-  //cout << thisIndex.getIndexString() << " starting phase 2 " << iterations << std::endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
 
-  if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){//I am a parent(whose None of the Children Are Refined) and has to derefine
-    //Get Data From the Children and extrapolate it
-  }
-  else if(decision == DEREFINE && !isRefined){//send data to the parent
+  if(decision == DEREFINE){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     
     vector<double> child_u;
     if(isInMeshGenerationPhase==false){
-      size_t sz = ((block_height)*(block_width))/4;
-      child_u.resize(sz);
+      child_u.resize((block_height)*(block_width)/4);
       for(int i=1; i<= block_width; i+=2){
         for(int j=1; j<=block_height; j+=2){
           int idx = index_c(i/2, j/2);
@@ -1021,6 +1016,7 @@ void Advection::doPhase2(){
     thisProxy(parent).recvChildData(thisIndex.getQuadrant(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy[thisIndex].ckDestroy();
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
+    return;
   }
   else if(decision == REFINE){
     VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
@@ -1028,10 +1024,6 @@ void Advection::doPhase2(){
   }
    
   updateMeshState();
-  if(isInMeshGenerationPhase){
-    ckout << thisIndex.getIndexString().c_str() << ": notifying with decision = " << decision << endl;
-    ppc.ckLocalBranch()->notifyMeshUpdate(decision);
-  }
   resetMeshRestructureData();
 }
 
@@ -1094,10 +1086,6 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   this->iterations = iterations;
   this->meshGenIterations = meshGenIterations;
 
-  //if(u == NULL) {
-  //  mem_allocate_all();
-  //}
-
   int st_i, end_i, st_j, end_j;
   switch(childNum){
     case 0:  st_i = block_width/2+1;  end_i = block_width;    st_j = 1;                 end_j = block_height/2;  break;
@@ -1144,29 +1132,21 @@ inline void Advection::setNbrStateUponCoarsening(int dir, bool *exists, bool *is
     nbr_exists[dir]=true;
     if(isRefined[dir])
       nbr_isRefined[dir]=true;
-    if(!isRefined[dir] && decision[dir]==DEREFINE){
-      nbr_isRefined[dir]=false;
-    }
-    if(!isRefined[dir] && decision[dir]==STAY){
-      nbr_isRefined[dir]=true;
+    else{
+      switch(decision[dir]){
+        case DEREFINE: nbr_isRefined[dir]=false;    break;
+        case STAY:     nbr_isRefined[dir]=true;     break;
+      }
     }
   }
-  else if(!exists[dir]){
-    if(decision[dir]==REFINE){
-      nbr_exists[dir]=true;
-      nbr_isRefined[dir]=true;
-    }
-    else if(decision[dir]==STAY){
-      nbr_exists[dir]=true;
-      nbr_isRefined[dir]=false;
-    }
-    else {//DEREFNE
-      nbr_exists[dir]=false;
+  else{
+    switch(decision[dir]){
+      case REFINE:      nbr_exists[dir]=true;   nbr_isRefined[dir]=true;    break;
+      case STAY:        nbr_exists[dir]=true;   nbr_isRefined[dir]=false;   break;
+      case DEREFINE:    nbr_exists[dir]=false;                              break;
     }
   }
 }
-
-#define index_l(i,j)  (int)((j)*(block_width) + i)
 
 void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, int xend, int ystart, int yend){
   double sx_l, sx_r, sy_u, sy_d;
@@ -1208,9 +1188,6 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 void Advection::refine(){
   //Spawn The four children and give them the data
   //Assuming we already have the new boundary data
-    
-  //Interpolate the data and give it to the children when they are initialized
-  // boundaries of the children will have to be sent by the neighbor
   VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
 
   refineChild(1, 1,               block_width/2, 1,                block_height/2, xmin,           ymin+(ny*dy)/2);
@@ -1277,25 +1254,24 @@ Advection::Advection(double dx, double dy,
       //so it is possible that my parents neighbor do not exist
       //at this moment but a notification has been sent that they
       //should be generated
-      if (parent_nbr_exists[dir] && !parent_nbr_isRefined[dir]){
+      if (isFriend(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
         switch(parent_nbr_decision[dir]){
-        case REFINE: nbr_exists[dir]=true;  nbr_isRefined[dir]=false; break;
-        case STAY:   nbr_exists[dir]=false; break;
-        case DEREFINE: CkAbort("this neighbor cannot derefine");
-        default: VB(logFile << thisIndex.getIndexString() << " nbr decision not set" << endl;); 
-          CkAbort("nbr decision not set");
+          case REFINE:      nbr_exists[dir]=true;       nbr_isRefined[dir]=false;   break;
+          case STAY:        nbr_exists[dir]=false;                                  break;
+          case DEREFINE:    CkAbort("this neighbor cannot derefine");
+          default:          CkAbort("nbr decision not set");
         }
       }
-      else if (parent_nbr_exists[dir] && parent_nbr_isRefined[dir]){
+      else if (isNephew(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
         int nbr_dir_wrt_parent = nbrDirectionWrtParent(thisIndex.getQuadrant(), dir);//neighbor direction w.r.t. the parent
         switch(parent_nbr_decision[nbr_dir_wrt_parent]){
-        case DEREFINE: nbr_exists[dir]=false; break;
-        case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;
-        case REFINE: nbr_exists[dir]=true; nbr_isRefined[dir]=true; break;
-        default: CkAbort("nbr decision not set");
+          case DEREFINE: nbr_exists[dir]=false;                              break;
+          case STAY:     nbr_exists[dir]=true;  nbr_isRefined[dir]=false;    break;
+          case REFINE:   nbr_exists[dir]=true;  nbr_isRefined[dir]=true;     break;
+          default:       CkAbort("nbr decision not set");
         }
       }
-      else if (!parent_nbr_exists[dir]){
+      else if (isUncle(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
         VB(CkAssert(parent_nbr_decision[dir]==REFINE););
         nbr_exists[dir]=false;
       }
@@ -1306,9 +1282,6 @@ Advection::Advection(double dx, double dy,
   }
 
   if(!isInMeshGenerationPhase){
-    //Initialize u - For boundaries I have to wait for the neighbors
-    //to send the values, rest of it can be initialized by the values 
-    //received from the parent
     int ctr=0;
     for(int j=1; j<=block_height; j++)
       for(int i=1; i<=block_width; i++)

@@ -1246,10 +1246,6 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   setNbrStatus(c2, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
   
   resetMeshRestructureData();
-  /*if(isInMeshGenerationPhase){
-    decision=DEREFINE;
-    ppc.ckLocalBranch()->meshUpdated();
-  }*/
 }
 
 inline void Advection::setNbrStatus(int dir, bool *child_nbr_exists, bool *child_nbr_isRefined, DECISION *child_nbr_decision){

@@ -129,9 +129,9 @@ module Advection{
         if(isRoot()){
             itBeginTime=CmiWallTimer();
         }
-        if(!isRefined)
+        //if(true)
             thisProxy[thisIndex].doStep();
-        else{
+        /*else{
           iterations += refine_frequency - 1;
           if (iterations >= max_iterations) {
             VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
@@ -141,7 +141,7 @@ module Advection{
           else {
             doRemeshing();
           }
-        }
+        }*/
     };
 
     entry void makeGranularityDecisionAndCommunicate();
@@ -156,16 +156,20 @@ module Advection{
                  << " dt: " << dt << " mydt: " << mydt << " myt " << myt << endl;
         }
         iterations++;
-        char fname[100];
+        if(!isRefined){
+            char fname[100];
 
-        sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-        VB(outFile.open(fname););
-        VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
-
-        exchangeGhosts();
+            sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
+            VB(outFile.open(fname););
+            VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
+            exchangeGhosts();
+        }
+        else
+            thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
       when signalExchangeGhostsCompletion() atomic "doWork" {
-        compute();
+        if(!isRefined)
+            compute();
         iterate();
       }
     };

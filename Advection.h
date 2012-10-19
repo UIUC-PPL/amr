@@ -72,9 +72,9 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool hasReceivedFromAroundCorner(int aroundCorner);
 
   /*Phase1 DataStructures*/
-  DECISION decision;
-  DECISION nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
-  DECISION child_decision[NUM_CHILDREN];
+  Decision decision;
+  Decision nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
+  Decision child_decision[NUM_CHILDREN];
 
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
@@ -128,7 +128,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
             double myt, double mydt, double xmin, double ymin,
             int meshGenIterations_, int iterations_, 
             std::vector<double> refined_u, bool *parent_nbr_exists, 
-            bool *parent_nbr_isRefined, DECISION *parent_nbr_decision);
+            bool *parent_nbr_isRefined, Decision *parent_nbr_decision);
 
   Advection(CkMigrateMessage* m){
     usesAutoMeasure = CmiFalse;
@@ -149,26 +149,26 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   /*Phase1 Entry Methods*/
   void makeGranularityDecisionAndCommunicate();
-  DECISION getGranularityDecision();
+  Decision getGranularityDecision();
 
   //void doMeshRestructure();
   void resetMeshRestructureData();
-  void updateDecisionState(int cascade_length, DECISION newDecision);
-  void informParent(int, DECISION, int cascade_length);
+  void updateDecisionState(int cascade_length, Decision newDecision);
+  void informParent(int, Decision, int cascade_length);
   void recvParentDecision(int cascade_length);
   //void recvNeighborDecision(Dir);
   //void recvStatusUpdateFromParent(int);
-  void exchangePhase1Msg(int, DECISION, int cascade_length);
+  void exchangePhase1Msg(int, Decision, int cascade_length);
 
   /*Phase2 entry methods*/
-  void setNbrStateUponCoarsening(int, bool*, bool*, DECISION*);
+  void setNbrStateUponCoarsening(int, bool*, bool*, Decision*);
   void sendReadyData();
   // Returns whether a message was sent
   void sendGhost(int);
   void doPhase2();
   void updateMeshState();
 
-  void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, DECISION*);
+  void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, Decision*);
   void interpolateAndSend(int);
   void refine();
   void interpolate(double*, std::vector<double>&, int, int, int, int);
@@ -190,11 +190,11 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int meshGenIterations, iterations;
   bool *parent_nbr_exists;
   bool *parent_nbr_isRefined;
-  DECISION *parent_nbr_decision;
+  Decision *parent_nbr_decision;
 
   InitRefineMsg(){};
   InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
-                int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, DECISION *nbr_decision);
+                int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, Decision *nbr_decision);
 };*/
 
 /*class ChildDataMsg: public CMessage_ChildDataMsg{
@@ -206,9 +206,9 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   double *child_u;
   bool *child_nbr_exists;
   bool *child_nbr_isRefined;
-  DECISION *child_nbr_decision;
+  Decision *child_nbr_decision;
         
-  ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
+  ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, Decision* nbr_decision);
 };*/
 
 class AdvectionGroup : public CBase_AdvectionGroup {
@@ -231,7 +231,7 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   void reduceWorkUnits();
   void reduceLatencies();
   void meshGenerationPhaseIsOver();
-  void notifyMeshUpdate(DECISION);
+  void notifyMeshUpdate(Decision);
   void meshUpdateReductionClient(int);
   void resetMeshUpdateCounters();
 };

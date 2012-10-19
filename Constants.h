@@ -34,7 +34,7 @@ enum Dir {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP=4, LEFT_DOWN=5, RIGHT_UP=6,
             RIGHT_DOWN=7, UP_LEFT=8, UP_RIGHT=9, DOWN_LEFT=10, DOWN_RIGHT=11};
 PUPbytes(Dir);
 
-enum DECISION {INV=-1, DEREFINE=0, STAY=1, REFINE=2};
-PUPbytes(DECISION);
+enum Decision {INV=-1, COARSEN=0, STAY=1, REFINE=2};
+PUPbytes(Decision);
 
 #endif

@@ -58,7 +58,7 @@ module Advection{
     entry void reduceLatencies();
     entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
-    entry void notifyMeshUpdate(DECISION);
+    entry void notifyMeshUpdate(Decision);
     entry [reductiontarget] void meshUpdateReductionClient(int);
     entry void resetMeshUpdateCounters();
   };
@@ -70,11 +70,11 @@ module Advection{
     entry Advection(double, double, double, double,
                     double, double, int, int, std::vector<double>,
                     bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
-                    DECISION p3[3*NUM_NEIGHBORS]);
+                    Decision p3[3*NUM_NEIGHBORS]);
     entry void receiveGhosts(int iter, int dir, int width, double u[width]);
-    entry void informParent(int, DECISION, int cascade_length);
+    entry void informParent(int, Decision, int cascade_length);
     entry void recvParentDecision(int cascade_length);
-    entry void exchangePhase1Msg(int, DECISION, int cascade_length);
+    entry void exchangePhase1Msg(int, Decision, int cascade_length);
 
     entry void doRemeshing(){
         if(!isInMeshGenerationPhase && isLeaf) {
@@ -198,7 +198,7 @@ module Advection{
     };
 
     entry void startPhase2();
-    entry void recvChildData(int, double, double, int, int, std::vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);
+    entry void recvChildData(int, double, double, int, int, std::vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], Decision p3[3*NUM_NEIGHBORS]);
 
   };
 };

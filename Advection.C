@@ -109,9 +109,9 @@ void AdvectionGroup::meshGenerationPhaseIsOver(){
   isInMeshGenerationPhase=false;
 }
 
-void AdvectionGroup::notifyMeshUpdate(DECISION dec){
+void AdvectionGroup::notifyMeshUpdate(Decision dec){
     //ckout << CkMyPe() << " notified of mesh update" << numNotificationsRecvd << ", " << numNotificationsExpected << endl;
-    if(dec==REFINE||dec==DEREFINE){
+    if(dec==REFINE||dec==COARSEN){
         nChanges++;
     }
     if(++numNotificationsRecvd == numNotificationsExpected){
@@ -757,7 +757,7 @@ void Advection::iterate() {
   }
 }
 
-DECISION Advection::getGranularityDecision(){
+Decision Advection::getGranularityDecision(){
   delx = 0.5/dx;
   dely = 0.5/dy;
   dely_f = dely;
@@ -822,7 +822,7 @@ DECISION Advection::getGranularityDecision(){
   }
   error = sqrt(error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth)
-    return DEREFINE;
+    return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth)
     return REFINE;  
   else
@@ -831,7 +831,7 @@ DECISION Advection::getGranularityDecision(){
 
 void Advection::resetMeshRestructureData(){
   for(int i=0; i<3*NUM_NEIGHBORS; i++)
-    nbr_decision[i] = DEREFINE;//by default a neighbor will derefine
+    nbr_decision[i] = COARSEN;//by default a neighbor will derefine
 
   decision = INV;
 
@@ -846,7 +846,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
 
   if(isLeaf) {//run this on leaf nodes
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
-    DECISION newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
+    Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     updateDecisionState(1, newDecision);
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision){
@@ -855,13 +855,13 @@ void Advection::makeGranularityDecisionAndCommunicate(){
 }
 
 /***** PHASE1 FUNCTIONS****/
-void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
+void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
   cascade_length++;
   if (decision == newDecision)
     return;
 
   decision = newDecision;
-  if (decision == DEREFINE)
+  if (decision == COARSEN)
     return; // Don't communicate the 'default' decision
 
   for(int i=0; i<NUM_NEIGHBORS; i++){
@@ -893,7 +893,7 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
 // Will be called from two contexts:
 //  a) If the parent is a grandparent and also have children that are leaves
 //  b) when a child sends REFINE/STAY message to the parent
-void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
+void Advection::informParent(int childNum, Decision dec, int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   cascade_length++;
 
@@ -924,7 +924,7 @@ void Advection::recvParentDecision(int cascade_length) {
   VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
 
   hasReceivedParentDecision = true;
-  DECISION newDecision = std::max(STAY, decision);
+  Decision newDecision = std::max(STAY, decision);
   if(isLeaf)
     updateDecisionState(cascade_length, newDecision);
 }
@@ -935,12 +935,12 @@ bool isDirectionSimple(int dir) {
 
 
 // Phase1 Msgs are either REFINE or STAY messages
-void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_length) {
+void Advection::exchangePhase1Msg(int dir, Decision remoteDecision, int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
 
-  DECISION newDecision = decision;
+  Decision newDecision = decision;
 
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
   remoteDecision = nbr_decision[dir];
@@ -991,7 +991,7 @@ void Advection::doPhase2(){
   if(isRoot()) ckout << "in doPhase2" << endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
 
-  if(decision == DEREFINE){//send data to the parent
+  if(decision == COARSEN){//send data to the parent
     VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     
     vector<double> child_u;
@@ -1026,7 +1026,7 @@ void Advection::updateMeshState(){
     FOR_EACH_NEIGHBOR
       if(isUncle(nbr_exists[i], nbr_isRefined[i])){
         switch(nbr_decision[i]){
-          case DEREFINE:  CkAbort("undefined state");                 break;
+          case COARSEN:  CkAbort("undefined state");                 break;
           case REFINE:    nbr_exists[i]=true; nbr_isRefined[i]=false; break;
           case STAY:      nbr_exists[i]=false;                        break;
           default:        CkAbort("nbr_decision not set");          
@@ -1036,7 +1036,7 @@ void Advection::updateMeshState(){
         switch(nbr_decision[i]){
           case REFINE:      nbr_isRefined[i]=true;                      break;
           case STAY:        nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-          case DEREFINE:    nbr_exists[i]=false;                        break;
+          case COARSEN:    nbr_exists[i]=false;                        break;
           default:          CkAbort("nbr_decision not set");
         }
       }
@@ -1046,7 +1046,7 @@ void Advection::updateMeshState(){
           
         switch(nbr_decision[d1]){
           case STAY:      nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
-          case DEREFINE:  nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+          case COARSEN:  nbr_exists[i]=true; nbr_isRefined[i]=false; break;
           case REFINE:    CkAbort("unacceptable decision");
           default:        CkAbort("nbr_decision not set");
         }
@@ -1069,7 +1069,7 @@ void Advection::updateMeshState(){
 void Advection::recvChildData(int childNum, double myt, double mydt, 
                               int meshGenIterations, int iterations, vector<double> child_u, 
                               bool *child_nbr_exists, bool *child_nbr_isRefined, 
-                              DECISION *child_nbr_decision){
+                              Decision *child_nbr_decision){
   VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);
   VB(logFile << thisIndex.getIndexString() << " received data from Child " << childNum << " for coarsening" << std::endl;);
   this->myt = myt;
@@ -1118,14 +1118,14 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   resetMeshRestructureData();
 }
 
-inline void Advection::setNbrStateUponCoarsening(int dir, bool *exists, bool *isRefined, DECISION *decision){
+inline void Advection::setNbrStateUponCoarsening(int dir, bool *exists, bool *isRefined, Decision *decision){
   if(exists[dir]){
     nbr_exists[dir]=true;
     if(isRefined[dir])
       nbr_isRefined[dir]=true;
     else{
       switch(decision[dir]){
-        case DEREFINE: nbr_isRefined[dir]=false;    break;
+        case COARSEN: nbr_isRefined[dir]=false;    break;
         case STAY:     nbr_isRefined[dir]=true;     break;
       }
     }
@@ -1134,7 +1134,7 @@ inline void Advection::setNbrStateUponCoarsening(int dir, bool *exists, bool *is
     switch(decision[dir]){
       case REFINE:      nbr_exists[dir]=true;   nbr_isRefined[dir]=true;    break;
       case STAY:        nbr_exists[dir]=true;   nbr_isRefined[dir]=false;   break;
-      case DEREFINE:    nbr_exists[dir]=false;                              break;
+      case COARSEN:    nbr_exists[dir]=false;                              break;
     }
   }
 }
@@ -1199,7 +1199,7 @@ bool Advection::isGrandParent() {
 Advection::Advection(double dx, double dy,
                      double myt, double mydt, double xmin, double ymin,
                      int meshGenIterations, int iterations, vector<double> refined_u,
-                     bool *parent_nbr_exists, bool *parent_nbr_isRefined, DECISION* parent_nbr_decision)
+                     bool *parent_nbr_exists, bool *parent_nbr_isRefined, Decision* parent_nbr_decision)
 {
   __sdag_init();
 
@@ -1249,14 +1249,14 @@ Advection::Advection(double dx, double dy,
         switch(parent_nbr_decision[dir]){
           case REFINE:      nbr_exists[dir]=true;       nbr_isRefined[dir]=false;   break;
           case STAY:        nbr_exists[dir]=false;                                  break;
-          case DEREFINE:    CkAbort("this neighbor cannot derefine");
+          case COARSEN:    CkAbort("this neighbor cannot derefine");
           default:          CkAbort("nbr decision not set");
         }
       }
       else if (isNephew(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
         int nbr_dir_wrt_parent = nbrDirectionWrtParent(thisIndex.getQuadrant(), dir);//neighbor direction w.r.t. the parent
         switch(parent_nbr_decision[nbr_dir_wrt_parent]){
-          case DEREFINE: nbr_exists[dir]=false;                              break;
+          case COARSEN: nbr_exists[dir]=false;                              break;
           case STAY:     nbr_exists[dir]=true;  nbr_isRefined[dir]=false;    break;
           case REFINE:   nbr_exists[dir]=true;  nbr_isRefined[dir]=true;     break;
           default:       CkAbort("nbr decision not set");

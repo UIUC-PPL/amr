@@ -125,6 +125,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   ~Advection();
         
   /*Constructors*/
+   Advection(){
+    usesAutoMeasure = CmiFalse;
+   }
+
   Advection(double, double, double, double);
   Advection(double dx, double dy,
             double myt, double mydt, double xmin, double ymin,
@@ -132,20 +136,13 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
             std::vector<double> refined_u, bool *parent_nbr_exists, 
             bool *parent_nbr_isRefined, DECISION *parent_nbr_decision);
 
-  Advection() /*: AdvTerm(thisProxy, thisIndex, true) */{
-    usesAutoMeasure = CmiFalse;
-    //advection(); 
-    //ckout << thisIndex.getIndexString().c_str() << " created 3" << endl;
-  }
-  Advection(CkMigrateMessage* m) /*: AdvTerm(thisProxy, thisIndex, true) */{
+  Advection(CkMigrateMessage* m){
     usesAutoMeasure = CmiFalse;
     __sdag_init();
-    //ckout << thisIndex.getIndexString().c_str() << " created 4" << endl;
   }
         
-  void advection();// common function for initialization
+  void initializeRestofTheData();// common function for initialization
 
-  void printState();
   void pup(PUP::er &p);
 
   /* initial mesh generation*/       

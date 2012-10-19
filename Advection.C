@@ -241,27 +241,9 @@ void Advection::mem_allocate_all(){
 }
 
 Advection::Advection(double xmin, double xmax, double ymin, double ymax)
-/*: AdvTerm(thisProxy, thisIndex, true)*/
 {
-  usesAutoMeasure = CmiFalse;
-  //Constructor for the Initial Grid Zones
   __sdag_init();
 
-  usesAtSync = CmiTrue;
-
-  char fname[100];
-  sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
-  VB(logFile.open(fname););
-    
-  this->isRefined = false;
-    
-  for(int dir=UP; dir<=RIGHT; ++dir)
-    nbr[dir] = thisIndex.getNeighbor(dir);
-
-  /*Nodes constructed here will not have any parent as this 
-    is the coarsest level of the Mesh*/
-  parent = thisIndex;
-  /*Lets set the nieghbors status if this is the root node */
   for(int i=0; i<NUM_NEIGHBORS; i++){
     nbr_exists[i]=true;
     nbr_isRefined[i]=false;
@@ -282,38 +264,44 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   this->xmin = xc*nx*dx;
   this->ymin = yc*ny*dy;
 
-  //for (int i = 0; i < NUM_CHILDREN; ++i)
+  iterations=0;
+  meshGenIterations=0;
+  initializeRestofTheData();
+}
+
+void Advection::initializeRestofTheData(){ 
+  usesAutoMeasure = CmiFalse;
+  usesAtSync = CmiTrue;
+
+  mem_allocate_all();
+  char fname[100];
+  sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
+  VB(logFile.open(fname););
+    
+  
+  if(isInMeshGenerationPhase){
+    for(int i=0; i<block_width+2; i++){
+      x[i] = xmin + double(i)*dx - 0.5*dx;
+    }
+
+    for(int i=0; i<block_height+2; i++){
+      y[i] = ymin + double(i)*dy - 0.5*dy;
+    }
+    applyInitialCondition();
+  }
+ 
   FOR_EACH_CHILD
     child_isRefined[i] = false;
   END_FOR
+  this->isRefined = false;
 
-  advection();
+  for(int dir=UP; dir<=RIGHT; ++dir)
+    nbr[dir] = thisIndex.getNeighbor(dir);
+  
+  parent = (thisIndex.nbits==0)?thisIndex:thisIndex.getParent();
   resetMeshRestructureData();
-}
-
-void Advection::advection(){ 
-
-  //logFile << "In Advection: " << std::endl;
-  myt = t;
-  mem_allocate_all();
-  iterations=0;
-  meshGenIterations=0;
-
-  for(int i=0; i<block_width+2; i++){
-    x[i] = xmin + double(i)*dx - 0.5*dx;
-    //logFile << x[i] << std::endl;
-  }
-  //logFile << std::endl;
-
-  for(int i=0; i<block_height+2; i++){
-    y[i] = ymin + double(i)*dy - 0.5*dy;
-    // logFile << y[i] << std::endl;
-  }
-  //logFile << std::endl;
 
   VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
-  applyInitialCondition();
-#if 1
 #ifdef LOGGER
   for(int i=0; i<block_height; i++){
     for(int j=0; j<block_width; j++)
@@ -322,19 +310,13 @@ void Advection::advection(){
   }
   logFile << std::endl;
 #endif 
-  //CkExit();
-#endif
-  char fname[100];
   sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
   VB(outFile.open(fname););
 
 #ifdef LOGGER
 
-  //outFile << "coordinates: " << xc << ", " << yc << std::endl;
-  //outFile << dx << ", " << dy << std::endl;
   for(int i=1; i<=block_width; i++){
     for(int j=1; j<=block_height; j++){
-      //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
       outFile << xmin + (double(i))*dx - 0.5*dx << " "\
               << ymin + (double(j))*dy - 0.5*dy << " "\
               << u[index(i,block_height+1-j)] << std::endl;
@@ -1250,28 +1232,29 @@ Advection::Advection(double dx, double dy,
                      double myt, double mydt, double xmin, double ymin,
                      int meshGenIterations, int iterations, vector<double> refined_u,
                      bool *parent_nbr_exists, bool *parent_nbr_isRefined, DECISION* parent_nbr_decision)
-/*: AdvTerm(thisProxy, thisIndex, true), CBase_Advection()*/
 {
-  usesAutoMeasure = CmiFalse;
-  //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
-  usesAtSync=CmiTrue;
-  resetMeshRestructureData();
 
-  char fname[100];
-  sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
+  this->dx = dx;
+  this->dy = dy;
 
-  VB(logFile.open(fname););
+  this->myt = myt;
+  this->mydt = mydt;
 
-  //Called as a result of refinement of parent
+  this->xmin = xmin;
+  this->ymin = ymin;
+    
+  nx = array_height/(num_chare_cols);
+  ny = array_width/(num_chare_rows);
+
   VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);
-  this->isRefined = false;
+  VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
 
-  for(int dir=UP; dir<=RIGHT; ++dir)
-    nbr[dir] = thisIndex.getNeighbor(dir);
-  if(thisIndex.nbits!=0)
-    parent = thisIndex.getParent();
+  thisIndex.getCoordinates(xc, yc);
+  this->meshGenIterations = meshGenIterations;
+  this->iterations = iterations;
 
+  initializeRestofTheData();
   /*set the status of the neighbors
     1. If parent of the neighbor is same as mine, 
     then the status is also the same, 
@@ -1322,44 +1305,7 @@ Advection::Advection(double dx, double dy,
     }
   }
 
-  //Now initialize xmin, xmax, ymin, ymax, dx, dy, myt, mydt
-  this->dx = dx;
-  this->dy = dy;
-
-  this->myt = myt;
-  this->mydt = mydt;
-
-  this->xmin = xmin;
-  this->ymin = ymin;
-    
-  nx = array_height/(num_chare_cols);
-  ny = array_width/(num_chare_rows);
-
-
-  VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
-
-  thisIndex.getCoordinates(xc, yc);
-  this->meshGenIterations = meshGenIterations;
-  this->iterations = iterations;
-
-  mem_allocate_all();
-
-  for (int i = 0; i < NUM_CHILDREN; ++i)
-    child_isRefined[i] = false;
-    
-  //x[i] and y[i] need not be initialized they are needed only for setting initial conditions
-  //delete [] x;
-  //delete [] y;
- 
-  if(isInMeshGenerationPhase){//setup x[i] and y[i] and initial values
-    for(int i=0; i<block_width+2; i++)
-      x[i] = xmin + double(i)*dx - 0.5*dx;
-
-    for(int i=0; i<block_height+2; i++)
-      y[i] = ymin + double(i)*dy - 0.5*dy;
-    
-    applyInitialCondition();
-  }else{
+  if(!isInMeshGenerationPhase){
     //Initialize u - For boundaries I have to wait for the neighbors
     //to send the values, rest of it can be initialized by the values 
     //received from the parent

@@ -22,7 +22,7 @@ advection.ci.stamp: advection.ci
 
 Advection.o: Advection.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
 Main.o: Main.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
-QuadIndex.o: QuadIndex.C QuadIndex.h
+QuadIndex.o: QuadIndex.C QuadIndex.h Advection.decl.h
 
 test: all
 	./charmrun advetion +p4 10

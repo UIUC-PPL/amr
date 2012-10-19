@@ -661,25 +661,11 @@ int Advection::getSourceDirection(int NBR) {
 }
     
 void Advection::interpolateAndSend(int NBR) {
-  if(NBR==UP){
-    interpolateAndSend(UP_LEFT);
-    interpolateAndSend(UP_RIGHT);
-    return;
-  }
-  else if(NBR==DOWN){
-    interpolateAndSend(DOWN_LEFT);
-    interpolateAndSend(DOWN_RIGHT);
-    return;
-  }
-  else if(NBR==LEFT){
-    interpolateAndSend(LEFT_UP);
-    interpolateAndSend(LEFT_DOWN);
-    return;
-  }
-  else if(NBR==RIGHT){
-    interpolateAndSend(RIGHT_UP);
-    interpolateAndSend(RIGHT_DOWN);
-    return;
+  switch(NBR){
+    case UP:    interpolateAndSend(UP_LEFT);    interpolateAndSend(UP_RIGHT);   return;
+    case DOWN:  interpolateAndSend(DOWN_LEFT);  interpolateAndSend(DOWN_RIGHT); return;
+    case LEFT:  interpolateAndSend(LEFT_UP);    interpolateAndSend(LEFT_DOWN);  return;
+    case RIGHT: interpolateAndSend(RIGHT_UP);   interpolateAndSend(RIGHT_DOWN); return;
   }
 
   double *boundary, *out;
@@ -695,7 +681,7 @@ void Advection::interpolateAndSend(int NBR) {
   case UP_RIGHT:   in = boundary_iterator(u, block_width/2, 1, 1,              0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_u;  cdir = DOWN_RIGHT; break;
   case DOWN_LEFT:  in = boundary_iterator(u, 1,             1, block_height,   0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_LEFT;    break;
   case DOWN_RIGHT: in = boundary_iterator(u, block_width/2, 1, block_height,   0); sx1 = &sx_l; sx2 = &sx_r;    sy1 = &sy_d;  sy2 = &sy_d;  cdir = UP_RIGHT;   break;
-  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = &sx_l; sx2 = &sx_l;   sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_UP;   break;
+  case LEFT_UP:    in = boundary_iterator(u, 1,             0, 1,              1); sx1 = &sx_l; sx2 = &sx_l;    sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_UP;   break;
   case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = &sx_l; sx2 = &sx_l;    sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_DOWN; break;
   case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_UP;    break;
   case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_DOWN;  break;
@@ -707,7 +693,6 @@ void Advection::interpolateAndSend(int NBR) {
   for (; in != end; ++in) {
     sx_r = (in.right() - *in) / 4;
     sx_l = -1*(*in - in.left())/4;
-    // Possible inversion in definitions of up/down
     sy_u = -1*(*in - in.down())  / 4;
     sy_d = (in.up() - *in)  / 4;
   
@@ -715,7 +700,7 @@ void Advection::interpolateAndSend(int NBR) {
     *out = *in + *sx2 + *sy2; out++;
   }
 
-  QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(map_child(cdir));
+  QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(childDir2Quadrant(cdir));
   thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary);
 
 #ifdef LOGGER
@@ -966,7 +951,7 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
     else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
       //Get Corresponding Children of the neighbor
       QuadIndex q1, q2;
-      getChildren(nbr[i], SENDER_DIR[i], q1, q2);
+      getChildrenInDir(nbr[i], SENDER_DIR[i], q1, q2);
       VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
       VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
 

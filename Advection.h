@@ -17,69 +17,20 @@ int inline myDirectionWrtUncle(int quad, int nbr){
         case 3: return (nbr==RIGHT)?LEFT_DOWN:UP_RIGHT; break;
         default: CkAbort("invalid quad#");
     };
-  /*if(quad==0){
-    if(nbr == RIGHT)
-      return LEFT_UP;
-    else if(nbr == UP)
-      return DOWN_RIGHT;
-  }
-  else if(quad==1){
-    if(nbr == LEFT)
-      return RIGHT_UP;
-    else if(nbr == UP)
-      return DOWN_LEFT;
-  }
-  else if(quad==2){
-    if(nbr == LEFT)
-      return RIGHT_DOWN;
-    else if(nbr == DOWN)
-      return UP_LEFT;
-  }
-  else if(quad==3){
-    if(nbr==RIGHT)
-      return LEFT_DOWN;
-    else if(nbr == DOWN)
-      return UP_RIGHT;
-  }
-  return -1;*/
 }
 
 //returns the direction of the neighbor in direction 'dir' with repsect to the parent
 int inline nbrDirectionWrtParent(int quad, int dir){
   switch(quad){
-      case 0: return (dir==RIGHT)?RIGHT_UP:UP_RIGHT; break;
-      case 1: return (dir==LEFT)?LEFT_UP:UP_LEFT; break;
-      case 2: return (dir==LEFT)?LEFT_DOWN:DOWN_LEFT; break;
+      case 0: return (dir==RIGHT)?RIGHT_UP:UP_RIGHT;    break;
+      case 1: return (dir==LEFT)?LEFT_UP:UP_LEFT;       break;
+      case 2: return (dir==LEFT)?LEFT_DOWN:DOWN_LEFT;   break;
       case 3: return (dir==RIGHT)?RIGHT_DOWN:DOWN_RIGHT;break;
       default: CkAbort("invalid quad num");
   };
-  /*if(quad==0){
-    if(dir==RIGHT)
-      return RIGHT_UP;
-    else if(dir==UP)
-      return UP_RIGHT;
-  }
-  else if(quad==1){
-    if(dir==LEFT)
-      return LEFT_UP;
-    else if(dir==UP)
-      return UP_LEFT;
-  }
-  else if(quad==2){
-    if(dir==LEFT)
-      return LEFT_DOWN;
-    else if(dir==DOWN)
-      return DOWN_LEFT;
-  }
-  else{// if(quad==3){
-    if(dir==RIGHT)
-      return RIGHT_DOWN;
-    else if(dir==DOWN)
-      return DOWN_RIGHT;
-  }*/
 }
 
-inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
+inline void getChildrenInDir(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
   int q1c, q2c;
   switch (dir) {
   case LEFT:  q1c = 1; q2c = 2; break;
@@ -93,16 +44,13 @@ inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2
   return;
 }
 
-inline int map_child(int child){
-  if(child == LEFT_UP || child == UP_LEFT)
-    return 1;
-  else if(child == LEFT_DOWN || child==DOWN_LEFT)
-    return 2;
-  else if(child == DOWN_RIGHT || child==RIGHT_DOWN)
-    return 3;
-  else if(child == RIGHT_UP || child == UP_RIGHT)
-    return 0;
-  else return -1;
+inline int childDir2Quadrant(int childDir){
+  switch(childDir){
+    case RIGHT_UP:      case UP_RIGHT:      return 0;
+    case LEFT_UP:       case UP_LEFT:       return 1;
+    case LEFT_DOWN:     case DOWN_LEFT:     return 2;
+    case DOWN_RIGHT:    case RIGHT_DOWN:    return 3;
+  }
 }
 
 //class ChildDataMsg;

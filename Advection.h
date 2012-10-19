@@ -156,7 +156,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void updateDecisionState(int cascade_length, DECISION newDecision);
   void informParent(int, DECISION, int cascade_length);
   void recvParentDecision(int cascade_length);
-  //void recvNeighborDecision(DIR);
+  //void recvNeighborDecision(Dir);
   //void recvStatusUpdateFromParent(int);
   void exchangePhase1Msg(int, DECISION, int cascade_length);
 

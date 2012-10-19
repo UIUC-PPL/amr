@@ -93,11 +93,6 @@ inline void getChildren(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2
   return;
 }
 
-
-int inline wrap(int item, int max_size){
-  return item%max_size;
-}
-
 inline int map_child(int child){
   if(child == LEFT_UP || child == UP_LEFT)
     return 1;

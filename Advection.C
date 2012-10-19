@@ -18,10 +18,6 @@ extern int block_width, block_height;
 
 extern int min_depth, max_depth;
 
-#define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
-#define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
-
-
 extern int nframe;
 extern double xctr, yctr, radius;
 extern double v;

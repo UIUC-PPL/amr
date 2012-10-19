@@ -18,10 +18,6 @@ int block_width;
 int min_depth, max_depth;
 int max_iterations, refine_frequency;
 
-
-#define wrap_x(a) (((a)+num_chare_rows)%num_chare_rows)
-#define wrap_y(a) (((a)+num_chare_cols)%num_chare_cols)
-
 #ifndef AMR_REVISION
 #define AMR_REVISION Unknown
 #endif

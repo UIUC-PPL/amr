@@ -968,19 +968,14 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
   if (decision == DEREFINE)
     return; // Don't communicate the 'default' decision
 
-  //tell the neighbor if it exists, also tell to children of the neighbor
-  // if that neighbor is refined
-  //In case the neighbor does not exist, just tell to the parent of the
-  //non-existing neighbor
-
   for(int i=0; i<NUM_NEIGHBORS; i++){
-    if(nbr_exists[i] && !nbr_isRefined[i]){
+    if(isFriend(nbr_exists[i], nbr_isRefined[i])){
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
       // Since Phase1Msgs are only refinement messages
       thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
     }
     //just send your direction w.r.t. to the receiving neighbor
-    else if(nbr_exists[i] && nbr_isRefined[i]){
+    else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
       //Get Corresponding Children of the neighbor
       QuadIndex q1, q2;
       getChildren(nbr[i], SENDER_DIR[i], q1, q2);

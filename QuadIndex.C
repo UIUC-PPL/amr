@@ -128,17 +128,15 @@ QuadIndex QuadIndex::getChild(unsigned int idx) const {
                    nbits + 2);
 }
 
-int QuadIndex::getChildNum() const{
-  if (nbits==0){//When I am the root
-    ckout << "CAUTION: getChildNum() called on Root of tree" << endl;
-    return -1;
-  }
-  int bit0 = ((bitVector & 1<<(bits_per_int-nbits))>0)?1:0;
+int QuadIndex::getQuadrant() const{
+  CkAssert(nbits!=0);
+  /*int bit0 = ((bitVector & 1<<(bits_per_int-nbits))>0)?1:0;
   int bit1 = ((bitVector & 1<<(bits_per_int-nbits+1))>0)?1:0;
-  return 2*bit1+bit0;
-}
-
-int QuadIndex::getQuadI() const{
+  return 2*bit1+bit0;*/
   return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
 }
+/*
+int QuadIndex::getQuadI() const{
+  return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
+}*/
 

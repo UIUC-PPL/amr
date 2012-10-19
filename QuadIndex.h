@@ -53,8 +53,9 @@ public:
   QuadIndex getParent() const;
 
   QuadIndex getChild(unsigned int) const;
-  int getChildNum() const;
-  int getQuadI() const;
+  /*int getChildNum() const;
+  int getQuadI() const;*/
+  int getQuadrant() const;
     
   unsigned int getBitVector() const{ return bitVector;}
   unsigned int getNbits() const{ return nbits;}

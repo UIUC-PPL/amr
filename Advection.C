@@ -541,7 +541,7 @@ void Advection::sendGhost(int dir){
 
   if(isUncle(nbr_exists[dir], nbr_isRefined[dir])) {
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
-    int sender_direction = myDirectionWrtUncle(thisIndex.getQuadI(), dir);
+    int sender_direction = myDirectionWrtUncle(thisIndex.getQuadrant(), dir);
     boundary = getGhostBuffer(dir);
     VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
     count /= 2;
@@ -987,12 +987,12 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
     }
     else{//send to the parent of the non-existing neighbor
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
-      thisProxy(nbr[i].getParent()).exchangePhase1Msg(myDirectionWrtUncle(thisIndex.getQuadI(), i), decision, cascade_length);
+      thisProxy(nbr[i].getParent()).exchangePhase1Msg(myDirectionWrtUncle(thisIndex.getQuadrant(), i), decision, cascade_length);
     }
   }
 
   if(parent != thisIndex){
-    thisProxy(parent).informParent(thisIndex.getChildNum(), decision, cascade_length);
+    thisProxy(parent).informParent(thisIndex.getQuadrant(), decision, cascade_length);
   }
 }
 
@@ -1021,7 +1021,7 @@ void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
     }
     //inform your parent that you are not going to derefine
     if(parent!=thisIndex)
-      thisProxy(parent).informParent(thisIndex.getChildNum(), STAY, cascade_length);
+      thisProxy(parent).informParent(thisIndex.getQuadrant(), STAY, cascade_length);
   }
 }
 
@@ -1113,7 +1113,7 @@ void Advection::doPhase2(){
         }
       }
     }
-    thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
+    thisProxy(parent).recvChildData(thisIndex.getQuadrant(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy[thisIndex].ckDestroy();
     VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
   }
@@ -1389,7 +1389,7 @@ Advection::Advection(double dx, double dy,
         }
       }
       else if (parent_nbr_exists[dir] && parent_nbr_isRefined[dir]){
-        int nbr_dir_wrt_parent = nbrDirectionWrtParent(thisIndex.getQuadI(), dir);//neighbor direction w.r.t. the parent
+        int nbr_dir_wrt_parent = nbrDirectionWrtParent(thisIndex.getQuadrant(), dir);//neighbor direction w.r.t. the parent
         switch(parent_nbr_decision[nbr_dir_wrt_parent]){
         case DEREFINE: nbr_exists[dir]=false; break;
         case STAY: nbr_exists[dir]=true; nbr_isRefined[dir]=false; break;

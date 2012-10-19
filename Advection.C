@@ -515,7 +515,7 @@ void Advection::sendGhost(int dir){
   double* boundary;
 
   if(isFriend(nbr_exists[dir], nbr_isRefined[dir])){
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << SENDER_DIR[dir] << ", " << std::endl;);
+    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << getSourceDirection(dir) << ", " << std::endl;);
 
     switch (dir) {
     case LEFT:  boundary = left_edge;                  break;
@@ -524,7 +524,7 @@ void Advection::sendGhost(int dir){
     case DOWN:  boundary = &u[index(1, block_height)]; break;
     default: CkAbort("invalid send dir");
     };
-    thisProxy(nbr[dir]).receiveGhosts(iterations, SENDER_DIR[dir], count, boundary);
+    thisProxy(nbr[dir]).receiveGhosts(iterations, getSourceDirection(dir), count, boundary);
   }
 
   if(isUncle(nbr_exists[dir], nbr_isRefined[dir])) {
@@ -945,18 +945,18 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
     if(isFriend(nbr_exists[i], nbr_isRefined[i])){
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
       // Since Phase1Msgs are only refinement messages
-      thisProxy(nbr[i]).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
+      thisProxy(nbr[i]).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
     }
     //just send your direction w.r.t. to the receiving neighbor
     else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
       //Get Corresponding Children of the neighbor
       QuadIndex q1, q2;
-      getChildrenInDir(nbr[i], SENDER_DIR[i], q1, q2);
+      getChildrenInDir(nbr[i], getSourceDirection(i), q1, q2);
       VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
       VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
 
-      thisProxy(q1).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
-      thisProxy(q2).exchangePhase1Msg(SENDER_DIR[i], decision, cascade_length);
+      thisProxy(q1).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
+      thisProxy(q2).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
     }
     else{//send to the parent of the non-existing neighbor
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);

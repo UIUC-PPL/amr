@@ -30,7 +30,7 @@ int inline nbrDirectionWrtParent(int quad, int dir){
   };
 }
 
-inline void getChildrenInDir(QuadIndex myIndex, DIR dir, QuadIndex& q1, QuadIndex& q2){
+inline void getChildrenInDir(QuadIndex myIndex, int dir, QuadIndex& q1, QuadIndex& q2){
   int q1c, q2c;
   switch (dir) {
   case LEFT:  q1c = 1; q2c = 2; break;

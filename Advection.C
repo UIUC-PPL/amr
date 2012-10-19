@@ -815,7 +815,7 @@ void Advection::iterate() {
       CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
     return;
   }
-
+  iterations++;
   myt = myt+dt;
   if(myt < tmax){
     mydt = min(dx,dy)/v * cfl;
@@ -825,7 +825,7 @@ void Advection::iterate() {
     //time to check need for refinement/coarsening
     if(iterations % refine_frequency == 0) {
       VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      iterations++;
+      //iterations++;
       doRemeshing();
     }
     else {

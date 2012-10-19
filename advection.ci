@@ -155,7 +155,7 @@ module Advection{
           ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations 
                  << " dt: " << dt << " mydt: " << mydt << " myt " << myt << endl;
         }
-        iterations++;
+        //iterations++;
         if(!isRefined){
             char fname[100];
 

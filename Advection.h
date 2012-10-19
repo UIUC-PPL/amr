@@ -171,12 +171,12 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void exchangePhase1Msg(int, DECISION, int cascade_length);
 
   /*Phase2 entry methods*/
-  void setNbrStatus(int, bool*, bool*, DECISION*);
+  void setNbrStateUponCoarsening(int, bool*, bool*, DECISION*);
   void sendReadyData();
   // Returns whether a message was sent
   void sendGhost(int);
   void doPhase2();
-  void updateNbrStatus();
+  void updateMeshState();
 
   void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, DECISION*);
   void interpolateAndSend(int);

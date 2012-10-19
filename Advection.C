@@ -716,8 +716,6 @@ void Advection::interpolateAndSend(int NBR) {
 }
 
 void Advection::compute(){
-  //logFile << "dt: " << dt << " ap:" << ap << " an:" << an << std::endl;
-  //logFile << iterations << std::endl;
   logFile << "entire u before updating" << std::endl;
   for(int j=0; j<block_height+2; j++){
     for(int i=0; i<block_width+2; i++)
@@ -725,37 +723,23 @@ void Advection::compute(){
     logFile << std::endl;
   }
 
-  //for(int i=1; i<=block_width; i++){
-  //  for(int j=1; j<=block_height; j++){
   FOR_EACH_ZONE
       up = (u[index(i+1,j)] - u[index(i,j)])/dx;
       un = (u[index(i,j)]-u[index(i-1,j)])/dx;
 
       u2[index(i,j)] = u[index(i,j)] - dt* (ap*un + an*up);
-      //logFile << u[index(i,j+1)] << ", " << u[index(i,j)] << ", " << u[index(i,j-1)] << std::endl;
-      //logFile << thisIndex.getIndexString() << " u2: " << u2[index(i,j)] << std::endl;
   END_FOR
-  //  }
-  //}
 
-  //for(int i=1; i<=block_width; i++)
-  //  for(int j=1; j<=block_height; j++){
   FOR_EACH_ZONE
       up = (u[index(i,j+1)] - u[index(i,j)])/dy;
       un = (u[index(i,j)] - u[index(i,j-1)])/dy;
 
       u3[index(i,j)] = u[index(i,j)] - dt*(ap*un + an*up);
-      //logFile << u[index(i,j+1)] << ", " << u[index(i,j)] << ", " << u[index(i,j-1)] << std::endl;
-      //logFile << thisIndex.getIndexString() << "dx " << dx << ", dy " << dy << ", up: " << up << " un: " << un << " u3: " << u3[index(i,j)] << std::endl;
   END_FOR
-  //  }
 
-  //for(int j=1; j<=block_height; j++)
-  //  for(int i=1; i<=block_width; i++){
   FOR_EACH_ZONE
       u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
   END_FOR
-  //  }
     
 #ifdef LOGGER
   logFile << "Values of " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;
@@ -766,11 +750,8 @@ void Advection::compute(){
   }
   logFile << std::endl;
     
-  //outFile << "coordinates: " << xc << ", " << yc << std::endl;
-  //outFile << dx << ", " << dy << std::endl;
   for(int i=1; i<=block_width; i++){
     for(int j=1; j<=block_height; j++){
-      //outFile << xmin << ", " << double(xc*block_width + i) << std::endl;
       outFile << xmin + (double(i))*dx - 0.5*dx << " "\
               << ymin + (double(j))*dy - 0.5*dy << " "\
               << u[index(i,block_height+1-j)] << std::endl;
@@ -886,18 +867,13 @@ DECISION Advection::getGranularityDecision(){
 }
 
 void Advection::resetMeshRestructureData(){
-  /*Reset old data*/
-  /*Phase1 Resetting*/
   for(int i=0; i<3*NUM_NEIGHBORS; i++)
     nbr_decision[i] = DEREFINE;//by default a neighbor will derefine
-  //unless indicated otherwise through exchange of a
-  //message in phase1
 
   decision = INV;
 
   for(int i=0; i<NUM_CHILDREN; i++)
     child_decision[i]=INV;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << std::endl;);
   parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
 }
@@ -908,25 +884,15 @@ void Advection::makeGranularityDecisionAndCommunicate(){
   remeshStartTime = CkWallTimer();
 
   if(!isRefined) {//run this on leaf nodes
-    /*Done Resetting Old Data*/
-    /* It is possible that some Message has alreasdy been processed
-       MeshRestructure Phase was called*/
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
 
     DECISION newDecision = decision;
     if (decision != REFINE)
       newDecision = max(decision, getGranularityDecision());
 
-    //ckout << thisIndex.getIndexString().c_str() << " decision = " << decision << ", iteration = " << iterations << endl;
-    //initiate Phase1 of the computation
     updateDecisionState(1, newDecision);
-    //Inform Parent About Start of the Restructure Phase 
-    // Think of a better way to do this because right now as many as 
-    // number of unrefined children are informing the parent about the
-    // start of the restructure phase while only one of them need to do so
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision){
-    //CkPrintf("%s was a grandparent %d\n", thisIndex.getIndexString().c_str(), iterations);
     informParent(-1, INV, 1);
   }
 }
@@ -1048,7 +1014,6 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
   else
     CkAbort("unacceptable condition");
   
-  VB(logFile << thisIndex.getIndexString() << " decision: " << decision << std::endl;);
   updateDecisionState(cascade_length, newDecision);
 }
 
@@ -1095,39 +1060,34 @@ void Advection::doPhase2(){
     refine();
   }
    
-  updateNbrStatus();
+  updateMeshState();
   if(isInMeshGenerationPhase){
-    /*if(decision==REFINE || decision==DEREFINE)
-      decision=INV;*/
     ckout << thisIndex.getIndexString().c_str() << ": notifying with decision = " << decision << endl;
     ppc.ckLocalBranch()->notifyMeshUpdate(decision);
   }
-  //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
   resetMeshRestructureData();
 }
 
-void Advection::updateNbrStatus(){
+void Advection::updateMeshState(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(!isRefined && decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
-    for(int i=0; i<NUM_NEIGHBORS; i++){
+
+    FOR_EACH_NEIGHBOR
       if(isUncle(nbr_exists[i], nbr_isRefined[i])){
         switch(nbr_decision[i]){
-        case DEREFINE:
-          logFile << "ERROR(" << thisIndex.getIndexString() << "): doPhase(): Uncle(" << i << ") Cannot DEREFINE while I want to STAY" << std::endl;
-          ckout << thisIndex.getIndexString().c_str() << " 's nbr in direction " << i << " is set to derefine" << endl; 
-          CkAbort("undefined state");
-        case REFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-        case STAY: nbr_exists[i]=false; break;
-        default: CkAbort("nbr_decision not set");
+          case DEREFINE:  CkAbort("undefined state");                 break;
+          case REFINE:    nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+          case STAY:      nbr_exists[i]=false;                        break;
+          default:        CkAbort("nbr_decision not set");          
         }
       }
       else if(isFriend(nbr_exists[i], nbr_isRefined[i])){
         switch(nbr_decision[i]){
-        case REFINE: nbr_isRefined[i]=true; break;
-        case STAY: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-        case DEREFINE: nbr_exists[i]=false; break;
-        default: CkAbort("nbr_decision not set");
+          case REFINE:      nbr_isRefined[i]=true;                      break;
+          case STAY:        nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+          case DEREFINE:    nbr_exists[i]=false;                        break;
+          default:          CkAbort("nbr_decision not set");
         }
       }
       else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
@@ -1135,13 +1095,13 @@ void Advection::updateNbrStatus(){
         getRefinedNbrDirections(i, d1, d2);
           
         switch(nbr_decision[d1]){
-        case STAY:    nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
-        case DEREFINE: nbr_exists[i]=true; nbr_isRefined[i]=false; break;
-        case REFINE:  CkAbort("unacceptable decision");
-        default:      CkAbort("nbr_decision not set");
+          case STAY:      nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
+          case DEREFINE:  nbr_exists[i]=true; nbr_isRefined[i]=false; break;
+          case REFINE:    CkAbort("unacceptable decision");
+          default:        CkAbort("nbr_decision not set");
         }
       }
-    }
+    END_FOR
   }
   else if(decision == REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
     isRefined=true;
@@ -1149,13 +1109,11 @@ void Advection::updateNbrStatus(){
     isRefined = false;
   }
   if(isGrandParent()) {
-    for(int i=0; i<NUM_CHILDREN; i++){
+    FOR_EACH_CHILD
       if(child_decision[i]==INV && child_isRefined[i])//did not receive any message
         child_isRefined[i]=false;
-    }
+    END_FOR
   }
-  VB(logFile << "isGrandparent = " << isGrandParent() << ", iteration = " << iterations << std::endl;);
-
 }
 
 void Advection::recvChildData(int childNum, double myt, double mydt, 
@@ -1208,30 +1166,30 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   this->iterations  = iterations;
   this->myt         = myt;
   this->mydt        = mydt;
-  setNbrStatus(c1, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
-  setNbrStatus(c2, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
+  setNbrStateUponCoarsening(c1, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
+  setNbrStateUponCoarsening(c2, child_nbr_exists, child_nbr_isRefined, child_nbr_decision);
   
   resetMeshRestructureData();
 }
 
-inline void Advection::setNbrStatus(int dir, bool *child_nbr_exists, bool *child_nbr_isRefined, DECISION *child_nbr_decision){
-  if(child_nbr_exists[dir]){
+inline void Advection::setNbrStateUponCoarsening(int dir, bool *exists, bool *isRefined, DECISION *decision){
+  if(exists[dir]){
     nbr_exists[dir]=true;
-    if(child_nbr_isRefined[dir])
+    if(isRefined[dir])
       nbr_isRefined[dir]=true;
-    if(!child_nbr_isRefined[dir] && child_nbr_decision[dir]==DEREFINE){
+    if(!isRefined[dir] && decision[dir]==DEREFINE){
       nbr_isRefined[dir]=false;
     }
-    if(!child_nbr_isRefined[dir] && child_nbr_decision[dir]==STAY){
+    if(!isRefined[dir] && decision[dir]==STAY){
       nbr_isRefined[dir]=true;
     }
   }
-  else if(!child_nbr_exists[dir]){
-    if(child_nbr_decision[dir]==REFINE){
+  else if(!exists[dir]){
+    if(decision[dir]==REFINE){
       nbr_exists[dir]=true;
       nbr_isRefined[dir]=true;
     }
-    else if(child_nbr_decision[dir]==STAY){
+    else if(decision[dir]==STAY){
       nbr_exists[dir]=true;
       nbr_isRefined[dir]=false;
     }
@@ -1435,56 +1393,7 @@ Advection::Advection(double dx, double dy,
     logFile << std::endl;
   }
 #endif
-  /*if(isInMeshGenerationPhase){
-    decision=REFINE;
-    //tell ppc that you are newly created
-    ppc.ckLocalBranch()->meshUpdated();
-  }*///to be used for reduction while doing mesh generation
-                  // to keep track if any change happened in the last mesh gen iteration 
-  //delete the message
-  //delete msg;
-
-  //call Quiesence detection to begin next iteration*/
-  //CkStartQD(CkIndex_Advection::doStep(), &thishandle);
 }
-
-/*void Advection::updateMesh(){
-  if(!isRefined){
-    //ckout << thisIndex.getIndexString().c_str() << " decision: " << decision << endl;
-    if(decision==REFINE){
-      double cxmin, cymin;
-      QuadIndex child;
-      std::vector<double> eVector; //empty vector
-      for(int childNum=0; childNum<NUM_CHILDREN; childNum++){
-        switch(childNum){
-        case 0:  cxmin = xmin + (nx*dx)/2; cymin = ymin + (ny*dy)/2; break;
-        case 1:  cxmin = xmin;             cymin = ymin + (ny*dy)/2; break;
-        case 2:  cxmin = xmin;             cymin = ymin;             break;
-        case 3:  cxmin = xmin + (nx*dx)/2; cymin = ymin;             break;
-        default: CkAbort("this is impossible");
-        }
-        child = thisIndex.getChild(childNum);
-
-        thisProxy(child).insert(dx/2, dy/2, myt, mydt, cxmin, cymin, meshGenIterations, iterations, eVector, nbr_exists, nbr_isRefined, nbr_decision);
-      }
-    }
-    else if(decision==DEREFINE){
-      thisProxy(parent).recvChildData(thisIndex.getChildNum(), myt, mydt, meshGenIterations, iterations,
-                                      vector<double>(), nbr_exists, nbr_isRefined, nbr_decision);
-      //deallocate all your memory and destroy yourself
-      VB(logFile << "Destroying " << thisIndex.getIndexString() << std::endl;);
-      //ckout << thisIndex.getIndexString().c_str() << " is now coarsening" << endl;
-      thisProxy[thisIndex].ckDestroy();
-    }
-
-  }
-
-  updateNbrStatus(); //update the status of your neighbors
-  if(decision==REFINE || decision==DEREFINE)
-    decision=INV;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
-  parentHasAlreadyMadeDecision = false;
-}*/
 
 void Advection::ResumeFromSync(){
   phase2Done();

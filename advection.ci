@@ -31,14 +31,12 @@ mainmodule Main{
 
   initproc TurnManualLBOn();
   readonly CProxy_AdvectionGroup ppc;
-    
   readonly bool isInMeshGenerationPhase;
+
   mainchare Main{
     entry Main(CkArgMsg *m);
-    //entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
     entry void startMeshGeneration();
-    //entry void startRunning();
     entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
     entry [reductiontarget] void qdlatency(double elems[size], int size);
     entry [reductiontarget] void remeshlatency(double elems[size], int size);
@@ -73,15 +71,11 @@ module Advection{
                     double, double, int, int, std::vector<double>,
                     bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
                     DECISION p3[3*NUM_NEIGHBORS]);
-    entry void printState();
-
     entry void receiveGhosts(int iter, int dir, int width, double u[width]);
     entry void informParent(int, DECISION, int cascade_length);
     entry void recvParentDecision(int cascade_length);
     entry void exchangePhase1Msg(int, DECISION, int cascade_length);
 
-    entry void rootTerminated() {};
-    
     entry void doRemeshing(){
         if(!isInMeshGenerationPhase && !isRefined) {
             atomic "trigger ghost exchange"{
@@ -144,7 +138,6 @@ module Advection{
         }*/
     };
 
-    entry void makeGranularityDecisionAndCommunicate();
     entry void startLdb();
     entry void signalExchangeGhostsCompletion();
 
@@ -205,7 +198,6 @@ module Advection{
     };
 
     entry void startPhase2();
-    entry void free_memory();
     entry void recvChildData(int, double, double, int, int, std::vector<double>, bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], DECISION p3[3*NUM_NEIGHBORS]);
 
   };

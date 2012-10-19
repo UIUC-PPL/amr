@@ -230,13 +230,6 @@ void Main::totalWorkUnits(int total) {
   CkExit();
 }
 
-/*void Main::printTreeInformation(CkVec<QuadIndex> list){
-  for(int i=0; i<list.size(); i++){
-    QuadIndex qindex = list[i];
-    qtree[qindex].printState();
-  }   
-}*/
-
 #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
 
 struct AdvMap : public CBase_AdvMap {

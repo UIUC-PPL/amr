@@ -291,21 +291,6 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
   resetMeshRestructureData();
 }
 
-void Advection::printState(){
-  QuadIndex qindex = thisIndex;
-  VB(logFile << "Printing Status of Node " << qindex.getIndexString() << std::endl;);
-  VB(logFile << "isRefined: " << isRefined << std::endl;
-     logFile << "nbr_exists: ";);
-#ifdef LOGGER
-  for(int j=0; j<NUM_NEIGHBORS; j++)
-    logFile << nbr_exists[j] << ", ";
-  logFile << std::endl << "nbr_isRefined: ";
-  for(int j=0; j<NUM_NEIGHBORS; j++)
-    logFile << nbr_isRefined[j] << ", ";
-  logFile << std::endl;
-#endif
-}
-
 void Advection::advection(){ 
 
   //logFile << "In Advection: " << std::endl;
@@ -1270,7 +1255,6 @@ Advection::Advection(double dx, double dy,
   usesAutoMeasure = CmiFalse;
   //ckout << thisIndex.getIndexString().c_str() << " created 2" << endl;
   __sdag_init();
-  //rootTerminated();
   usesAtSync=CmiTrue;
   resetMeshRestructureData();
 

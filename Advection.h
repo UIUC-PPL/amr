@@ -123,7 +123,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   double lastIdleTimeQD;
 
   ~Advection();
-  void free_memory(){/* Place Holder for calling Advection destructor - Advection::~Advection();*/}
         
   /*Constructors*/
   Advection(double, double, double, double);
@@ -188,8 +187,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void startLdb();
   void ResumeFromSync();
   void UserSetLBLoad();
-
-  void rootTerminated2();
 
   bool isRoot();
 };

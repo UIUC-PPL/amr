@@ -1135,8 +1135,6 @@ void Advection::doPhase2(){
     ppc.ckLocalBranch()->notifyMeshUpdate(decision);
   }
   //logFile << thisIndex.getIndexString() << " decision = " << decision << std::endl;
-  VB(logFile << "setting parentHasAlreadyMadeDecision to false" << endl;);
-  parentHasAlreadyMadeDecision = false;
   resetMeshRestructureData();
 }
 

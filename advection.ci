@@ -123,9 +123,9 @@ module Advection{
                 return;
             }
         }
-        isInMeshGenerationPhase=false;
+        //isInMeshGenerationPhase=false;
         if(isRoot())ppc.meshGenerationPhaseIsOver();
-        if(isInMeshGenerationPhase && isRefined) iterations=1;
+        //if(isInMeshGenerationPhase && isRefined) iterations=1;
         if(isRoot()){
             itBeginTime=CmiWallTimer();
         }

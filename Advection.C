@@ -935,7 +935,7 @@ bool isDirectionSimple(int dir) {
 
 
 // Phase1 Msgs are either REFINE or STAY messages
-void Advection::exchangePhase1Msg(int dir, Decision remoteDecision, int cascade_length) {
+void Advection::processExchangeMsg(int dir, Decision remoteDecision, int cascade_length) {
   ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );

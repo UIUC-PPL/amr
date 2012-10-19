@@ -116,13 +116,13 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int getGhostCount(int dir);
   double lastIdleTimeQD;
 
-  ~Advection();
-        
-  /*Constructors*/
-   Advection(){
-    usesAutoMeasure = CmiFalse;
-   }
+  bool finishedPhase1;
 
+  ~Advection();
+
+  /* Constructors */
+  Advection() { usesAutoMeasure = CmiFalse; }
+  Advection(CkMigrateMessage* m) { usesAutoMeasure = CmiFalse; }
   Advection(double, double, double, double);
   Advection(double dx, double dy,
             double myt, double mydt, double xmin, double ymin,
@@ -130,19 +130,12 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
             std::vector<double> refined_u, bool *parent_nbr_exists, 
             bool *parent_nbr_isRefined, Decision *parent_nbr_decision);
 
-  Advection(CkMigrateMessage* m){
-    usesAutoMeasure = CmiFalse;
-    __sdag_init();
-  }
-        
-  void initializeRestofTheData();// common function for initialization
+  void initializeRestofTheData(); // common function for initialization
 
   void pup(PUP::er &p);
 
-  /* initial mesh generation*/       
-  //void updateMesh();
+  /* initial mesh generation*/
   void applyInitialCondition();
-        
   void process(int, int, int, double*);
   void compute();
   void iterate();
@@ -158,7 +151,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void recvParentDecision(int cascade_length);
   //void recvNeighborDecision(Dir);
   //void recvStatusUpdateFromParent(int);
-  void exchangePhase1Msg(int, Decision, int cascade_length);
+  void processExchangeMsg(int, Decision, int cascade_length);
 
   /*Phase2 entry methods*/
   void setNbrStateUponCoarsening(int, bool*, bool*, Decision*);
@@ -167,7 +160,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void sendGhost(int);
   void doPhase2();
   void updateMeshState();
-
+  
   void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, Decision*);
   void interpolateAndSend(int);
   void refine();

@@ -37,9 +37,9 @@ double delx, dely, dely_f;
 double refine_filter = 0.01;
 double refine_cutoff=0.2, derefine_cutoff=0.05;
 
-CProxy_PerProcessorChare ppc;
+CProxy_AdvectionGroup ppc;
 
-PerProcessorChare::PerProcessorChare()
+AdvectionGroup::AdvectionGroup()
   : cascades(max_iterations)
   , workUnitCount(0)
 {
@@ -70,70 +70,70 @@ PerProcessorChare::PerProcessorChare()
   nChanges=0;
 }
 
-void PerProcessorChare::incrementWorkUnitCount() {
+void AdvectionGroup::incrementWorkUnitCount() {
   workUnitCount++;
 }
 
-void PerProcessorChare::recordCascade(int iteration, int length) {
+void AdvectionGroup::recordCascade(int iteration, int length) {
   cascades[iteration] = max(cascades[iteration], length);
 }
 
-void PerProcessorChare::collectCascades(CkCallback cb) {
+void AdvectionGroup::collectCascades(CkCallback cb) {
   contribute(max_iterations*sizeof(cascades[0]), &cascades[0],
              CkReduction::max_int, cb);
 }
 
-void PerProcessorChare::recordQDLatency(int iteration, double latency) {
+void AdvectionGroup::recordQDLatency(int iteration, double latency) {
   CkAssert(qdlatencies.size() >= iteration);
   if (latency < qdlatencies[iteration])
     qdlatencies[iteration] = latency;
 }
 
-void PerProcessorChare::recordRemeshLatency(int iteration, double latency) {
+void AdvectionGroup::recordRemeshLatency(int iteration, double latency) {
   CkAssert(remeshlatencies.size() >= iteration);
   if (latency < remeshlatencies[iteration])
     remeshlatencies[iteration] = latency;
 }
 
-void PerProcessorChare::reduceLatencies() {
+void AdvectionGroup::reduceLatencies() {
   CkCallback cb(CkReductionTarget(Main,qdlatency), mainProxy);
   contribute(sizeof(double)*max_iterations, &qdlatencies[0], CkReduction::min_double, cb);
   CkCallback cb2(CkReductionTarget(Main,remeshlatency), mainProxy);
   contribute(sizeof(double)*max_iterations, &remeshlatencies[0], CkReduction::min_double, cb2);
 }
 
-void PerProcessorChare::reduceWorkUnits() {
+void AdvectionGroup::reduceWorkUnits() {
   CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-void PerProcessorChare::meshGenerationPhaseIsOver(){
+void AdvectionGroup::meshGenerationPhaseIsOver(){
   isInMeshGenerationPhase=false;
 }
 
-void PerProcessorChare::notifyMeshUpdate(DECISION dec){
+void AdvectionGroup::notifyMeshUpdate(DECISION dec){
     //ckout << CkMyPe() << " notified of mesh update" << numNotificationsRecvd << ", " << numNotificationsExpected << endl;
     if(dec==REFINE||dec==DEREFINE){
         nChanges++;
     }
     if(++numNotificationsRecvd == numNotificationsExpected){
         //ckout << CkMyPe() << " is contributing" << endl;
-        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy));
+        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(AdvectionGroup, meshUpdateReductionClient), thisProxy));
     }
 }
 
-void PerProcessorChare::meshUpdateReductionClient(int nChanges){
+void AdvectionGroup::meshUpdateReductionClient(int nChanges){
     if(CkMyPe()==0)
         ckout << "meshUpdateReductionClient: " << nChanges << endl;
     meshUpdated = (nChanges > 0) ? true:false;
 }
 
-void PerProcessorChare::resetMeshUpdateCounters(){
+void AdvectionGroup::resetMeshUpdateCounters(){
     nChanges = 0;
     numNotificationsRecvd = 0;
     numNotificationsExpected = qtree.ckLocMgr()->numLocalElements();
     if(numNotificationsExpected==0)
-        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(PerProcessorChare, meshUpdateReductionClient), thisProxy));
+        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(AdvectionGroup, meshUpdateReductionClient), thisProxy));
 
 }
 

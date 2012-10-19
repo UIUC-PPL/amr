@@ -30,7 +30,7 @@ mainmodule Main{
   readonly int refine_frequency;
 
   initproc TurnManualLBOn();
-  readonly CProxy_PerProcessorChare ppc;
+  readonly CProxy_AdvectionGroup ppc;
     
   readonly bool isInMeshGenerationPhase;
   mainchare Main{
@@ -54,8 +54,8 @@ mainmodule Main{
 
 module Advection{
 
-  group PerProcessorChare{
-    entry PerProcessorChare();
+  group AdvectionGroup{
+    entry AdvectionGroup();
     entry void collectCascades(CkCallback cb);
     entry void reduceLatencies();
     entry void reduceWorkUnits();

@@ -142,7 +142,7 @@ Main::Main(CkArgMsg* m){
   qtree.doneInserting();
 
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
-  ppc = CProxy_PerProcessorChare::ckNew();
+  ppc = CProxy_AdvectionGroup::ckNew();
 
   //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
   //CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);

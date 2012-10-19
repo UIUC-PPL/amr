@@ -275,7 +275,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, DECISION* nbr_decision);
 };*/
 
-class PerProcessorChare : public CBase_PerProcessorChare {
+class AdvectionGroup : public CBase_AdvectionGroup {
   std::vector<int> cascades;
   std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
@@ -285,7 +285,7 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   bool meshUpdated;
 
  public:
-  PerProcessorChare();
+  AdvectionGroup();
 
   void incrementWorkUnitCount();
   void recordCascade(int iteration, int length);
@@ -300,6 +300,6 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   void resetMeshUpdateCounters();
 };
 
-extern CProxy_PerProcessorChare ppc;
+extern CProxy_AdvectionGroup ppc;
 
 #endif // ADVECTION_H

@@ -556,10 +556,10 @@ void Advection::process(int iteration, int dir, int size, double gh[]){
 
 int simpleDirectionFromComplex(int dir) {
   switch (dir) {
-  case UP_RIGHT:   case UP_LEFT:   return UP;
-  case DOWN_RIGHT: case DOWN_LEFT: return DOWN;
-  case LEFT_DOWN:  case LEFT_UP:   return LEFT;
-  case RIGHT_DOWN: case RIGHT_UP:  return RIGHT;
+  case UP_RIGHT:   case UP_LEFT:   case UP:     return UP;
+  case DOWN_RIGHT: case DOWN_LEFT: case DOWN:   return DOWN;
+  case LEFT_DOWN:  case LEFT_UP:   case LEFT: return LEFT;
+  case RIGHT_DOWN: case RIGHT_UP:  case RIGHT: return RIGHT;
   default: CkAbort("called on non-complex direction");
   }
 }
@@ -811,8 +811,6 @@ DECISION Advection::getGranularityDecision(){
       for (int kk = 0; kk < ndim2; kk++){  // kk= 1, 2, 3, 4
         num = num + pow(delu2[kk],2.);
         denom = denom + pow(delu3[kk], 2.) + (refine_filter*delu4[kk])*2;
-        // refine_filter is the epsilon in my writing sheet
-        // refine_filter = 0.01 by default
       }
       // compare the square of the error
       if (denom == 0. && num != 0.){
@@ -844,17 +842,11 @@ void Advection::resetMeshRestructureData(){
 }
 
 void Advection::makeGranularityDecisionAndCommunicate(){
-  //CkPrintf("%s doMeshRestructure %d\n", thisIndex.getIndexString().c_str(), iterations);
-
   remeshStartTime = CkWallTimer();
 
   if(!isRefined) {//run this on leaf nodes
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
-
-    DECISION newDecision = decision;
-    if (decision != REFINE)
-      newDecision = max(decision, getGranularityDecision());
-
+    DECISION newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     updateDecisionState(1, newDecision);
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision){
@@ -875,10 +867,8 @@ void Advection::updateDecisionState(int cascade_length, DECISION newDecision) {
   for(int i=0; i<NUM_NEIGHBORS; i++){
     if(isFriend(nbr_exists[i], nbr_isRefined[i])){
       VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
-      // Since Phase1Msgs are only refinement messages
       thisProxy(nbr[i]).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
     }
-    //just send your direction w.r.t. to the receiving neighbor
     else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
       //Get Corresponding Children of the neighbor
       QuadIndex q1, q2;
@@ -918,11 +908,11 @@ void Advection::informParent(int childNum, DECISION dec, int cascade_length) {
     VB(logFile << "settin parentHasAlreadyMadeDecision to true, iterations " << iterations << std::endl;);
     parentHasAlreadyMadeDecision = true;
     //tell rest of the children which are not refined
-    for(int i=0 ;i<NUM_CHILDREN; i++){
+    FOR_EACH_CHILD
       if(i!=childNum && !child_isRefined[i]) {
         thisProxy(thisIndex.getChild(i)).recvParentDecision(cascade_length);
       }
-    }
+    END_FOR
     //inform your parent that you are not going to derefine
     if(parent!=thisIndex)
       thisProxy(parent).informParent(thisIndex.getQuadrant(), STAY, cascade_length);
@@ -969,12 +959,13 @@ void Advection::exchangePhase1Msg(int dir, DECISION remoteDecision, int cascade_
     else if sender is a refined neighbor
     myDecision = max(myDecision, remoteDecision)*/
   //logFile << nbr_exists[dir] << ", " << nbr_isRefined[dir] << std::endl;  
-  if(isDirectionSimple(dir) && nbr_exists[dir]){
+  int simpleDir = simpleDirectionFromComplex(dir);
+  if(isFriend(nbr_exists[simpleDir], nbr_isRefined[simpleDir])){
     if(remoteDecision == REFINE)
       newDecision = std::max(STAY, decision);
   }
-  else if (isDirectionSimple(dir) && !nbr_exists[dir]);
-  else if(!isDirectionSimple(dir))
+  else if(isUncle(nbr_exists[simpleDir], nbr_isRefined[simpleDir]));//do nothing
+  else if(isNephew(nbr_exists[simpleDir], nbr_isRefined[simpleDir]))
     newDecision = std::max(decision, remoteDecision);
   else
     CkAbort("unacceptable condition");

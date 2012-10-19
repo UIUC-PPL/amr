@@ -844,7 +844,7 @@ void Advection::resetMeshRestructureData(){
 void Advection::makeGranularityDecisionAndCommunicate(){
   remeshStartTime = CkWallTimer();
 
-  if(!isRefined) {//run this on leaf nodes
+  if(isLeaf) {//run this on leaf nodes
     VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
     DECISION newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     updateDecisionState(1, newDecision);
@@ -925,7 +925,7 @@ void Advection::recvParentDecision(int cascade_length) {
 
   hasReceivedParentDecision = true;
   DECISION newDecision = std::max(STAY, decision);
-  if(!isRefined)
+  if(isLeaf)
     updateDecisionState(cascade_length, newDecision);
 }
 
@@ -1020,7 +1020,7 @@ void Advection::doPhase2(){
 
 void Advection::updateMeshState(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
-  if(!isRefined && decision == STAY){
+  if(isLeaf && decision == STAY){
     VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
 
     FOR_EACH_NEIGHBOR

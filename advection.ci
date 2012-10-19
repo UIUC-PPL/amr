@@ -77,7 +77,7 @@ module Advection{
     entry void exchangePhase1Msg(int, DECISION, int cascade_length);
 
     entry void doRemeshing(){
-        if(!isInMeshGenerationPhase && !isRefined) {
+        if(!isInMeshGenerationPhase && isLeaf) {
             atomic "trigger ghost exchange"{
                 exchangeGhosts();
             }
@@ -149,7 +149,7 @@ module Advection{
                  << " dt: " << dt << " mydt: " << mydt << " myt " << myt << endl;
         }
         //iterations++;
-        if(!isRefined){
+        if(isLeaf){
             char fname[100];
 
             sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
@@ -161,7 +161,7 @@ module Advection{
             thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
       when signalExchangeGhostsCompletion() atomic "doWork" {
-        if(!isRefined)
+        if(isLeaf)
             compute();
         iterate();
       }

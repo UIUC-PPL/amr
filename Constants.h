@@ -13,4 +13,5 @@
 #define index_l(i,j)    (int)((j)*(block_width) + i)
 #define index_c(i,j)    (int)((j)*(block_width/2) + i)
 
+#define isLeaf !isRefined
 #endif

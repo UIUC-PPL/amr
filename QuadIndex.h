@@ -1,17 +1,7 @@
 #ifndef QUADINDEX_H
 #define QUADINDEX_H
 
-#include <string>
-
-const int bits_per_int = 8*sizeof(int);
-
-#define liesin(x, st, end) ((x<=end && x>=st) ? true:false)
-enum DIR {  UP=0, DOWN=1, LEFT=2, RIGHT=3, LEFT_UP=4, LEFT_DOWN=5, RIGHT_UP=6, 
-            RIGHT_DOWN=7, UP_LEFT=8, UP_RIGHT=9, DOWN_LEFT=10, DOWN_RIGHT=11};
-PUPbytes(DIR);
-
-enum DECISION {INV=-1, DEREFINE=0, STAY=1, REFINE=2};
-PUPbytes(DECISION);
+using std::string;
 
 class QuadIndex{
 public:
@@ -47,8 +37,6 @@ public:
   QuadIndex getParent() const;
 
   QuadIndex getChild(unsigned int) const;
-  /*int getChildNum() const;
-  int getQuadI() const;*/
   int getQuadrant() const;
     
   unsigned int getBitVector() const{ return bitVector;}
@@ -58,13 +46,6 @@ public:
     p|nbits;
     p|bitVector;
   }
-
-  /*bool operator<(const QuadIndex& rhs) const {
-    if (nbits < rhs.nbits) return true;
-    if (nbits > rhs.nbits) return false;
-    if (bitVector < rhs.bitVector) return true;
-    return false;
-  }*/
 };
 
 class CkArrayIndexQuadIndex: public CkArrayIndex {

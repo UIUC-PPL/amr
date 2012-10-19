@@ -1,12 +1,6 @@
 #if !defined(ADVECTION_H)
 #define ADVECTION_H
 
-#ifdef LOGGER
-#define VB(x) do { x } while(false)
-#else
-#define VB(x) do { } while(false)
-#endif
-
 #include "Advection.decl.h"
 
 int inline myDirectionWrtUncle(int quad, int nbr){

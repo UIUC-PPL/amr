@@ -1,9 +1,5 @@
-#include <cmath>
-#include <cstring>
-#include "charm++.h"
-#include "Constants.h"
-#include "QuadIndex.h"
-
+#include "Headers.h"
+using std::pow;
 /*constructor
 
   This is how quadrants are defined, based on quadrants of the Cartesian
@@ -33,15 +29,15 @@ QuadIndex::QuadIndex(int x, int y, int depth){
   bitVector = 0; 
   nbits = 2*depth;
   int quad;
-  int range = std::pow(2.0, (double)depth);
+  int range = pow(2.0, (double)depth);
   int r1 = 0, r2 = range-1, c1 = 0, c2 = range-1;
     
   int index = 0;
   for(int i=0; i<depth; i++){
-    if(liesin(y, 0, (r1+r2)/2) && liesin(x, (c1+c2)/2+1, c2))quad=3;
-    else if (liesin(y, 0, (r1+r2)/2) && liesin(x, c1, (c1+c2)/2))quad=2;
-    else if (liesin(y, (r1+r2)/2 + 1, r2) && liesin(x, c1, (c1+c2)/2))quad=1;
-    else quad=0;
+    if      (liesin(y, 0, (r1+r2)/2)        &&  liesin(x, (c1+c2)/2+1, c2))  quad=3;
+    else if (liesin(y, 0, (r1+r2)/2)        &&  liesin(x, c1, (c1+c2)/2))    quad=2;
+    else if (liesin(y, (r1+r2)/2 + 1, r2)   &&  liesin(x, c1, (c1+c2)/2))    quad=1;
+    else                                                                     quad=0;
         
     //set bitVector
     int bit = quad/2;
@@ -50,8 +46,8 @@ QuadIndex::QuadIndex(int x, int y, int depth){
     bitVector = bitVector | bit<<(bits_per_int - 1 - (index+1));
     index += 2;
          
-    r2 = r2 - std::pow(2.0, (double)depth-i-1);
-    c2 = c2 - std::pow(2.0, (double)depth-i-1);
+    r2 = r2 - pow(2.0, (double)depth-i-1);
+    c2 = c2 - pow(2.0, (double)depth-i-1);
          
     x =  x%(r2+1);
     y =  y%(r2+1);
@@ -69,7 +65,7 @@ QuadIndex::QuadIndex(int x, int y, int depth){
 */
 void QuadIndex::getCoordinates(int &x, int &y) const{
   int depth = nbits/2;
-  int r1 = 0, r2 = std::pow(2.0, (double)depth)-1, c1 = 0, c2 = std::pow(2.0, (double)depth)-1;
+  int r1 = 0, r2 = pow(2.0, (double)depth)-1, c1 = 0, c2 = pow(2.0, (double)depth)-1;
   //r represents row(horizontal), c represents column(vertical)
   for(int i=0; i<nbits; i+=2){
     int bit0 = (bitVector & (1<<(bits_per_int - 1 - i)))>0?1:0;
@@ -130,13 +126,5 @@ QuadIndex QuadIndex::getChild(unsigned int idx) const {
 
 int QuadIndex::getQuadrant() const{
   CkAssert(nbits!=0);
-  /*int bit0 = ((bitVector & 1<<(bits_per_int-nbits))>0)?1:0;
-  int bit1 = ((bitVector & 1<<(bits_per_int-nbits+1))>0)?1:0;
-  return 2*bit1+bit0;*/
   return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
 }
-/*
-int QuadIndex::getQuadI() const{
-  return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
-}*/
-

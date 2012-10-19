@@ -18,12 +18,6 @@ int block_width;
 int min_depth, max_depth;
 int max_iterations, refine_frequency;
 
-#ifndef AMR_REVISION
-#define AMR_REVISION Unknown
-#endif
-#define _QUOTEIT(x) #x
-#define INQUOTES(x) _QUOTEIT(x)
-
 const char amrRevision[] = INQUOTES(AMR_REVISION);
 
 double xmin, xmax, ymin, ymax;
@@ -33,20 +27,6 @@ double ap, an;
 double tmax, t, dt, cfl;
 bool isInMeshGenerationPhase;
 
-char* decimal_to_binary_string(int num, int len){
-  char* _ret = new char[len+1];
-  int i=0;
-  _ret[len]=0;
-  while(num){
-    _ret[len-i-1] = (num&1==1)?'1':'0';
-    num = num>>1;
-    i++;
-  };
-  for(; i<len; i++)
-    _ret[len-i-1]='0';
-  return _ret;
-}
-
 double start_time, end_time;
 
 Main::Main(CkArgMsg* m){
@@ -55,8 +35,6 @@ Main::Main(CkArgMsg* m){
   mainProxy = thisProxy;
   boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
   boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
-  //boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/log");
-  //boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/log");
 
   iterations = 0;
 
@@ -93,22 +71,22 @@ Main::Main(CkArgMsg* m){
   refine_frequency = 3;
   isInMeshGenerationPhase = true;
 
-  //call colormap
-  dx = (xmax - xmin)/double(array_width);//ckout << "dx: " << dx << endl;
-  dy = (ymax - ymin)/double(array_height);//ckout << "dy: " << dy << endl;
-  //ckout << min(dx, dy) << endl;
-  //ckout << "dt: " << dt << endl;
+  dx = (xmax - xmin)/double(array_width);
+  dy = (ymax - ymin)/double(array_height);
   xctr = 0.3;
   yctr = 0.5;
   radius = 0.2;
 
   ap = max(v, 0.0);
   an = min(v, 0.0);
-  //ckout << "ap: " <<ap << endl;
-  //ckout << "an: " <<an << endl;
+
+  dt = min(dx,dy)/v * cfl;
+  dt /= pow(2., max_depth - min_depth);
+  if ((t + dt) >= tmax )
+    dt = tmax - t;
+  t = t+dt;
 
   /*****End Initialization **********/
-
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
   opts.setMap(map);
@@ -120,20 +98,13 @@ Main::Main(CkArgMsg* m){
   int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
   CkAssert(min_depth >= 4);
+
   // To maintain the semantics of "max_depth" that set it relative to
   // a grid fo 256, offset by 4
   max_depth = atoi(m->argv[1]) + min_depth - 4;
 
   CkPrintf("Running Advection on %d processors with (%d,%d) elements, minDepth = %d, maxDepth = %d, blockSize = %d, maxIter = %d\n",
            CkNumPes(), array_width, array_height, min_depth, max_depth, block_height, max_iterations);
-
-  /*max_depth = 9;*/
-
-  dt = min(dx,dy)/v * cfl;
-  dt /= pow(2., max_depth - min_depth);
-  if ((t + dt) >= tmax )
-    dt = tmax - t;
-  t = t+dt;
 
   for (int i = 0; i < num_chare_rows; ++i)
     for (int j = 0; j < num_chare_cols; ++j)
@@ -144,45 +115,6 @@ Main::Main(CkArgMsg* m){
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
   ppc = CProxy_AdvectionGroup::ckNew();
 
-  //CkCallback *cb = new CkCallback(CkIndex_Main::terminate(), thisProxy);
-  //CkCallback *cb = new CkCallback(CkIndex_Advection::startStep(), qtree);
-  //qtree.ckSetReductionClient(cb);//sets the default callback for the array
-
-  //CkStartQD(*new CkCallback(CkIndex_Main::terminate(), mainProxy));
-  /*queue<QuadIndex> q;
-    q.push("");
-       
-    for(int i=0; i<depth; i++){
-    int size = q.size();
-    for(int j=0; j<size; j++){
-    qindex = q.front(); q.pop();
-    qtree(qindex).refine();
-    qtree.doneInserting();
-    for(int dir=0; dir<4; dir++)
-    q.push(qindex.getChild(dir));
-    }
-    }
-    CkVec<QuadIndex> v = *new CkVec<QuadIndex>();
-    qtree[qindex].refine();
-    v.push_back(qindex);
-    v.push_back(qindex.getChild("00")); v.push_back(qindex.getChild("01"));
-    v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));
-
-    qindex = qindex.getChild("00");
-    qtree[qindex].refine();
-    v.push_back(qindex.getChild("00")); v.push_back(qindex.getChild("01"));
-    v.push_back(qindex.getChild("10")); v.push_back(qindex.getChild("11"));
-    
-    thisProxy.printTreeInformation(v);*/
-      
-  /*int size = q.size();
-    ckout << "Size of Queue " << size << endl;
-    for(int i=0; i<size; i++){
-    qindex = q.front(); q.pop();
-    ckout << "Calling doStep for " << qindex.getIndexString() << endl;
-    qtree[qindex].doStep();
-    }*/
-  /*qtree[qindex].doStep();*/
 }
 
 void Main::startMeshGeneration() {
@@ -190,11 +122,6 @@ void Main::startMeshGeneration() {
   qtree.doRemeshing();
   ppc.resetMeshUpdateCounters();
 }
-
-/*void Main::startRunning(){
-  start_time = CkWallTimer();
-  qtree.doStep();
-}*/
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
@@ -252,14 +179,6 @@ struct AdvMap : public CBase_AdvMap {
     offset += (idx.nbits == 8);
 
     int pe = (basePE + offset - 1) % numPes;
-
-    // std::cout << "index = " << str
-    //           << ", base = " << base
-    //           << ", baseIndex = " << baseIndex.getIndexString()
-    //           << ", basePE = " << basePE
-    //           << ", offset = " << offset
-    //           << ", pe = " << pe
-    //           << std::endl;
 
     return pe;
   }

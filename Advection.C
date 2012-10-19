@@ -26,7 +26,7 @@ extern double tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency;
 extern bool isInMeshGenerationPhase;
 
-const int ndim=2;
+const int ndim = 2;
 const int ndim2 = 4; //ndim*ndim
 
 double ***delu, ***delua;

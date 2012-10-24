@@ -119,37 +119,11 @@ Main::Main(CkArgMsg* m){
 
 void Main::startMeshGeneration() {
   start_time = CkWallTimer();
-  //qtree.doRemeshing();
   qtree.iterate();
-  ppc.resetMeshUpdateCounters();
 }
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
-  ppc.collectCascades(CkCallback(CkReductionTarget(Main, reportCascadeStats),
-                                 thisProxy));
-}
-
-void Main::reportCascadeStats(int *cascade_lengths, int size) {
-  ckout << "Cascade lengths: ";
-  for (int i = 0; i < size; ++i)
-    ckout << cascade_lengths[i] << ", ";
-  ckout << endl;
-  ppc.reduceLatencies();
-}
-
-void Main::qdlatency(double* elems, int size) {
-  for (unsigned i = 0; i < size; i++) {
-    if (elems[i] != std::numeric_limits<double>::max())
-      CkPrintf("iteration %u, QD latency = %0.20f\n", i, elems[i]);
-  }
-}
-
-void Main::remeshlatency(double* elems, int size) {
-  for (unsigned i = 0; i < size; i++) {
-    if (elems[i] != std::numeric_limits<double>::max())
-      CkPrintf("iteration %u, Remesh latency = %0.20f\n", i, elems[i]);
-  }
   ppc.reduceWorkUnits();
 }
 

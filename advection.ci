@@ -37,9 +37,6 @@ mainmodule Main{
     entry Main(CkArgMsg *m);
     entry void terminate();
     entry void startMeshGeneration();
-    entry [reductiontarget] void reportCascadeStats(int cascade_lengths[size], int size);
-    entry [reductiontarget] void qdlatency(double elems[size], int size);
-    entry [reductiontarget] void remeshlatency(double elems[size], int size);
     entry [reductiontarget] void totalWorkUnits(int total);
   };
 
@@ -54,13 +51,9 @@ module Advection{
 
   group AdvectionGroup{
     entry AdvectionGroup();
-    entry void collectCascades(CkCallback cb);
-    entry void reduceLatencies();
     entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
-    entry void notifyMeshUpdate(Decision);
-    entry [reductiontarget] void meshUpdateReductionClient(int);
-    entry void resetMeshUpdateCounters();
+    entry void incrementWorkUnitCount();
   };
 
 
@@ -91,47 +84,21 @@ module Advection{
       }
     };
 
-    entry void phase2Done() atomic "done phase2"{
-        if(isInMeshGenerationPhase){
-            meshGenIterations++;
-            if(ppc.ckLocalBranch()->meshUpdated && meshGenIterations<20){
-                thisProxy[thisIndex].doRemeshing();
-                ppc.ckLocalBranch()->resetMeshUpdateCounters();
-                return;
-            }
-        }
-        if(isRoot())ppc.meshGenerationPhaseIsOver();
-        if(isRoot()){
-            itBeginTime=CmiWallTimer();
-        }
-        iterate();
-    };
-
     entry void startLdb();
     entry void signalExchangeGhostsCompletion();
 
     entry void doComputationStep(){
-      atomic "begin iteration"{
+      atomic {
         ppc.ckLocalBranch()->incrementWorkUnitCount();
         if (isRoot()) {
           ckout  << thisIndex.getIndexString().c_str() << " doStep iteration " << iterations 
                  << " dt: " << dt << " mydt: " << mydt << " myt " << myt << endl;
         }
-        //iterations++;
-        if(isLeaf){
-            char fname[100];
-
-            sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-            VB(outFile.open(fname););
-            VB(logFile << "************************Begin Iteration " << iterations << " on " << thisIndex.getIndexString() << std::endl;);
-            exchangeGhosts();
-        }
-        else
-            thisProxy[thisIndex].signalExchangeGhostsCompletion();
+        if(isLeaf) exchangeGhosts();
+        else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
-      when signalExchangeGhostsCompletion() atomic "doWork" {
-        if(isLeaf)
-            compute();
+      when signalExchangeGhostsCompletion() atomic {
+        if(isLeaf) compute();
         iterate();
       }
     };
@@ -141,7 +108,7 @@ module Advection{
         meshGenIterations++;
         thisProxy[thisIndex].doRemeshing();
       } else {
-        if(isRoot()) ppc.meshGenerationPhaseIsOver();
+        if (isRoot()) ppc.meshGenerationPhaseIsOver();
         iterations++;
         myt = myt + mydt;
         if(iterations > max_iterations ||  myt>=tmax){

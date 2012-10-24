@@ -214,16 +214,8 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   AdvectionGroup();
 
   void incrementWorkUnitCount();
-  void recordCascade(int iteration, int length);
-  void collectCascades(CkCallback cb);
-  void recordQDLatency(int iteration, double latency);
-  void recordRemeshLatency(int iteration, double latency);
   void reduceWorkUnits();
-  void reduceLatencies();
   void meshGenerationPhaseIsOver();
-  void notifyMeshUpdate(Decision);
-  void meshUpdateReductionClient(int);
-  void resetMeshUpdateCounters();
 };
 
 extern CProxy_AdvectionGroup ppc;

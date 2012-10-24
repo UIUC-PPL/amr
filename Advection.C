@@ -63,41 +63,10 @@ AdvectionGroup::AdvectionGroup()
     delua[1][i] = new double[block_width+2];
   }
 
-  numNotificationsExpected = qtree.ckLocMgr()->numLocalElements();
-  numNotificationsRecvd = 0;
-  nChanges=0;
 }
 
 void AdvectionGroup::incrementWorkUnitCount() {
   workUnitCount++;
-}
-
-void AdvectionGroup::recordCascade(int iteration, int length) {
-  cascades[iteration] = max(cascades[iteration], length);
-}
-
-void AdvectionGroup::collectCascades(CkCallback cb) {
-  contribute(max_iterations*sizeof(cascades[0]), &cascades[0],
-             CkReduction::max_int, cb);
-}
-
-void AdvectionGroup::recordQDLatency(int iteration, double latency) {
-  CkAssert(qdlatencies.size() >= iteration);
-  if (latency < qdlatencies[iteration])
-    qdlatencies[iteration] = latency;
-}
-
-void AdvectionGroup::recordRemeshLatency(int iteration, double latency) {
-  CkAssert(remeshlatencies.size() >= iteration);
-  if (latency < remeshlatencies[iteration])
-    remeshlatencies[iteration] = latency;
-}
-
-void AdvectionGroup::reduceLatencies() {
-  CkCallback cb(CkReductionTarget(Main,qdlatency), mainProxy);
-  contribute(sizeof(double)*max_iterations, &qdlatencies[0], CkReduction::min_double, cb);
-  CkCallback cb2(CkReductionTarget(Main,remeshlatency), mainProxy);
-  contribute(sizeof(double)*max_iterations, &remeshlatencies[0], CkReduction::min_double, cb2);
 }
 
 void AdvectionGroup::reduceWorkUnits() {
@@ -107,32 +76,6 @@ void AdvectionGroup::reduceWorkUnits() {
 
 void AdvectionGroup::meshGenerationPhaseIsOver(){
   isInMeshGenerationPhase=false;
-}
-
-void AdvectionGroup::notifyMeshUpdate(Decision dec){
-    //ckout << CkMyPe() << " notified of mesh update" << numNotificationsRecvd << ", " << numNotificationsExpected << endl;
-    if(dec==REFINE||dec==COARSEN){
-        nChanges++;
-    }
-    if(++numNotificationsRecvd == numNotificationsExpected){
-        //ckout << CkMyPe() << " is contributing" << endl;
-        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(AdvectionGroup, meshUpdateReductionClient), thisProxy));
-    }
-}
-
-void AdvectionGroup::meshUpdateReductionClient(int nChanges){
-    if(CkMyPe()==0)
-        ckout << "meshUpdateReductionClient: " << nChanges << endl;
-    meshUpdated = (nChanges > 0) ? true:false;
-}
-
-void AdvectionGroup::resetMeshUpdateCounters(){
-    nChanges = 0;
-    numNotificationsRecvd = 0;
-    numNotificationsExpected = qtree.ckLocMgr()->numLocalElements();
-    if(numNotificationsExpected==0)
-        contribute(sizeof(int), &nChanges, CkReduction::sum_int, CkCallback(CkReductionTarget(AdvectionGroup, meshUpdateReductionClient), thisProxy));
-
 }
 
 bool isUncle(bool exists, bool isRefined){
@@ -864,8 +807,6 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
 //  a) If the parent is a grandparent and also have children that are leaves
 //  b) when a child sends REFINE/STAY message to the parent
 void Advection::informParent(int childNum, Decision dec, int cascade_length) {
-  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
-  cascade_length++;
 
   VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << ", iteration " << iterations << std::endl;);
   if(childNum >= 0)
@@ -890,7 +831,6 @@ void Advection::informParent(int childNum, Decision dec, int cascade_length) {
 }
 
 void Advection::recvParentDecision(int cascade_length) {
-  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
 
   hasReceivedParentDecision = true;
@@ -906,7 +846,6 @@ bool isDirectionSimple(int dir) {
 
 // Phase1 Msgs are either REFINE or STAY messages
 void Advection::exchangePhase1Msg(int dir, Decision remoteDecision, int cascade_length) {
-  ppc.ckLocalBranch()->recordCascade(iterations, cascade_length);
   VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
   VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
 
@@ -955,9 +894,6 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
-  if(isInMeshGenerationPhase){
-    ppc.ckLocalBranch()->notifyMeshUpdate(decision);
-  }
   if(isRoot()) ckout << "in doPhase2" << endl;
   VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
 
@@ -1260,7 +1196,7 @@ Advection::Advection(double dx, double dy,
 }
 
 void Advection::ResumeFromSync(){
-  phase2Done();
+  iterate();
 }
 
 void Advection::startLdb(){

@@ -100,25 +100,11 @@ module Advection{
                 return;
             }
         }
-        //isInMeshGenerationPhase=false;
         if(isRoot())ppc.meshGenerationPhaseIsOver();
-        //if(isInMeshGenerationPhase && isRefined) iterations=1;
         if(isRoot()){
             itBeginTime=CmiWallTimer();
         }
-        //if(true)
             thisProxy[thisIndex].doStep();
-        /*else{
-          iterations += refine_frequency - 1;
-          if (iterations >= max_iterations) {
-            VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-            if (isRoot())
-              CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
-          } 
-          else {
-            doRemeshing();
-          }
-        }*/
     };
 
     entry void startLdb();

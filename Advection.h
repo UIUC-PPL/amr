@@ -146,12 +146,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   //void doMeshRestructure();
   void resetMeshRestructureData();
+  void exchangePhase1Msg(int, Decision, int);
   void updateDecisionState(int cascade_length, Decision newDecision);
   void informParent(int, Decision, int cascade_length);
   void recvParentDecision(int cascade_length);
-  //void recvNeighborDecision(Dir);
-  //void recvStatusUpdateFromParent(int);
-  void processExchangeMsg(int, Decision, int cascade_length);
 
   /*Phase2 entry methods*/
   void setNbrStateUponCoarsening(int, bool*, bool*, Decision*);

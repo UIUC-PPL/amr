@@ -119,7 +119,8 @@ Main::Main(CkArgMsg* m){
 
 void Main::startMeshGeneration() {
   start_time = CkWallTimer();
-  qtree.doRemeshing();
+  //qtree.doRemeshing();
+  qtree.iterate();
   ppc.resetMeshUpdateCounters();
 }
 

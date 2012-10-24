@@ -138,7 +138,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void applyInitialCondition();
   void process(int, int, int, double*);
   void compute();
-  void iterate();
 
   /*Phase1 Entry Methods*/
   void makeGranularityDecisionAndCommunicate();

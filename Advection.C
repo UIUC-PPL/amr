@@ -727,36 +727,6 @@ void Advection::compute(){
 #endif
 }
 
-void Advection::iterate() {
-  if(iterations >= max_iterations){
-    VB(logFile << thisIndex.getIndexString() << " now terminating" << std::endl;);
-    if (isRoot())
-      CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
-    return;
-  }
-  iterations++;
-  myt = myt+dt;
-  if(myt < tmax){
-    mydt = min(dx,dy)/v * cfl;
-    if ((myt + mydt) >= tmax )
-      mydt = tmax - myt;
-
-    //time to check need for refinement/coarsening
-    if(iterations % refine_frequency == 0) {
-      VB(logFile << "Entering Mesh Restructure Phase on " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;);
-      //iterations++;
-      doRemeshing();
-    }
-    else {
-      VB(logFile << "calling doStep now, iteration " << iterations << std::endl;);
-      doStep();
-    }
-  }
-  else {
-    CkPrintf("Contribute from %s\n", thisIndex.getIndexString().c_str());
-  }
-}
-
 Decision Advection::getGranularityDecision(){
   delx = 0.5/dx;
   dely = 0.5/dy;

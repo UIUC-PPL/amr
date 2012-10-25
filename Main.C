@@ -33,9 +33,6 @@ Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
   mainProxy = thisProxy;
-  boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
-  boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
-
   iterations = 0;
 
   if(m->argc < 4){

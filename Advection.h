@@ -55,8 +55,6 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection_SDAG_CODE
     public:
         
-  std::ofstream logFile;
-  std::ofstream outFile;
   //tree information
   bool isRefined;
   int depth;

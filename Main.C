@@ -25,7 +25,7 @@ double xctr, yctr, radius;
 double dx, dy, v;
 double ap, an;
 double tmax, t, dt, cfl;
-bool isInMeshGenerationPhase;
+bool inInitialMeshGenerationPhase;
 
 double start_time, end_time;
 
@@ -69,7 +69,7 @@ Main::Main(CkArgMsg* m){
   cfl = 0.4;
   v = 0.1;
   refine_frequency = 3;
-  isInMeshGenerationPhase = true;
+  inInitialMeshGenerationPhase = true;
 
   dx = (xmax - xmin)/double(array_width);
   dy = (ymax - ymin)/double(array_height);

@@ -24,7 +24,7 @@ extern double v;
 extern double ap, an;
 extern double tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency;
-extern bool isInMeshGenerationPhase;
+extern bool inInitialMeshGenerationPhase;
 
 const int ndim = 2;
 const int ndim2 = 4; //ndim*ndim
@@ -68,7 +68,7 @@ void AdvectionGroup::reduceWorkUnits() {
 }
 
 void AdvectionGroup::meshGenerationPhaseIsOver(){
-  isInMeshGenerationPhase=false;
+  inInitialMeshGenerationPhase=false;
 }
 
 bool isUncle(bool exists, bool isRefined){
@@ -145,7 +145,7 @@ void Advection::initializeRestofTheData(){
   usesAtSync = CmiTrue;
   mem_allocate_all();
   
-  if(isInMeshGenerationPhase){
+  if(inInitialMeshGenerationPhase){
     for(int i=0; i<block_width+2; i++)
       x[i] = xmin + double(i)*dx - 0.5*dx;
     
@@ -696,7 +696,7 @@ void Advection::doPhase2(){
   if(decision == COARSEN){//send data to the parent
     
     vector<double> child_u;
-    if(isInMeshGenerationPhase==false){
+    if(inInitialMeshGenerationPhase==false){
       child_u.resize((block_height)*(block_width)/4);
       for(int i=1; i<= block_width; i+=2){
         for(int j=1; j<=block_height; j+=2)
@@ -777,7 +777,7 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   }
     
   int ctr=0; double rsq;
-  if(isInMeshGenerationPhase) applyInitialCondition();
+  if(inInitialMeshGenerationPhase) applyInitialCondition();
   else
     for(int j=st_j; j<=end_j; j++){
       for(int i=st_i; i<=end_i; i++)
@@ -849,7 +849,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   QuadIndex child = thisIndex.getChild(sChild);
 
   vector<double> refined_u;
-  if(!isInMeshGenerationPhase){
+  if(!inInitialMeshGenerationPhase){
     refined_u.resize(block_width*block_height);
     interpolate(u, refined_u, xstart, xend, ystart, yend);
   }
@@ -929,7 +929,7 @@ Advection::Advection(double dx, double dy,
     }
   }
 
-  if(!isInMeshGenerationPhase){
+  if(!inInitialMeshGenerationPhase){
     int ctr=0;
     for(int j=1; j<=block_height; j++)
       for(int i=1; i<=block_width; i++)

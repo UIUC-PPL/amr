@@ -31,7 +31,7 @@ mainmodule Main{
 
   initproc TurnManualLBOn();
   readonly CProxy_AdvectionGroup ppc;
-  readonly bool isInMeshGenerationPhase;
+  readonly bool inInitialMeshGenerationPhase;
 
   mainchare Main{
     entry Main(CkArgMsg *m);
@@ -58,26 +58,36 @@ module Advection{
 
 
   array [QuadIndex] Advection {
+    //constructors
     entry Advection();
     entry Advection(double, double, double, double);
+    //this constructor is used whena new chare is constructed upon refinement
     entry Advection(double, double, double, double,
                     double, double, int, int, std::vector<double>,
                     bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
                     Decision p3[3*NUM_NEIGHBORS]);
+    
+    //entry methods for exchanging boundary layers
     entry void receiveGhosts(int iter, int dir, int width, double u[width]);
+    entry void signalExchangeGhostsCompletion();
+
+    //remeshing phase 1 entry methods
     entry void informParent(int, Decision, int cascade_length);
     entry void recvParentDecision(int cascade_length);
     entry void exchangePhase1Msg(int, Decision, int cascade_length);
-    entry void startLdb();
-    entry void signalExchangeGhostsCompletion();
+    
+    //remeshing phase 2 entry methods
     entry void startPhase2();
     entry void recvChildData(int, double, double, int, int, std::vector<double>, 
                             bool p1[NUM_NEIGHBORS], bool p2[NUM_NEIGHBORS], 
                             Decision p3[3*NUM_NEIGHBORS]);
-
+    entry void startLdb();
+    
+    //sdag entry method that specifies the control flow 
+    //of the Remeshing phase
     entry void doRemeshing() {
       atomic {
-        if (!isInMeshGenerationPhase && isLeaf) exchangeGhosts();
+        if (!inInitialMeshGenerationPhase && isLeaf) exchangeGhosts();
         else signalExchangeGhostsCompletion();
       }
       when signalExchangeGhostsCompletion() atomic{
@@ -90,23 +100,27 @@ module Advection{
       }
     };
 
-
     entry void doComputationStep(){
       atomic {
         ppc.ckLocalBranch()->incrementWorkUnitCount();
         if (isRoot())
             ckout  << "starting iteration " << iterations << " at root, time = " << CmiWallTimer() << endl;
+        //only the leaf chares participate in boundary exchange,
+        //others just indicate boundary exchange completion
         if(isLeaf) exchangeGhosts();
         else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
       when signalExchangeGhostsCompletion() atomic {
+        //only the leaf chares do the computation
+        //others just move on to the next iteration
         if(isLeaf) compute();
         iterate();
       }
     };
 
     entry void iterate() atomic {
-      if(isInMeshGenerationPhase && meshGenIterations<max_depth){
+      
+      if(inInitialMeshGenerationPhase && meshGenIterations<max_depth){
         meshGenIterations++;
         thisProxy[thisIndex].doRemeshing();
       } else {

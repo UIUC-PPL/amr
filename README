@@ -1,6 +1,5 @@
 1. Changes in the Makefile
-a) set the CHARMC variable to the path of charmc binary in the charm build directory
-b) set BOOST_ROOT to the boost build directory having lib and include as sub-directories
+a) set the CHARMHOME variable to the path of charm directory
 
 
 Compiling the code:
@@ -12,3 +11,7 @@ Running the code:
 where arg1 = max_depth of the mesh (min_depth is fixed to 4 in the code)
       arg2 = #zones in one dimension per chare
       arg3 = #iterations for which the code is to be run
+
+READING ORDER
+1. advection.ci - read the entry methods - iterate, remeshing, doComputationStep
+2. QuadIndex.h - contains 

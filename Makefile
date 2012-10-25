@@ -2,7 +2,8 @@ BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
 
-CHARMC ?= ~/charm/bin/charmc -I$(BOOSTINC) -L$(BOOSTLIB)
+CHARMHOME ?= $(HOME)/charm
+CHARMC ?= $(CHARMHOME)/bin/charmc -I$(BOOSTINC) -L$(BOOSTLIB)
 CXX=$(CHARMC)
 
 OPTS ?= -O3
@@ -25,7 +26,7 @@ Main.o: Main.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
 QuadIndex.o: QuadIndex.C QuadIndex.h Advection.decl.h
 
 test: all
-	./charmrun +p8 ++local ./advection 7 16 30
+	./charmrun +p8 ++local ./advection 5 16 50
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp

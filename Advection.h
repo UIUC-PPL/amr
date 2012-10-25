@@ -172,43 +172,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool isRoot();
 };
 
-/*class InitRefineMsg: public CMessage_InitRefineMsg{
-
- public:
-  bool isInMeshGenerationPhase;
-  double dx, dy, myt, mydt, xmin, ymin, *refined_u;
-  int meshGenIterations, iterations;
-  bool *parent_nbr_exists;
-  bool *parent_nbr_isRefined;
-  Decision *parent_nbr_decision;
-
-  InitRefineMsg(){};
-  InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
-                int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, Decision *nbr_decision);
-};*/
-
-/*class ChildDataMsg: public CMessage_ChildDataMsg{
- public:
-  bool isInMeshGenerationPhase;
-  int childNum;
-  double myt, mydt; 
-  int meshGenIterations, iterations;
-  double *child_u;
-  bool *child_nbr_exists;
-  bool *child_nbr_isRefined;
-  Decision *child_nbr_decision;
-        
-  ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, Decision* nbr_decision);
-};*/
-
 class AdvectionGroup : public CBase_AdvectionGroup {
-  std::vector<int> cascades;
-  std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
-  int numNotificationsExpected, numNotificationsRecvd;
-  int nChanges;
-  public:
-  bool meshUpdated;
 
  public:
   AdvectionGroup();

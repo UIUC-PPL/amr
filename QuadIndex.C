@@ -81,9 +81,8 @@ void QuadIndex::getCoordinates(int &x, int &y) const{
 // returns the Index String
 std::string QuadIndex::getIndexString() const{
   std::string str;
-  for(int i=0; i<nbits; i++){
+  for(int i=0; i<nbits; i++)
     str += (bitVector & (1<<(bits_per_int - 1 - i)))>0?49:48;
-  }
   return str;
 }
     
@@ -110,12 +109,10 @@ QuadIndex QuadIndex::getParent() const {
 }
 
 QuadIndex QuadIndex::getChild(unsigned int idx) const {
-  CkAssert(idx <= 3);
   return QuadIndex(bitVector | (idx << (8*sizeof(bitVector) - nbits - 2)),
                    nbits + 2);
 }
 
 int QuadIndex::getQuadrant() const{
-  CkAssert(nbits!=0);
   return (bitVector >> (8*sizeof(bitVector) - nbits)) & 3;
 }

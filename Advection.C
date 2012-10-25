@@ -38,15 +38,8 @@ double refine_cutoff=0.2, derefine_cutoff=0.05;
 CProxy_AdvectionGroup ppc;
 
 AdvectionGroup::AdvectionGroup()
-  : cascades(max_iterations)
-  , workUnitCount(0)
+  :workUnitCount(0)
 {
-  qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
-  remeshlatencies.resize(max_iterations, std::numeric_limits<double>::max());
-
-  for (int i = 0; i < max_iterations; ++i)
-    cascades[i] = 0;
-
   delu = new double**[ndim];
   delua = new double**[ndim];
 
@@ -150,21 +143,16 @@ Advection::Advection(double xmin, double xmax, double ymin, double ymax)
 void Advection::initializeRestofTheData(){ 
   usesAutoMeasure = CmiFalse;
   usesAtSync = CmiTrue;
-
   mem_allocate_all();
-  char fname[100];
-  sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
-  VB(logFile.open(fname););
-    
   
   if(isInMeshGenerationPhase){
-    for(int i=0; i<block_width+2; i++){
+    for(int i=0; i<block_width+2; i++)
       x[i] = xmin + double(i)*dx - 0.5*dx;
-    }
+    
 
-    for(int i=0; i<block_height+2; i++){
+    for(int i=0; i<block_height+2; i++)
       y[i] = ymin + double(i)*dy - 0.5*dy;
-    }
+    
     applyInitialCondition();
   }
  
@@ -363,8 +351,7 @@ void Advection::process(int iteration, int dir, int size, double gh[]){
     CkAbort("ERROR\n");
   }
 
-  for(int i=0; i<size; ++i, ++iter)
-    *iter = gh[i];
+  for(int i=0; i<size; ++i, ++iter) *iter = gh[i];
 }
 
 int simpleDirectionFromComplex(int dir) {
@@ -661,9 +648,6 @@ bool isDirectionSimple(int dir) {
 
 // Phase1 Msgs are either REFINE or STAY messages
 void Advection::exchangePhase1Msg(int dir, Decision remoteDecision, int cascade_length) {
-  VB(CkAssert((remoteDecision == REFINE || remoteDecision == STAY)););
-  VB(logFile << thisIndex.getIndexString() << " received decision " << remoteDecision << " from direction " << dir << std::endl; );
-
   Decision newDecision = decision;
 
   nbr_decision[dir] = std::max(remoteDecision, nbr_decision[dir]);
@@ -910,16 +894,6 @@ Advection::Advection(double dx, double dy,
   this->iterations = iterations;
 
   initializeRestofTheData();
-  /*set the status of the neighbors
-    1. If parent of the neighbor is same as mine, 
-    then the status is also the same, 
-    i.e. it exists and is not refined 
-    because it has just been created alongwith me.
-    2. If parent of the neihgbor is not the same as mine
-    then infomration about the neighbor will be obtained in two steps
-    1. ask the corresponding neighbor of the parent to know if it is refined
-    2. if it is refined ask the neighbor if it is refined.
-  */
   for(int dir=0; dir<NUM_NEIGHBORS; dir++){
     if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are the same, the neighbor has also just been created
       // so it can not be refined

@@ -19,19 +19,15 @@ public:
     bitVector = qidx.bitVector;
   }
 
-  bool operator != (QuadIndex qidx) const{
-    return !(*this == qidx);
-  }
+  bool operator != (QuadIndex qidx) const { return !(*this == qidx); }
     
-  bool operator == (QuadIndex qidx) const{
+  bool operator == (QuadIndex qidx) const {
     return (nbits==qidx.nbits && getIndexString() == qidx.getIndexString())? true: false;
   }
 
   void getCoordinates(int&, int&)const;
   std::string getIndexString() const;
-  inline int getDepth() const{
-    return nbits/2;
-  }
+  inline int getDepth() const{ return nbits/2; }
 
   QuadIndex getNeighbor(int) const;
   QuadIndex getParent() const;

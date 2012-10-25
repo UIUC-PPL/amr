@@ -97,68 +97,6 @@ void Advection::applyInitialCondition(){
       rsq = (x[i] - xctr)*(x[i]-xctr) + (y[j] - yctr)*(y[j]-yctr);
       u[index(i, block_height+1-j)] = (rsq<=radius*radius) ? 2:1;
     }
-
-  /*double *xarray = x;
-  double *yarray = y;
-
-  double x, y, rx, ry;
-  double t = 2;
-  for(int i = 0; i < block_width + 2; i++){
-    for(int j = 0; j < block_height + 2; j++){
-      x = xarray[i]*100; y = yarray[j]*100;
-      u[index(i, block_height+1-j)] = 1;
-      if (!(y >= 42 && y < 58))
-        continue;
-      if (x >= 8 && x < 16){//its the C
-        //get corresponding y1max, y1min and y2ax, y2min
-        double y1max, y1min, y2min, y2max;
-        y1max = 50 + sqrt(64 - pow((x - 16), 2.));
-        y1min = y1max - t;
-        y2min = 50 - sqrt(64 - pow((x - 16), 2.));
-        y2max = y2min + t;
-        if ((y < y1max && y >= y1min) || (y >= y2min && y < y2max))
-          u[index(i, block_height+1-j)] = 2;
-      }else if(x >= 20 && x < 28){//its H
-        rx = x - 20; ry = y - 42;
-        if(rx <= 2 || rx >= 6 || (ry >= 6 && ry < 10))
-          u[index(i, block_height+1-j)] = 2;
-      }else if(x >= 32 && x < 40){//its A
-        rx = x - 32; ry = y - 42;
-        if ((ry >= 8 && ry < 8 + t) || (ry >= 14))
-          u[index(i, block_height+1-j)] = 2;
-        if ((rx < t) || (rx >= 8 - t))
-          u[index(i, block_height+1-j)] = 2;
-      }else if(x >= 44 && x < 52){//its R
-        rx = x - 44; ry = y - 42;
-        if (rx < t || (rx >= 6 && ry >= 8))
-          u[index(i, block_height+1-j)] = 2;
-        if ((ry >= 8 && ry <= 10) || (ry >= 14))
-          u[index(i, block_height+1-j)] = 2;
-        if (rx >= 2){
-          double ymax = -1*(4.0/3.0)*rx + (32./3.);
-          double ymin = ymax - t;
-          if (ry >= ymin && ry < ymax)
-            u[index(i, block_height+1-j)] = 2;
-        }
-      }else if(x >= 56 && x < 64){//its M
-        rx = x - 56; ry = y - 42;
-        if ((rx < t) || (rx >= 8 - t))
-          u[index(i, block_height+1-j)] = 2;
-        if (ry >= 12)
-          u[index(i, block_height+1-j)] = 2;
-        if (rx >= 3 && rx < 5 && ry >= 8)
-          u[index(i, block_height+1-j)] = 2;
-      }else if(x >= 68 && x < 76){//its +
-        rx = x - 69; ry = y - 42;
-        if ((ry >= 5 && ry <= 10) || (rx >= 2 && rx <= 4))
-          u[index(i, block_height+1-j)] = 2;
-      }else if(x >= 80 && x < 88){//its +
-        rx = x - 81; ry = y - 42;
-        if ((ry >= 5 && ry <= 10) || (rx >= 2 && rx <= 4))
-          u[index(i, block_height+1-j)] = 2;
-      }
-    }
-  }*/
 }
 
 void Advection::mem_allocate(double* &p, int size){
@@ -166,7 +104,6 @@ void Advection::mem_allocate(double* &p, int size){
 }
 
 void Advection::mem_allocate_all(){
-  VB(logFile << "Allocating Memory for " << thisIndex.getIndexString() << std::endl;);
   mem_allocate(u, (block_width+2)*(block_height+2));
   mem_allocate(u2, (block_width+2)*(block_height+2));
   mem_allocate(u3, (block_width+2)*(block_height+2));
@@ -242,57 +179,18 @@ void Advection::initializeRestofTheData(){
   parent = (thisIndex.nbits==0)?thisIndex:thisIndex.getParent();
   resetMeshRestructureData();
 
-  VB(logFile << "xctr: " << xctr << ", yctr: " << yctr << ", radius: " << radius << std::endl;);
-#ifdef LOGGER
-  for(int i=0; i<block_height; i++){
-    for(int j=0; j<block_width; j++)
-      logFile << u[index(j+1,i+1)] << "\t";
-    logFile << std::endl;
-  }
-  logFile << std::endl;
-#endif 
   sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
   VB(outFile.open(fname););
-
-#ifdef LOGGER
-
-  for(int i=1; i<=block_width; i++){
-    for(int j=1; j<=block_height; j++){
-      outFile << xmin + (double(i))*dx - 0.5*dx << " "\
-              << ymin + (double(j))*dy - 0.5*dy << " "\
-              << u[index(i,block_height+1-j)] << std::endl;
-    }
-  }
-  outFile.flush();
-  outFile.close();
-#endif
 }
 
 //added for array migration - see how 2D arrays can be packed
 void Advection::pup(PUP::er &p){
-  VB(logFile << "In PUP" << std::endl;);
   CBase_Advection::pup(p);
   __sdag_pup(p);
 
   p|isRefined;
   p|depth;
 
-  //for(int i=0; i<NUM_CHILDREN; i++)
-  /*FOR_EACH_CHILD
-    p|child_isRefined[i];
-  END_FOR
-
-  //for(int i=0; i<NUM_NEIGHBORS; i++){
-  FOR_EACH_NEIGHBOR
-    p|nbr[i];
-    p|nbr_exists[i];
-    p|nbr_isRefined[i];
-  END_FOR
-  //}
-
-  for(int i=0; i<3*NUM_NEIGHBORS; i++){
-    p|nbr_dataSent[i];
-  }*/
   PUParray(p, child_isRefined, NUM_CHILDREN);
   PUParray(p, nbr, NUM_NEIGHBORS);
   PUParray(p, nbr_exists, NUM_NEIGHBORS);
@@ -315,17 +213,6 @@ void Advection::pup(PUP::er &p){
     resetMeshRestructureData();
   }
     
-  /*for(int i=0; i<(block_width+2)*(block_height+2); i++){
-    p|u[i];
-  }
-
-  for (int i=0; i<block_width+2; i++){
-    p|x[i];
-  }
-
-  for (int i=0; i<block_height+2; i++){
-    p|y[i];
-  }*/
   PUParray(p, u, (block_width+2)*(block_height+2));
   PUParray(p, x, block_width+2);
   PUParray(p, y, block_height+2);
@@ -343,7 +230,6 @@ void Advection::pup(PUP::er &p){
 }
     
 Advection::~Advection(){
-  VB(logFile << "In Destructor" << std::endl;);
   delete [] u;
   delete [] u2;
   delete [] u3;
@@ -423,8 +309,6 @@ void Advection::sendGhost(int dir){
   double* boundary;
 
   if(isFriend(nbr_exists[dir], nbr_isRefined[dir])){
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Neighbor " << nbr[dir].getIndexString() << ", iteration " << iterations << ", " << getSourceDirection(dir) << ", " << std::endl;);
-
     switch (dir) {
     case LEFT:  boundary = left_edge;                  break;
     case RIGHT: boundary = right_edge;                 break;
@@ -439,7 +323,6 @@ void Advection::sendGhost(int dir){
     QuadIndex receiver = thisIndex.getNeighbor(dir).getParent();
     int sender_direction = myDirectionWrtUncle(thisIndex.getQuadrant(), dir);
     boundary = getGhostBuffer(dir);
-    VB(logFile << thisIndex.getIndexString() << " sending Ghost in Dir " << dir << " to Uncle: " << receiver.getIndexString() << ", iteration " << iterations << endl;);
     count /= 2;
 
     boundary_iterator begin, end;
@@ -452,28 +335,17 @@ void Advection::sendGhost(int dir){
     }
     end = begin + count;
 
-    for (int k=0; begin != end; ++k, ++begin) {
+    for (int k=0; begin != end; ++k, ++begin)
       boundary[k] = downSample(u, begin.x, begin.y);
-      VB(logFile << boundary[k] << "\t";);
-    }
-    VB(logFile << std::endl;);
 
     thisProxy(receiver).receiveGhosts(iterations, sender_direction, count, boundary);
   }
-  VB(logFile << thisIndex.getIndexString() << " Will Wait For Ghost from Dir " << dir << ", iteration " << iterations << std::endl;);
 }
 
 void Advection::process(int iteration, int dir, int size, double gh[]){
-  VB(logFile << thisIndex.getIndexString() << " received data for direction " << dir << ", iteration " << iteration << ", " << iterations << std::endl;);
-  for(int i=0; i<size; i++){
-    VB(logFile << gh[i] << '\t';);
-  }
-  VB(logFile << std::endl;);
 
   hasReceived.insert(dir);
-
   boundary_iterator iter;
-
   imsg += (dir<=RIGHT) ? 1:0.5;
 
   switch(dir){
@@ -610,27 +482,9 @@ void Advection::interpolateAndSend(int NBR) {
 
   QuadIndex receiver = nbr[simpleDirectionFromComplex(NBR)].getChild(childDir2Quadrant(cdir));
   thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(NBR), count, boundary);
-
-#ifdef LOGGER
-  logFile << "sending interpolated data to " << receiver.getIndexString().c_str() << std::endl;
-  for(int i=0; i<count; i++){
-    logFile << boundary[i] << '\t';
-  }
-  logFile << std::endl;
-
-#endif
-
-  return;
 }
 
 void Advection::compute(){
-  logFile << "entire u before updating" << std::endl;
-  for(int j=0; j<block_height+2; j++){
-    for(int i=0; i<block_width+2; i++)
-      logFile << u[index(i,j)] << "\t";
-    logFile << std::endl;
-  }
-
   FOR_EACH_ZONE
       up = (u[index(i+1,j)] - u[index(i,j)])/dx;
       un = (u[index(i,j)]-u[index(i-1,j)])/dx;
@@ -650,14 +504,6 @@ void Advection::compute(){
   END_FOR
     
 #ifdef LOGGER
-  logFile << "Values of " << thisIndex.getIndexString() << ", iteration " << iterations << std::endl;
-  for(int i=1; i<=block_height; i++){
-    for(int j=1; j<=block_width; j++)
-      logFile << u[index(j,i)] << "\t";
-    logFile << std::endl;
-  }
-  logFile << std::endl;
-    
   for(int i=1; i<=block_width; i++){
     for(int j=1; j<=block_height; j++){
       outFile << xmin + (double(i))*dx - 0.5*dx << " "\
@@ -734,31 +580,22 @@ Decision Advection::getGranularityDecision(){
     }
   }
   error = sqrt(error);
-  if(error < derefine_cutoff && thisIndex.getDepth() > min_depth)
-    return COARSEN;
-  else if(error > refine_cutoff && thisIndex.getDepth() < max_depth)
-    return REFINE;  
-  else
-    return STAY;
+  if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
+  else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;  
+  else return STAY;
 }
 
 void Advection::resetMeshRestructureData(){
-  for(int i=0; i<3*NUM_NEIGHBORS; i++)
-    nbr_decision[i] = COARSEN;//by default a neighbor will derefine
-
   decision = INV;
-
-  for(int i=0; i<NUM_CHILDREN; i++)
-    child_decision[i]=INV;
   parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
+
+  for(int i=0; i<NUM_CHILDREN; i++) child_decision[i]=INV;
+  for(int i=0; i<3*NUM_NEIGHBORS; i++) nbr_decision[i] = COARSEN;//by default a neighbor will derefine
 }
 
 void Advection::makeGranularityDecisionAndCommunicate(){
-  remeshStartTime = CkWallTimer();
-
   if(isLeaf) {//run this on leaf nodes
-    VB(logFile << thisIndex.getIndexString() << " decision before getGranularityDecision is " << decision << std::endl;);
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     updateDecisionState(1, newDecision);
   }

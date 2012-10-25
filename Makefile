@@ -2,7 +2,7 @@ BOOST_ROOT = $(HOME)/workspace/boost_1_48_0
 BOOSTINC = $(BOOST_ROOT)/include
 BOOSTLIB = $(BOOST_ROOT)/lib
 
-CHARMC ?= ~/charm/bin/charmc -DLOGGER -I$(BOOSTINC) -L$(BOOSTLIB)
+CHARMC ?= ~/charm/bin/charmc -I$(BOOSTINC) -L$(BOOSTLIB)
 CXX=$(CHARMC)
 
 OPTS ?= -O3

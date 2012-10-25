@@ -976,8 +976,6 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
                               int meshGenIterations, int iterations, vector<double> child_u, 
                               bool *child_nbr_exists, bool *child_nbr_isRefined, 
                               Decision *child_nbr_decision){
-  VB(logFile << "Mem Check at Beginning of recvChildData" << std::endl;);
-  VB(logFile << thisIndex.getIndexString() << " received data from Child " << childNum << " for coarsening" << std::endl;);
   this->myt = myt;
   this->mydt = mydt;
   this->iterations = iterations;
@@ -993,18 +991,12 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
   }
     
   int ctr=0; double rsq;
-  if(isInMeshGenerationPhase)
-    applyInitialCondition();
-  else{
+  if(isInMeshGenerationPhase) applyInitialCondition();
+  else
     for(int j=st_j; j<=end_j; j++){
-      for(int i=st_i; i<=end_i; i++){
-        u[index(i,j)]=child_u[ctr];
-        VB(logFile << child_u[ctr] << ", " << u[index(i,j)] << "\t";);
-        ctr++;
-      }
-      VB(logFile << std::endl;);
+      for(int i=st_i; i<=end_i; i++)
+        u[index(i,j)]=child_u[ctr++];
     }
-  }
 
   //Update the Status of Your Neighbors based on Data Sent from the Children
   int c1, c2;
@@ -1060,7 +1052,6 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
       refined_u[index_l(2*(m-1)+1, 2*(n-1))  ] = u[index(i,j)] + sx_r - sy_u;
       refined_u[index_l(2*(m-1),   2*(n-1)+1)] = u[index(i,j)] - sx_l + sy_d;
       refined_u[index_l(2*(m-1)+1, 2*(n-1)+1)] = u[index(i,j)] + sx_r + sy_d;
-      VB(logFile << u[index(i,j)] << ", " << sx_l << ", " << sx_r << ", " << sy_u << ", " << sy_d << std::endl;);
       n++;
     }
     m++;
@@ -1071,11 +1062,9 @@ void Advection::interpolate(double *u, vector<double>& refined_u, int xstart, in
 void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin) {
   QuadIndex child = thisIndex.getChild(sChild);
 
-  VB(logFile << "interpolating data for child: " << child.getIndexString().c_str() << std::endl;);
   vector<double> refined_u;
   if(!isInMeshGenerationPhase){
-    size_t sz = (block_width)*(block_height);
-    refined_u.resize(sz);
+    refined_u.resize(block_width*block_height);
     interpolate(u, refined_u, xstart, xend, ystart, yend);
   }
 
@@ -1083,22 +1072,15 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 }
 
 void Advection::refine(){
-  //Spawn The four children and give them the data
-  //Assuming we already have the new boundary data
-  VB(logFile << thisIndex.getIndexString() << " is refining" << std::endl;);
-
   refineChild(1, 1,               block_width/2, 1,                block_height/2, xmin,           ymin+(ny*dy)/2);
   refineChild(0, block_width/2+1, block_width,   1,                block_height/2, xmin+(nx*dx)/2, ymin+(ny*dy)/2);
   refineChild(2, 1,               block_width/2, block_height/2+1, block_height,   xmin,           ymin);
   refineChild(3, block_width/2+1, block_width,   block_height/2+1, block_height,   xmin+(nx*dx)/2, ymin);
-
-  VB(logFile << thisIndex.getIndexString() << " done with refinement" << std::endl;);;
 }
 
 bool Advection::isGrandParent() {
   bool ret = false;
-  for (int i = 0; i < NUM_CHILDREN; ++i)
-    ret = ret || child_isRefined[i];
+  for (int i = 0; i < NUM_CHILDREN; ++i) ret = ret || child_isRefined[i];
   return ret;
 }
 
@@ -1121,9 +1103,6 @@ Advection::Advection(double dx, double dy,
   nx = array_height/(num_chare_cols);
   ny = array_width/(num_chare_rows);
 
-  VB(logFile << "Inserting New Zone: " << thisIndex.getIndexString() << std::endl;);
-  VB(logFile << "xmin: " << xmin << ", ymin: " << ymin << std::endl;);
-
   thisIndex.getCoordinates(xc, yc);
   this->meshGenIterations = meshGenIterations;
   this->iterations = iterations;
@@ -1140,7 +1119,6 @@ Advection::Advection(double dx, double dy,
     2. if it is refined ask the neighbor if it is refined.
   */
   for(int dir=0; dir<NUM_NEIGHBORS; dir++){
-    VB(logFile << thisIndex.getIndexString() << " neighbor in direction " << dir << " is " << nbr[dir].getIndexString() << std::endl;);
     if(nbr[dir].getParent() == thisIndex.getParent()){//if parents are the same, the neighbor has also just been created
       // so it can not be refined
       nbr_exists[dir]=true;
@@ -1172,9 +1150,6 @@ Advection::Advection(double dx, double dy,
         VB(CkAssert(parent_nbr_decision[dir]==REFINE););
         nbr_exists[dir]=false;
       }
-      else{
-        CkAbort("huh.. we should never reach here");
-      }
     }
   }
 
@@ -1184,15 +1159,6 @@ Advection::Advection(double dx, double dy,
       for(int i=1; i<=block_width; i++)
         u[index(i,j)]=refined_u[ctr++];
   }
-
-#ifdef LOGGER
-  logFile << "New Child Values" << std::endl;
-  for(int i=0-1; i<block_height+1; i++){
-    for(int j=0-1; j<block_width+1; j++)
-      logFile << u[index(j+1,i+1)] << "\t";
-    logFile << std::endl;
-  }
-#endif
 }
 
 void Advection::startLdb(){
@@ -1201,4 +1167,7 @@ void Advection::startLdb(){
   if(thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) LBDatabaseObj()->StartLB();
 }
 
+bool Advection::isRoot(){ 
+  return thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0;
+}
 #include "Advection.def.h"

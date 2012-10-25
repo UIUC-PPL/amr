@@ -169,7 +169,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void ResumeFromSync() {iterate();}
   void UserSetLBLoad() { setObjTime((isRefined?0:1)); }
 
-  bool isRoot(){ return thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0;}
+  bool isRoot();
 };
 
 /*class InitRefineMsg: public CMessage_InitRefineMsg{

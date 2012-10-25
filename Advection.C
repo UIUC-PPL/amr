@@ -179,8 +179,6 @@ void Advection::initializeRestofTheData(){
   parent = (thisIndex.nbits==0)?thisIndex:thisIndex.getParent();
   resetMeshRestructureData();
 
-  sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-  VB(outFile.open(fname););
 }
 
 //added for array migration - see how 2D arrays can be packed
@@ -599,40 +597,29 @@ void Advection::makeGranularityDecisionAndCommunicate(){
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     updateDecisionState(1, newDecision);
   }
-  else if(isGrandParent() && !parentHasAlreadyMadeDecision){
-    informParent(-1, INV, 1);
-  }
+  else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(-1, INV, 1);
 }
 
 /***** PHASE1 FUNCTIONS****/
 void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
   cascade_length++;
-  if (decision == newDecision)
-    return;
+  if (decision == newDecision) return;
 
   decision = newDecision;
-  if (decision == COARSEN)
-    return; // Don't communicate the 'default' decision
+  if (decision == COARSEN) return; // Don't communicate the 'default' decision
 
   for(int i=0; i<NUM_NEIGHBORS; i++){
-    if(isFriend(nbr_exists[i], nbr_isRefined[i])){
-      VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getIndexString() << std::endl;);
+    if(isFriend(nbr_exists[i], nbr_isRefined[i]))
       thisProxy(nbr[i]).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
-    }
     else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
       //Get Corresponding Children of the neighbor
       QuadIndex q1, q2;
       getChildrenInDir(nbr[i], getSourceDirection(i), q1, q2);
-      VB(logFile << thisIndex.getIndexString() << " sending decision to " << q1.getIndexString() << std::endl;);
-      VB(logFile << thisIndex.getIndexString() << " sending decision to " << q2.getIndexString() << std::endl;);
-
       thisProxy(q1).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
       thisProxy(q2).exchangePhase1Msg(getSourceDirection(i), decision, cascade_length);
     }
-    else{//send to the parent of the non-existing neighbor
-      VB(logFile << thisIndex.getIndexString() << " sending decision " << decision << " to " << nbr[i].getParent().getIndexString() << std::endl;);
+    else
       thisProxy(nbr[i].getParent()).exchangePhase1Msg(myDirectionWrtUncle(thisIndex.getQuadrant(), i), decision, cascade_length);
-    }
   }
 
   if(parent != thisIndex){
@@ -645,35 +632,26 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
 //  b) when a child sends REFINE/STAY message to the parent
 void Advection::informParent(int childNum, Decision dec, int cascade_length) {
 
-  VB(logFile << thisIndex.getIndexString() << ": in informParent called by child " << childNum << " with decision = " << dec << ", iteration " << iterations << std::endl;);
-  if(childNum >= 0)
-    child_decision[childNum]=dec;
+  if(childNum >= 0) child_decision[childNum]=dec;
 
-  if(dec==REFINE){
-    child_isRefined[childNum]=true;
-  }
+  if(dec==REFINE) child_isRefined[childNum]=true;
+  
   if(parentHasAlreadyMadeDecision == false){
-    VB(logFile << "settin parentHasAlreadyMadeDecision to true, iterations " << iterations << std::endl;);
     parentHasAlreadyMadeDecision = true;
-    //tell rest of the children which are not refined
     FOR_EACH_CHILD
       if(i!=childNum && !child_isRefined[i]) {
         thisProxy(thisIndex.getChild(i)).recvParentDecision(cascade_length);
       }
     END_FOR
-    //inform your parent that you are not going to derefine
     if(parent!=thisIndex)
       thisProxy(parent).informParent(thisIndex.getQuadrant(), STAY, cascade_length);
   }
 }
 
 void Advection::recvParentDecision(int cascade_length) {
-  VB(logFile << thisIndex.getIndexString() << " has received decision from parent " << std::endl;);
-
   hasReceivedParentDecision = true;
   Decision newDecision = std::max(STAY, decision);
-  if(isLeaf)
-    updateDecisionState(cascade_length, newDecision);
+  if(isLeaf) updateDecisionState(cascade_length, newDecision);
 }
 
 bool isDirectionSimple(int dir) {
@@ -731,31 +709,21 @@ void getRefinedNbrDirections(int dir, int &d1, int &d2){//returns the direction 
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
-  if(isRoot()) ckout << "in doPhase2" << endl;
-  VB(logFile << thisIndex.getIndexString() << " Entering Phase2, decision " << decision << ", iteration " << iterations << std::endl;);
-
   if(decision == COARSEN){//send data to the parent
-    VB(logFile << thisIndex.getIndexString() << " Sending Values to Parent" << std::endl;;);
     
     vector<double> child_u;
     if(isInMeshGenerationPhase==false){
       child_u.resize((block_height)*(block_width)/4);
       for(int i=1; i<= block_width; i+=2){
-        for(int j=1; j<=block_height; j+=2){
-          int idx = index_c(i/2, j/2);
-          child_u[idx] = downSample(u, i, j);
-        }
+        for(int j=1; j<=block_height; j+=2)
+          child_u[index_c(i/2, j/2)] = downSample(u, i, j);
       }
     }
     thisProxy(parent).recvChildData(thisIndex.getQuadrant(), myt, mydt, meshGenIterations, iterations, child_u, nbr_exists, nbr_isRefined, nbr_decision);
     thisProxy[thisIndex].ckDestroy();
-    VB(logFile << "Done Destroying " << thisIndex.getIndexString() << std::endl;);
     return;
   }
-  else if(decision == REFINE){
-    VB(logFile << "Refine called on " << thisIndex.getIndexString() << std::endl;);
-    refine();
-  }
+  else if(decision == REFINE) refine();
    
   updateMeshState();
   resetMeshRestructureData();
@@ -764,7 +732,6 @@ void Advection::doPhase2(){
 void Advection::updateMeshState(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(isLeaf && decision == STAY){
-    VB(logFile << "Phase2: " << thisIndex.getIndexString() << " updating the Status of Neighbors" << std::endl;);
 
     FOR_EACH_NEIGHBOR
       if(isUncle(nbr_exists[i], nbr_isRefined[i])){
@@ -796,11 +763,9 @@ void Advection::updateMeshState(){
       }
     END_FOR
   }
-  else if(decision == REFINE){//I will Now become Inactive and therefore I need not Store Neighbor Status
-    isRefined=true;
-  } else if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){// parent going to destroy its children
-    isRefined = false;
-  }
+  else if(decision == REFINE) isRefined=true;
+  else if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision) isRefined = false;
+
   if(isGrandParent()) {
     FOR_EACH_CHILD
       if(child_decision[i]==INV && child_isRefined[i])//did not receive any message

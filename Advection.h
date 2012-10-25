@@ -78,7 +78,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
-
+  char fname[100];
   QuadIndex nbr[4], parent;
   int xc, yc;
 

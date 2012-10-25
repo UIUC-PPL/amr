@@ -118,6 +118,8 @@ module Advection{
         mydt = min(dx,dy)/v * cfl;
         if ((myt + mydt) >= tmax )
           mydt = tmax - myt;
+        sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
+        VB(outFile.open(fname););
 
         if(iterations % refine_frequency == 0) doRemeshing();
         else doComputationStep();

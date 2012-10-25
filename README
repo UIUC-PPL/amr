@@ -14,4 +14,8 @@ where arg1 = max_depth of the mesh (min_depth is fixed to 4 in the code)
 
 READING ORDER
 1. advection.ci - read the entry methods - iterate, remeshing, doComputationStep
-2. QuadIndex.h - contains 
+2. QuadIndex.h - contains the bit Vector based 2D Quadtree implementaion
+                provides interface to get neighbor indices, child indices, etc.
+3. Advection.C - contains implementation of boundary exchange functions, iterpolation, 
+                finite state machine for granularity decision consensus, refinement and
+                coarsening functions, etc.

@@ -103,8 +103,8 @@ Main::Main(CkArgMsg* m){
   // a grid fo 256, offset by 4
   max_depth = atoi(m->argv[1]) + min_depth - 4;
 
-  CkPrintf("Running Advection on %d processors with (%d,%d) elements, minDepth = %d, maxDepth = %d, blockSize = %d, maxIter = %d\n",
-           CkNumPes(), array_width, array_height, min_depth, max_depth, block_height, max_iterations);
+  CkPrintf("Running Advection on %d processors with (%d,%d) elements, maxDepth = %d, blockSize = %d, maxIter = %d\n",
+           CkNumPes(), array_width, array_height, max_depth, block_height, max_iterations);
 
   for (int i = 0; i < num_chare_rows; ++i)
     for (int j = 0; j < num_chare_cols; ++j)

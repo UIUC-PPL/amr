@@ -87,6 +87,7 @@ module Advection{
     //of the Remeshing phase
     entry void doRemeshing() {
       serial {
+        if(isRoot()) ckout << "doing remeshing now.." << endl;
         if (!inInitialMeshGenerationPhase && isLeaf) exchangeGhosts();
         else signalExchangeGhostsCompletion();
       }
@@ -160,8 +161,6 @@ module Advection{
         mydt = min(dx,dy)/v * cfl;
         if ((myt + mydt) >= tmax )
           mydt = tmax - myt;
-        sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
-        VB(outFile.open(fname););
 
         if(iterations % refine_frequency == 0) doRemeshing();//time to do remeshing
         else doComputationStep();
@@ -181,7 +180,7 @@ module Advection{
           sendGhost(i);
       }
 
-      while(imsg < 4) {
+      while (imsg < 4) {
         when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) serial {
           process(iter, dir, width, u1);
           //send interpolated data to nephews
@@ -190,6 +189,5 @@ module Advection{
       }
       serial { thisProxy[thisIndex].signalExchangeGhostsCompletion(); }
     };
-
   };
 };

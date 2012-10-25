@@ -501,17 +501,6 @@ void Advection::compute(){
       u[index(i,j)] = 0.5*(u2[index(i,j)] + u3[index(i,j)]);
   END_FOR
     
-#ifdef LOGGER
-  for(int i=1; i<=block_width; i++){
-    for(int j=1; j<=block_height; j++){
-      outFile << xmin + (double(i))*dx - 0.5*dx << " "\
-              << ymin + (double(j))*dy - 0.5*dy << " "\
-              << u[index(i,block_height+1-j)] << std::endl;
-    }
-  }
-  outFile.flush();
-  outFile.close();
-#endif
 }
 
 Decision Advection::getGranularityDecision(){
@@ -936,7 +925,6 @@ Advection::Advection(double dx, double dy,
         }
       }
       else if (isUncle(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
-        VB(CkAssert(parent_nbr_decision[dir]==REFINE););
         nbr_exists[dir]=false;
       }
     }

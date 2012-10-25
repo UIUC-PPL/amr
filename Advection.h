@@ -166,10 +166,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   /*Load Balancing functions*/
   void startLdb();
-  void ResumeFromSync();
-  void UserSetLBLoad();
+  void ResumeFromSync() {iterate();}
+  void UserSetLBLoad() { setObjTime((isRefined?0:1)); }
 
-  bool isRoot();
+  bool isRoot(){ return thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0;}
 };
 
 /*class InitRefineMsg: public CMessage_InitRefineMsg{

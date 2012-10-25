@@ -143,8 +143,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void makeGranularityDecisionAndCommunicate();
   Decision getGranularityDecision();
 
-  //void doMeshRestructure();
   void resetMeshRestructureData();
+  void prepareData4Exchange();
   void exchangePhase1Msg(int, Decision, int);
   void updateDecisionState(int cascade_length, Decision newDecision);
   void informParent(int, Decision, int cascade_length);

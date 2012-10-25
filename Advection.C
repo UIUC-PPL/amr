@@ -83,6 +83,19 @@ bool isFriend(bool exists, bool isRefined){
     return exists && !isRefined;
 }
 
+void Advection::prepareData4Exchange(){
+  imsg=0;
+  hasReceived.clear();
+
+  for(int i=0; i<3*NUM_NEIGHBORS; i++)
+    nbr_dataSent[i]=false;
+
+  for(int j=1; j<=block_height; j++){
+    left_edge[j-1] = u[index(1,j)];
+    right_edge[j-1] = u[index(block_width,j)];
+  }
+}
+
 void Advection::applyInitialCondition(){
   double rsq;
   for(int i=0; i<block_width+2; i++)

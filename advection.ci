@@ -86,22 +86,42 @@ module Advection{
     //sdag entry method that specifies the control flow 
     //of the Remeshing phase
     entry void doRemeshing() {
-      atomic {
+      serial {
         if (!inInitialMeshGenerationPhase && isLeaf) exchangeGhosts();
         else signalExchangeGhostsCompletion();
       }
-      when signalExchangeGhostsCompletion() atomic{
+      //Remshing takes place in two phases:
+      //in phase 1, each chare makes a granularity 
+      //decision based on the error estimator and
+      //communicates the decision to its neighbor
+      //chares update their granularity decision
+      //based on their neighbor messages in 
+      //order to maintain the level difference
+      //restriction between neighboring blocks
+      //(refinement is given highest priority followed
+      //by the stay decision). These decisions may
+      //propagate across the mesh.
+      //Quiesence detector is started to know
+      //when all the chares have come to a consensus
+      //about their granularity decision
+      when signalExchangeGhostsCompletion() serial{
           makeGranularityDecisionAndCommunicate();
           CkStartQD(CkCallback(CkIndex_Advection::startPhase2(), thisProxy[thisIndex]));
       }
-      when startPhase2() atomic{
+      //in phase 2, the  blocks which need to be
+      //refined iterpolates its data, and creates new 
+      //child chares. chares which are to be derefined
+      //send their data to the parent and destroy themselves
+      //completion of this phase is again detected by a 
+      //Quiesence detector
+      when startPhase2() serial{
         doPhase2();
         if (isRoot()) CkStartQD(CkCallback(CkIndex_Advection::iterate(), thisProxy));
       }
     };
 
     entry void doComputationStep(){
-      atomic {
+      serial {
         ppc.ckLocalBranch()->incrementWorkUnitCount();
         if (isRoot())
             ckout  << "starting iteration " << iterations << " at root, time = " << CmiWallTimer() << endl;
@@ -110,7 +130,7 @@ module Advection{
         if(isLeaf) exchangeGhosts();
         else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
-      when signalExchangeGhostsCompletion() atomic {
+      when signalExchangeGhostsCompletion() serial {
         //only the leaf chares do the computation
         //others just move on to the next iteration
         if(isLeaf) compute();
@@ -118,8 +138,14 @@ module Advection{
       }
     };
 
-    entry void iterate() atomic {
-      
+    entry void iterate() serial {
+      //in the initial mesh generation phase
+      //the mesh keeps on remeshing itself
+      //until it has reached a stable state based
+      //on the error estimate for the initial conditions
+      //After the initialMeshGeneration phase is over
+      //the program does remeshing after every refine_frequency
+      //steps of computation
       if(inInitialMeshGenerationPhase && meshGenIterations<max_depth){
         meshGenIterations++;
         thisProxy[thisIndex].doRemeshing();
@@ -137,34 +163,32 @@ module Advection{
         sprintf(fname, "out/out_%s_%d", thisIndex.getIndexString().c_str(), iterations);
         VB(outFile.open(fname););
 
-        if(iterations % refine_frequency == 0) doRemeshing();
+        if(iterations % refine_frequency == 0) doRemeshing();//time to do remeshing
         else doComputationStep();
       }
     };
 
     entry void exchangeGhosts(){
-      atomic {
-        for(int i=0; i<3*NUM_NEIGHBORS; i++)
-          nbr_dataSent[i]=false;
-
-        hasReceived.clear();
-
-        for(int j=1; j<=block_height; j++){
-          left_edge[j-1] = u[index(1,j)];
-          right_edge[j-1] = u[index(block_width,j)];
-        }
-        FOR_EACH_NEIGHBOR
+      serial {
+        prepareData4Exchange();
+        //send boundaries to neighbors which are 
+        //on the same level  as you and to your
+        //uncles. For the neighbors which are your
+        //nephews, wait until they send their boundaries
+        //interpolate them and send them the interpolated
+        //boundaries
+        for(int i=0; i<NUM_NEIGHBORS; i++)
           sendGhost(i);
-        END_FOR
       }
 
-      for(imsg = 0; imsg < 4;) {
-        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) atomic {
+      while(imsg < 4) {
+        when receiveGhosts[iterations] (int iter, int dir, int width, double u1[width]) serial {
           process(iter, dir, width, u1);
+          //send interpolated data to nephews
           sendReadyData();
         }
       }
-      atomic { thisProxy[thisIndex].signalExchangeGhostsCompletion(); }
+      serial { thisProxy[thisIndex].signalExchangeGhostsCompletion(); }
     };
 
   };

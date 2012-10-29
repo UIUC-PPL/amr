@@ -88,7 +88,7 @@ module Advection{
     entry void doRemeshing() {
       serial {
         if(isRoot()) ckout << "doing remeshing now.." << endl;
-        if (!inInitialMeshGenerationPhase && isLeaf) exchangeGhosts();
+        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) exchangeGhosts();
         else signalExchangeGhostsCompletion();
       }
       //Remshing takes place in two phases:
@@ -147,8 +147,7 @@ module Advection{
       //After the initialMeshGeneration phase is over
       //the program does remeshing after every refine_frequency
       //steps of computation
-      if(inInitialMeshGenerationPhase && meshGenIterations<max_depth){
-        meshGenIterations++;
+      if(/*inInitialMeshGenerationPhase && */meshGenIterations++ < max_depth){
         thisProxy[thisIndex].doRemeshing();
       } else {
         if (isRoot()) ppc.meshGenerationPhaseIsOver();

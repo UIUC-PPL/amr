@@ -37,7 +37,7 @@ mainmodule Main{
     entry Main(CkArgMsg *m);
     entry void terminate();
     entry void startMeshGeneration();
-    entry [reductiontarget] void totalWorkUnits(int total);
+    //entry [reductiontarget] void totalWorkUnits(int total);
   };
 
   group AdvMap : CkArrayMap {
@@ -51,9 +51,9 @@ module Advection{
 
   group AdvectionGroup{
     entry AdvectionGroup();
-    entry void reduceWorkUnits();
+    //entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
-    entry void incrementWorkUnitCount();
+    //entry void incrementWorkUnitCount();
   };
 
 
@@ -123,7 +123,7 @@ module Advection{
 
     entry void doComputationStep(){
       serial {
-        ppc.ckLocalBranch()->incrementWorkUnitCount();
+        //ppc.ckLocalBranch()->incrementWorkUnitCount();
         if (isRoot())
             ckout  << "starting iteration " << iterations << " at root, time = " << CmiWallTimer() << endl;
         //only the leaf chares participate in boundary exchange,

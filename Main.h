@@ -11,7 +11,7 @@ class Main: public CBase_Main {
   Main(CkArgMsg* m);
   void terminate();
   void startMeshGeneration();
-  void totalWorkUnits(int total);
+  //void totalWorkUnits(int total);
 };
 
 #endif

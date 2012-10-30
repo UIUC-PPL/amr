@@ -23,7 +23,7 @@ Main.o: Main.C Advection.h QuadIndex.h Main.decl.h Advection.decl.h
 QuadIndex.o: QuadIndex.C QuadIndex.h Advection.decl.h
 
 test: all
-	./charmrun +p8 ++local ./advection 5 16 4
+	./charmrun +p8 ++local ./advection 5 16 20
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp

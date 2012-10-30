@@ -40,11 +40,8 @@ Main::Main(CkArgMsg* m){
     CkExit();
   }
 
-  if (m->argc >= 5) {
-    array_height = array_width = atoi(m->argv[4]);
-  } else {
-    array_height = array_width = 256;
-  }
+  if (m->argc >= 5) array_height = array_width = atoi(m->argv[4]);
+  else array_height = array_width = 256;
   
   block_height = block_width = atoi(m->argv[2]);
   max_iterations = atoi(m->argv[3]);
@@ -68,8 +65,8 @@ Main::Main(CkArgMsg* m){
   refine_frequency = 3;
   inInitialMeshGenerationPhase = true;
 
-  dx = (xmax - xmin)/double(array_width);
-  dy = (ymax - ymin)/double(array_height);
+  //dx = (xmax - xmin)/double(array_width);
+  //dy = (ymax - ymin)/double(array_height);
   xctr = 0.3;
   yctr = 0.5;
   radius = 0.2;
@@ -94,7 +91,7 @@ Main::Main(CkArgMsg* m){
   double fdepth = (log(num_chares)/log(4));
   int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
-  CkAssert(min_depth >= 4);
+  //CkAssert(min_depth >= 4);
 
   // To maintain the semantics of "max_depth" that set it relative to
   // a grid fo 256, offset by 4
@@ -107,7 +104,7 @@ Main::Main(CkArgMsg* m){
     for (int j = 0; j < num_chare_cols; ++j)
       qtree[QuadIndex(i, j, min_depth)].insert(xmin, xmax, ymin, ymax);
 
-  qtree.doneInserting();
+  //qtree.doneInserting();
 
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
   ppc = CProxy_AdvectionGroup::ckNew();
@@ -121,13 +118,14 @@ void Main::startMeshGeneration() {
 
 void Main::terminate(){
   ckout << "simulation time: " << CkWallTimer() - start_time << " s" << endl;
-  ppc.reduceWorkUnits();
+  CkExit();
+  //ppc.reduceWorkUnits();
 }
 
-void Main::totalWorkUnits(int total) {
+/*void Main::totalWorkUnits(int total) {
   CkPrintf("total work units = %d\n", total);
   CkExit();
-}
+}*/
 
 #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
 

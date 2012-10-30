@@ -9,7 +9,7 @@ int inline myDirectionWrtUncle(int quad, int nbr){
         case 1: return (nbr==LEFT)?RIGHT_UP:DOWN_LEFT;  break;
         case 2: return (nbr==LEFT)?RIGHT_DOWN:UP_LEFT; break;
         case 3: return (nbr==RIGHT)?LEFT_DOWN:UP_RIGHT; break;
-        default: CkAbort("invalid quad#");
+        //default: CkAbort("invalid quad#");
     };
 }
 
@@ -20,7 +20,7 @@ int inline nbrDirectionWrtParent(int quad, int dir){
       case 1: return (dir==LEFT)?LEFT_UP:UP_LEFT;       break;
       case 2: return (dir==LEFT)?LEFT_DOWN:DOWN_LEFT;   break;
       case 3: return (dir==RIGHT)?RIGHT_DOWN:DOWN_RIGHT;break;
-      default: CkAbort("invalid quad num");
+      //default: CkAbort("invalid quad num");
   };
 }
 

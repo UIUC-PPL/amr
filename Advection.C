@@ -38,7 +38,7 @@ double refine_cutoff=0.2, derefine_cutoff=0.05;
 CProxy_AdvectionGroup ppc;
 
 AdvectionGroup::AdvectionGroup()
-  :workUnitCount(0)
+  //:workUnitCount(0)
 {
   delu = new double**[ndim];
   delua = new double**[ndim];
@@ -58,7 +58,7 @@ AdvectionGroup::AdvectionGroup()
 
 }
 
-void AdvectionGroup::incrementWorkUnitCount() {
+/*void AdvectionGroup::incrementWorkUnitCount() {
   workUnitCount++;
 }
 
@@ -66,7 +66,7 @@ void AdvectionGroup::reduceWorkUnits() {
   CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
-
+*/
 void AdvectionGroup::meshGenerationPhaseIsOver(){
   inInitialMeshGenerationPhase=false;
 }
@@ -289,7 +289,7 @@ double* Advection::getGhostBuffer(int dir) {
   case DOWN:  case DOWN_LEFT: case DOWN_RIGHT: return bottom_edge;
   case LEFT:  case LEFT_UP:   case LEFT_DOWN:  return left_edge;
   case RIGHT: case RIGHT_UP:  case RIGHT_DOWN: return right_edge;
-  default: CkAbort("Asking for an unknown boundary");
+  //default: CkAbort("Asking for an unknown boundary");
   }
 }
 
@@ -299,7 +299,7 @@ int Advection::getGhostCount(int dir) {
   case DOWN:  case DOWN_LEFT: case DOWN_RIGHT: return block_width;
   case LEFT:  case LEFT_UP:   case LEFT_DOWN:
   case RIGHT: case RIGHT_UP:  case RIGHT_DOWN: return block_height;
-  default: CkAbort("Asking for an unknown boundary's size");
+  //default: CkAbort("Asking for an unknown boundary's size");
   }
 }
 
@@ -313,7 +313,7 @@ void Advection::sendGhost(int dir){
     case RIGHT: boundary = right_edge;                 break;
     case UP:    boundary = &u[index(1, 1)];            break;
     case DOWN:  boundary = &u[index(1, block_height)]; break;
-    default: CkAbort("invalid send dir");
+    //default: CkAbort("invalid send dir");
     };
     thisProxy(nbr[dir]).receiveGhosts(iterations, getSourceDirection(dir), count, boundary);
   }
@@ -330,7 +330,7 @@ void Advection::sendGhost(int dir){
     case DOWN:  begin = boundary_iterator(u, 1,               2, block_height - 1, 0); break;
     case LEFT:  begin = boundary_iterator(u, 1,               0, 1,                2); break;
     case RIGHT: begin = boundary_iterator(u, block_width - 1, 0, 1,                2); break;
-    default: CkAbort("invalid send dir\n");
+    //default: CkAbort("invalid send dir\n");
     }
     end = begin + count;
 
@@ -360,8 +360,7 @@ void Advection::process(int iteration, int dir, int size, double gh[]){
   case RIGHT:      iter = boundary_iterator(u, block_width   + 1, 0, 1,                  1); break;
   case RIGHT_UP:   iter = boundary_iterator(u, block_width   + 1, 0, 1,                  1); break;
   case RIGHT_DOWN: iter = boundary_iterator(u, block_width   + 1, 0, block_height/2 + 1, 1); break;
-  default:
-    CkAbort("ERROR\n");
+  //default: CkAbort("ERROR\n");
   }
 
   for(int i=0; i<size; ++i, ++iter) *iter = gh[i];
@@ -373,7 +372,7 @@ int simpleDirectionFromComplex(int dir) {
   case DOWN_RIGHT: case DOWN_LEFT: case DOWN:   return DOWN;
   case LEFT_DOWN:  case LEFT_UP:   case LEFT: return LEFT;
   case RIGHT_DOWN: case RIGHT_UP:  case RIGHT: return RIGHT;
-  default: CkAbort("called on non-complex direction");
+  //default: CkAbort("called on non-complex direction");
   }
 }
 
@@ -387,7 +386,7 @@ int cornerDirection(int dir) {
   case UP_RIGHT:   return RIGHT_UP;
   case DOWN_LEFT:  return LEFT_DOWN;
   case DOWN_RIGHT: return RIGHT_DOWN;
-  default: CkAbort("called on other direction");
+  //default: CkAbort("called on other direction");
   }
 }
 
@@ -434,7 +433,7 @@ int Advection::getSourceDirection(int NBR) {
   case DOWN:  case DOWN_RIGHT: case DOWN_LEFT:  return UP;
   case LEFT:  case LEFT_UP:    case LEFT_DOWN:  return RIGHT;
   case RIGHT: case RIGHT_UP:   case RIGHT_DOWN: return LEFT;
-  default: CkAbort("Trying to send in an unknown direction");
+  //default: CkAbort("Trying to send in an unknown direction");
   }
 }
     
@@ -463,7 +462,7 @@ void Advection::interpolateAndSend(int NBR) {
   case LEFT_DOWN:  in = boundary_iterator(u, 1,             0, block_height/2, 1); sx1 = &sx_l; sx2 = &sx_l;    sy1 = &sy_u; sy2 = &sy_d;  cdir = RIGHT_DOWN; break;
   case RIGHT_UP:   in = boundary_iterator(u, block_width,   0, 1,              1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_UP;    break;
   case RIGHT_DOWN: in = boundary_iterator(u, block_width,   0, block_height/2, 1); sx1 = &sx_r; sx2 = &sx_r;    sy1 = &sy_u; sy2 = &sy_d;  cdir = LEFT_DOWN;  break;
-  default: CkAbort("Trying to send to an unrefined or unknown neighbor");
+  //default: CkAbort("Trying to send to an unrefined or unknown neighbor");
   }
   out = boundary = getGhostBuffer(NBR);
   end = in + count/2;
@@ -611,9 +610,7 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
       thisProxy(nbr[i].getParent()).exchangePhase1Msg(myDirectionWrtUncle(thisIndex.getQuadrant(), i), decision, cascade_length);
   }
 
-  if(parent != thisIndex){
-    thisProxy(parent).informParent(thisIndex.getQuadrant(), decision, cascade_length);
-  }
+  if(parent != thisIndex) thisProxy(parent).informParent(thisIndex.getQuadrant(), decision, cascade_length);
 }
 
 // Will be called from two contexts:
@@ -628,9 +625,8 @@ void Advection::informParent(int childNum, Decision dec, int cascade_length) {
   if(parentHasAlreadyMadeDecision == false){
     parentHasAlreadyMadeDecision = true;
     FOR_EACH_CHILD
-      if(i!=childNum && !child_isRefined[i]) {
+      if(i!=childNum && !child_isRefined[i])
         thisProxy(thisIndex.getChild(i)).recvParentDecision(cascade_length);
-      }
     END_FOR
     if(parent!=thisIndex)
       thisProxy(parent).informParent(thisIndex.getQuadrant(), STAY, cascade_length);
@@ -677,8 +673,7 @@ void Advection::exchangePhase1Msg(int dir, Decision remoteDecision, int cascade_
   else if(isUncle(nbr_exists[simpleDir], nbr_isRefined[simpleDir]));//do nothing
   else if(isNephew(nbr_exists[simpleDir], nbr_isRefined[simpleDir]))
     newDecision = std::max(decision, remoteDecision);
-  else
-    CkAbort("unacceptable condition");
+  //else CkAbort("unacceptable condition");
   
   updateDecisionState(cascade_length, newDecision);
 }
@@ -725,7 +720,7 @@ void Advection::updateMeshState(){
           case COARSEN:  CkAbort("undefined state");                 break;
           case REFINE:    nbr_exists[i]=true; nbr_isRefined[i]=false; break;
           case STAY:      nbr_exists[i]=false;                        break;
-          default:        CkAbort("nbr_decision not set");          
+          //default:        CkAbort("nbr_decision not set");          
         }
       }
       else if(isFriend(nbr_exists[i], nbr_isRefined[i])){
@@ -733,7 +728,7 @@ void Advection::updateMeshState(){
           case REFINE:      nbr_isRefined[i]=true;                      break;
           case STAY:        nbr_exists[i]=true; nbr_isRefined[i]=false; break;
           case COARSEN:    nbr_exists[i]=false;                        break;
-          default:          CkAbort("nbr_decision not set");
+          //default:          CkAbort("nbr_decision not set");
         }
       }
       else if(isNephew(nbr_exists[i], nbr_isRefined[i])){
@@ -744,7 +739,7 @@ void Advection::updateMeshState(){
           case STAY:      nbr_exists[i]=true; nbr_isRefined[i]=true;  break;
           case COARSEN:  nbr_exists[i]=true; nbr_isRefined[i]=false; break;
           case REFINE:    CkAbort("unacceptable decision");
-          default:        CkAbort("nbr_decision not set");
+          //default:        CkAbort("nbr_decision not set");
         }
       }
     END_FOR
@@ -775,7 +770,7 @@ void Advection::recvChildData(int childNum, double myt, double mydt,
     case 1:  st_i = 1;                end_i = block_width/2;  st_j = 1;                 end_j = block_height/2;  break;
     case 2:  st_i = 1;                end_i = block_width/2;  st_j = block_height/2+1;  end_j = block_height;    break;
     case 3:  st_i = block_width/2+1;  end_i = block_width;    st_j = block_height/2+1;  end_j = block_height;    break;
-    default: CkAbort("undefined child number");
+    //default: CkAbort("undefined child number");
   }
     
   int ctr=0; double rsq;
@@ -912,7 +907,7 @@ Advection::Advection(double dx, double dy,
           case REFINE:      nbr_exists[dir]=true;       nbr_isRefined[dir]=false;   break;
           case STAY:        nbr_exists[dir]=false;                                  break;
           case COARSEN:    CkAbort("this neighbor cannot derefine");
-          default:          CkAbort("nbr decision not set");
+          //default:          CkAbort("nbr decision not set");
         }
       }
       else if (isNephew(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
@@ -921,12 +916,10 @@ Advection::Advection(double dx, double dy,
           case COARSEN: nbr_exists[dir]=false;                              break;
           case STAY:     nbr_exists[dir]=true;  nbr_isRefined[dir]=false;    break;
           case REFINE:   nbr_exists[dir]=true;  nbr_isRefined[dir]=true;     break;
-          default:       CkAbort("nbr decision not set");
+          //default:       CkAbort("nbr decision not set");
         }
       }
-      else if (isUncle(parent_nbr_exists[dir], parent_nbr_isRefined[dir])){
-        nbr_exists[dir]=false;
-      }
+      else if (isUncle(parent_nbr_exists[dir], parent_nbr_isRefined[dir])) nbr_exists[dir]=false;
     }
   }
 

@@ -29,6 +29,8 @@ bool inInitialMeshGenerationPhase;
 
 double start_time, end_time;
 
+int checkPTFreq;
+
 Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
@@ -42,6 +44,9 @@ Main::Main(CkArgMsg* m){
 
   if (m->argc >= 5) array_height = array_width = atoi(m->argv[4]);
   else array_height = array_width = 256;
+  
+  if (m->argc >= 6) checkPTFreq = atoi(m->argv[5]);
+  else checkPTFreq = 100000;
   
   block_height = block_width = atoi(m->argv[2]);
   max_iterations = atoi(m->argv[3]);

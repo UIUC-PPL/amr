@@ -28,7 +28,7 @@ mainmodule Main{
 
   readonly int max_iterations;
   readonly int refine_frequency;
-
+  readonly int checkPTFreq;
   initproc TurnManualLBOn();
   readonly CProxy_AdvectionGroup ppc;
   readonly bool inInitialMeshGenerationPhase;
@@ -117,10 +117,16 @@ module Advection{
       //Quiesence detector
       when startPhase2() serial{
         doPhase2();
-        if (isRoot()) CkStartQD(CkCallback(CkIndex_Advection::iterate(), thisProxy));
+        if (isRoot() && iterations%checkPTFreq==0) 
+			CkStartQD(CkCallback(CkIndex_Advection::checkpoint(), thisProxy[thisIndex]));
+		else if(isRoot())
+			CkStartQD(CkCallback(CkIndex_Advection::iterate(), thisProxy));
       }
     };
-
+	entry void checkpoint(){
+		CkCallback cb(CkIndex_Advection::iterate(),thisProxy);
+		CkStartMemCheckpoint(cb);
+	};
     entry void doComputationStep(){
       serial {
         //ppc.ckLocalBranch()->incrementWorkUnitCount();

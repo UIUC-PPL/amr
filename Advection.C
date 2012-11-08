@@ -25,7 +25,7 @@ extern double ap, an;
 extern double tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency;
 extern bool inInitialMeshGenerationPhase;
-
+extern int checkPTFreq;
 const int ndim = 2;
 const int ndim2 = 4; //ndim*ndim
 
@@ -58,6 +58,23 @@ AdvectionGroup::AdvectionGroup()
 
 }
 
+AdvectionGroup::AdvectionGroup(CkMigrateMessage *m) : CBase_AdvectionGroup(m){
+	  delu = new double**[ndim];
+	  delua = new double**[ndim];
+
+	  delu[0] = new double*[block_height+2];
+	  delu[1] = new double*[block_height+2];
+	  delua[0] = new double*[block_height+2];
+	  delua[1] = new double*[block_height+2];
+
+
+	  for(int i=0; i<block_height+2; i++){
+		delu[0][i] = new double[block_width+2];
+		delu[1][i] = new double[block_width+2];
+		delua[0][i] = new double[block_width+2];
+		delua[1][i] = new double[block_width+2];
+	  }
+  }
 /*void AdvectionGroup::incrementWorkUnitCount() {
   workUnitCount++;
 }
@@ -195,6 +212,7 @@ void Advection::pup(PUP::er &p){
   PUParray(p, nbr_exists, NUM_NEIGHBORS);
   PUParray(p, nbr_isRefined, NUM_NEIGHBORS);
   PUParray(p, nbr_dataSent, 3*NUM_NEIGHBORS);
+  PUParray(p, child_decision, NUM_CHILDREN);
 
   p|hasReceived;
   p|decision;

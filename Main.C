@@ -137,7 +137,8 @@ void Main::terminate(){
 struct AdvMap : public CBase_AdvMap {
   int bits;
   AdvMap() : bits(log2(CkNumPes())) { }
-
+  void pup(PUP::er &p){ bits = log2(CkNumPes()); }
+  AdvMap(CkMigrateMessage *m): CBase_AdvMap(m),bits(log2(CkNumPes())){}
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     int numPes = CkNumPes();
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());

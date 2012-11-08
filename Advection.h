@@ -120,7 +120,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   /* Constructors */
   Advection() { usesAutoMeasure = CmiFalse; }
-  Advection(CkMigrateMessage* m) { usesAutoMeasure = CmiFalse; }
+  Advection(CkMigrateMessage* m) : CBase_Advection(m){ usesAutoMeasure = CmiFalse; }
   Advection(double, double, double, double);
   Advection(double dx, double dy,
             double myt, double mydt, double xmin, double ymin,
@@ -175,7 +175,8 @@ class AdvectionGroup : public CBase_AdvectionGroup {
 
  public:
   AdvectionGroup();
-
+  AdvectionGroup(CkMigrateMessage *m);
+  void pup(PUP::er &p){}
   void incrementWorkUnitCount();
   void reduceWorkUnits();
   void meshGenerationPhaseIsOver();

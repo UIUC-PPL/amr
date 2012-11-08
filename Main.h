@@ -9,6 +9,7 @@ class Main: public CBase_Main {
   int iterations;
 
   Main(CkArgMsg* m);
+  Main(CkMigrateMessage* m) :CBase_Main(m){}
   void terminate();
   void startMeshGeneration();
   //void totalWorkUnits(int total);

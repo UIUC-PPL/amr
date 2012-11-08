@@ -33,14 +33,14 @@ mainmodule Main{
   readonly CProxy_AdvectionGroup ppc;
   readonly bool inInitialMeshGenerationPhase;
 
-  mainchare Main{
+  mainchare [migratable] Main{
     entry Main(CkArgMsg *m);
     entry void terminate();
     entry void startMeshGeneration();
     //entry [reductiontarget] void totalWorkUnits(int total);
   };
 
-  group AdvMap : CkArrayMap {
+  group [migratable] AdvMap : CkArrayMap {
     entry void AdvMap();
   };
 
@@ -49,7 +49,7 @@ mainmodule Main{
 
 module Advection{
 
-  group AdvectionGroup{
+  group [migratable] AdvectionGroup{
     entry AdvectionGroup();
     //entry void reduceWorkUnits();
     entry void meshGenerationPhaseIsOver();
@@ -116,15 +116,27 @@ module Advection{
       //completion of this phase is again detected by a 
       //Quiesence detector
       when startPhase2() serial{
+		if(isRoot()) ckout << " in phase 2 " << endl;
         doPhase2();
-        if (isRoot() && iterations%checkPTFreq==0) 
+        if (isRoot() && iterations%checkPTFreq==3) 
 			CkStartQD(CkCallback(CkIndex_Advection::checkpoint(), thisProxy[thisIndex]));
+		else if (isRoot() && iterations==12) 
+			CkStartQD(CkCallback(CkIndex_Advection::killForFT(), thisProxy));
 		else if(isRoot())
 			CkStartQD(CkCallback(CkIndex_Advection::iterate(), thisProxy));
       }
     };
-	entry void checkpoint(){
+	entry void killForFT() serial{
+		if (thisIndex.getIndexString()=="11100010"){
+			CkPrintf("[%d] kill for FT\n",CkMyPe());
+			CkDieNow();
+		}
+	};
+
+	entry void checkpoint() serial{
+		CkPrintf("[%d] start checkpoint\n",CkMyPe());
 		CkCallback cb(CkIndex_Advection::iterate(),thisProxy);
+		//CkStartCheckpoint("log",cb);
 		CkStartMemCheckpoint(cb);
 	};
     entry void doComputationStep(){

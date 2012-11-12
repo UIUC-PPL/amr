@@ -1,5 +1,5 @@
 
-CHARMHOME ?= $(HOME)/charm/net-linux-syncft
+CHARMHOME ?= $(HOME)/git/old/charm/net-linux-x86_64-syncft
 CHARMC ?= $(CHARMHOME)/bin/charmc -module liveViz
 CXX=$(CHARMC)
 

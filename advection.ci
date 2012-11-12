@@ -33,7 +33,7 @@ mainmodule Main{
   initproc TurnManualLBOn();
   readonly CProxy_PerProcessorChare ppc;
 
-  mainchare Main{
+  mainchare [migratable] Main{
     entry Main(CkArgMsg *m);
     entry void printTreeInformation(CkVec<QuadIndex>);
     entry void terminate();
@@ -45,7 +45,7 @@ mainmodule Main{
     entry [reductiontarget] void totalWorkUnits(int total);
   };
 
-  group AdvMap : CkArrayMap {
+  group [migratable] AdvMap : CkArrayMap {
     entry void AdvMap();
   };
 
@@ -79,7 +79,7 @@ module Advection{
   };
 
 
-  group PerProcessorChare{
+  group [migratable] PerProcessorChare{
     entry PerProcessorChare();
     entry void collectCascades(CkCallback cb);
     entry void reduceLatencies();
@@ -173,7 +173,13 @@ module Advection{
 	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
 	  CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
 	  CkCallback cb;
-	  if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
+      if( iterations == 7){
+          cb = CkCallback(CkIndex_Advection::dieNow(), thisProxy[thisIndex]);
+      }
+      else if(iterations==4){
+          cb = CkCallback(CkIndex_Advection::checkpoint(), thisProxy[thisIndex]);
+      }
+	  else if ((iterations / refine_frequency) % 50 == 0 || (iterations / refine_frequency) == 3)
 	    cb = CkCallback(CkIndex_Advection::startLdb(), thisProxy);
 	  else
 	    cb = CkCallback(CkIndex_Advection::phase2Done(), thisProxy);
@@ -183,6 +189,15 @@ module Advection{
       }
     };
     
+    entry void dieNow() serial{
+        CkDieNow();
+    };
+
+    entry void checkpoint() serial{
+        CkCallback cb(CkIndex_Advection::phase2Done(), thisProxy);
+        CkStartMemCheckpoint(cb);
+    };
+
     // Separated for newly created chares from refinement
     entry  [reductiontarget] void phase2Done() {
       atomic {

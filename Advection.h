@@ -285,7 +285,7 @@ class PerProcessorChare : public CBase_PerProcessorChare {
 
  public:
   PerProcessorChare();
-
+  PerProcessorChare(CkMigrateMessage*m){}
   void incrementWorkUnitCount();
   void recordCascade(int iteration, int length);
   void collectCascades(CkCallback cb);
@@ -293,6 +293,8 @@ class PerProcessorChare : public CBase_PerProcessorChare {
   void recordRemeshLatency(int iteration, double latency);
   void reduceWorkUnits();
   void reduceLatencies();
+
+  void pup(PUP::er &p);
 };
 
 extern CProxy_PerProcessorChare ppc;

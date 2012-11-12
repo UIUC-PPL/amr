@@ -7,6 +7,7 @@ class Main:public CBase_Main{
   double io_outnum, io_tnext, io_tout; 
 
   Main(CkArgMsg* m);
+  Main(CkMigrateMessage*){}
   void printTreeInformation(CkVec<QuadIndex>);
   void terminate();
   void startMeshGeneration();

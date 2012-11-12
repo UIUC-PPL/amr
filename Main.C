@@ -93,7 +93,7 @@ Main::Main(CkArgMsg* m){
   if (m->argc >= 5) {
     array_height = array_width = atoi(m->argv[4]);
   } else {
-    array_height = array_width = 256;
+    array_height = array_width = 64;
   }
   
   block_height = block_width = atoi(m->argv[2]);
@@ -148,7 +148,7 @@ Main::Main(CkArgMsg* m){
   double fdepth = (log(num_chares)/log(4));
   int depth = (fabs(fdepth - ceil(fdepth)) < 0.000001)?ceil(fdepth):floor(fdepth);
   min_depth = depth;
-  CkAssert(min_depth >= 4);
+  //CkAssert(min_depth >= 4);
   // To maintain the semantics of "max_depth" that set it relative to
   // a grid fo 256, offset by 4
   max_depth = atoi(m->argv[1]) + min_depth - 4;
@@ -277,7 +277,8 @@ void Main::printTreeInformation(CkVec<QuadIndex> list){
 struct AdvMap : public CBase_AdvMap {
   int bits;
   AdvMap() : bits(log2(CkNumPes())) { }
-
+  void pup(PUP::er &p){bits=log2(CkNumPes());}
+  AdvMap(CkMigrateMessage*m):CBase_AdvMap(m),bits(log2(CkNumPes())){}
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     int numPes = CkNumPes();
     const QuadIndex& idx = *reinterpret_cast<const QuadIndex*>(i.data());

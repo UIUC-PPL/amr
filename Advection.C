@@ -86,6 +86,30 @@ PerProcessorChare::PerProcessorChare()
   }
 }
 
+  void PerProcessorChare::pup(PUP::er &p){
+        if(p.isUnpacking()){
+              //qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+              //remeshlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+
+              //for (int i = 0; i < max_iterations; ++i)
+                //cascades[i] = 0;
+              delu = new double**[ndim];
+              delua = new double**[ndim];
+
+              delu[0] = new double*[block_height+2];
+              delu[1] = new double*[block_height+2];
+              delua[0] = new double*[block_height+2];
+              delua[1] = new double*[block_height+2];
+
+
+              for(int i=0; i<block_height+2; i++){
+                delu[0][i] = new double[block_width+2];
+                delu[1][i] = new double[block_width+2];
+                delua[0][i] = new double[block_width+2];
+                delua[1][i] = new double[block_width+2];
+              }
+        }
+  }
 void PerProcessorChare::incrementWorkUnitCount() {
   workUnitCount++;
 }

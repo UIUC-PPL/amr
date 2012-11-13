@@ -173,7 +173,7 @@ module Advection{
 	if (thisIndex.nbits == min_depth * 2 && thisIndex.bitVector == 0) {
 	  CkPrintf("%s in phase 2a iteration start QD %d\n", thisIndex.getIndexString().c_str(), iterations);
 	  CkCallback cb;
-      if( iterations == 10){
+      if( iterations == 10 && CkHasCheckpoints()){
           cb = CkCallback(CkIndex_Advection::dieNow(), thisProxy[thisIndex]);
       }
       else if(iterations==4){

@@ -88,11 +88,11 @@ PerProcessorChare::PerProcessorChare()
 
   void PerProcessorChare::pup(PUP::er &p){
         if(p.isUnpacking()){
-              //qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
-              //remeshlatencies.resize(max_iterations, std::numeric_limits<double>::max());
-
-              //for (int i = 0; i < max_iterations; ++i)
-                //cascades[i] = 0;
+              qdlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+              remeshlatencies.resize(max_iterations, std::numeric_limits<double>::max());
+              cascades.resize(max_iterations);
+              for (int i = 0; i < max_iterations; ++i)
+                cascades[i] = 0;
               delu = new double**[ndim];
               delua = new double**[ndim];
 
@@ -401,7 +401,6 @@ void Advection::advection(){ usesAutoMeasure = CmiFalse;
 
 //added for array migration - see how 2D arrays can be packed
 void Advection::pup(PUP::er &p){
-  VB(logFile << "In PUP" << std::endl;);
   CBase_Advection::pup(p);
   __sdag_pup(p);
 
@@ -438,8 +437,13 @@ void Advection::pup(PUP::er &p){
   p|yc;
   p|imsg;
 
-  if(p.isUnpacking())
+  if(p.isUnpacking()){
     mem_allocate_all();
+    char fname[100];
+    sprintf(fname, "log/%s.log", thisIndex.getIndexString().c_str());
+    VB(logFile.open(fname, fstream::app););
+  }
+  VB(logFile << "In PUP" << std::endl;);
     
   for(int i=0; i<(block_width+2)*(block_height+2); i++){
     p|u[i];

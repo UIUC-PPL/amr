@@ -11,8 +11,8 @@
 #include <limits>
 #include "charm++.h"
 #include "trace-projections.h"
-//#include <boost/assign/list_of.hpp>
-//#include "boost/filesystem.hpp"
+#include <boost/assign/list_of.hpp>
+#include "boost/filesystem.hpp"
 
 using namespace std;
 
@@ -78,8 +78,8 @@ Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 
   mainProxy = thisProxy;
-  //boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
-  //boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
+  boost::filesystem::remove_all("out"); boost::filesystem::remove_all("log");
+  boost::filesystem::create_directory("out"); boost::filesystem::create_directory("log");
   //boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::remove_all("/intrepid-fs0/users/alanger/scratch/amr/log");
   //boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/out"); boost::filesystem::create_directory("/intrepid-fs0/users/alanger/scratch/amr/log");
 
@@ -93,7 +93,7 @@ Main::Main(CkArgMsg* m){
   if (m->argc >= 5) {
     array_height = array_width = atoi(m->argv[4]);
   } else {
-    array_height = array_width = 64;
+    array_height = array_width = 256;
   }
   
   block_height = block_width = atoi(m->argv[2]);
@@ -139,7 +139,7 @@ Main::Main(CkArgMsg* m){
 
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
-  opts.setMap(map);
+  //opts.setMap(map);
   ppc = CProxy_PerProcessorChare::ckNew();
   qtree = CProxy_Advection::ckNew(opts);
 

@@ -7,15 +7,12 @@ class Main: public CBase_Main {
  public:
   int num_chares;
   int iterations;
+  int nresponses;
 
   Main(CkArgMsg* m);
-  //void printTreeInformation(CkVec<QuadIndex>);
+  Main(CkMigrateMessage* m) :CBase_Main(m){}
   void terminate();
   void startMeshGeneration();
-  //void startRunning();
-  void reportCascadeStats(int *cascade_lengths, int size);
-  void qdlatency(double* elems, int size);
-  void remeshlatency(double* elems, int size);
   void totalWorkUnits(int total);
 };
 

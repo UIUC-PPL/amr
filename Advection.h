@@ -3,60 +3,77 @@
 
 #include "Advection.decl.h"
 
-int inline myDirectionWrtUncle(int quad, int nbr){
-    switch(quad){
-        case 0: return (nbr==RIGHT)?LEFT_UP:DOWN_RIGHT; break;
-        case 1: return (nbr==LEFT)?RIGHT_UP:DOWN_LEFT;  break;
-        case 2: return (nbr==LEFT)?RIGHT_DOWN:UP_LEFT; break;
-        case 3: return (nbr==RIGHT)?LEFT_DOWN:UP_RIGHT; break;
-        default: CkAbort("invalid quad#");
-    };
-}
 
-//returns the direction of the neighbor in direction 'dir' with repsect to the parent
-int inline nbrDirectionWrtParent(int quad, int dir){
-  switch(quad){
-      case 0: return (dir==RIGHT)?RIGHT_UP:UP_RIGHT;    break;
-      case 1: return (dir==LEFT)?LEFT_UP:UP_LEFT;       break;
-      case 2: return (dir==LEFT)?LEFT_DOWN:DOWN_LEFT;   break;
-      case 3: return (dir==RIGHT)?RIGHT_DOWN:DOWN_RIGHT;break;
-      default: CkAbort("invalid quad num");
-  };
-}
 
-inline void getChildrenInDir(QuadIndex myIndex, int dir, QuadIndex& q1, QuadIndex& q2){
-  int q1c, q2c;
-  switch (dir) {
-  case LEFT:  q1c = 1; q2c = 2; break;
-  case RIGHT: q1c = 0; q2c = 3; break;
-  case UP:    q1c = 1; q2c = 0; break;
-  case DOWN:  q1c = 2; q2c = 3; break;
+class Neighbor {
+
+  bool refined;
+  bool dataSent;
+  Decision decision;
+  Decision childDecisions[NUM_CHILDREN];
+  int dir;
+
+public:
+
+  Neighbor() : refined(false), dataSent(false), decision(INV),
+               dir(-1) {}
+
+  Neighbor(int dir) : refined(false), dataSent(false), decision(INV),
+                      dir(dir) {}
+
+  int getDir() { return dir; }
+
+  bool isRefined() {
+    return refined;
   }
 
-  q1 = myIndex.getChild(q1c);
-  q2 = myIndex.getChild(q2c);
-  return;
-}
-
-inline int childDir2Quadrant(int childDir){
-  switch(childDir){
-    case RIGHT_UP:      case UP_RIGHT:      return 0;
-    case LEFT_UP:       case UP_LEFT:       return 1;
-    case LEFT_DOWN:     case DOWN_LEFT:     return 2;
-    case DOWN_RIGHT:    case RIGHT_DOWN:    return 3;
+  bool isDataSent() {
+    return dataSent;
   }
-}
+
+  void setDataSent(bool value) {
+    dataSent = value;
+  }
+
+  void setRefined(bool value) {
+    refined = value;
+  }
+
+  Decision getDecision(int child = -1) {
+    assert((child == -1) == !refined);
+    Decision &D = (child == -1) ? decision : childDecisions[child];
+    return D;
+  }
+
+  Decision setDecision(Decision d, int child = -1) {
+    assert((child == -1) == !refined);
+    Decision &D = (child == -1) ? decision : childDecisions[child];
+    return D = std::max(D, d);
+  }
+
+  void pup(PUP::er &p) {
+    p|refined;
+    p|dataSent;
+    p|decision;
+    p|dir;
+    PUParray(p, childDecisions, NUM_CHILDREN);
+  }
+
+  void resetDecision() {
+    decision = COARSEN;
+    for (int i = 0; i < NUM_CHILDREN; ++i)
+      childDecisions[i] = COARSEN;
+  }
+};
 
 //class ChildDataMsg;
 
-/*typedef TerminationChare<CProxy_Advection, QuadIndex> AdvTerm;*/
+/*typedef TerminationChare<CProxy_Advection, OctIndex> AdvTerm;*/
 
 class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection_SDAG_CODE
     public:
         
-  std::ofstream logFile;
-  std::ofstream outFile;
   //tree information
   bool isRefined;
   int depth;
@@ -64,166 +81,166 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool child_isRefined[NUM_CHILDREN];
   bool isGrandParent();
 
-  bool nbr_exists[NUM_NEIGHBORS];
-  bool nbr_isRefined[NUM_NEIGHBORS];
-  bool nbr_dataSent[3*NUM_NEIGHBORS];
-  std::set<int> hasReceived;
-  bool hasReceivedFromDir(int dir);
-  bool hasReceivedFromAroundCorner(int aroundCorner);
+  std::set<OctIndex> ghostReceived;
 
   /*Phase1 DataStructures*/
   Decision decision;
-  Decision nbr_decision[NUM_NEIGHBORS+2*NUM_NEIGHBORS];//Keeps the state of the neighbors
   Decision child_decision[NUM_CHILDREN];
 
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
-
-  QuadIndex nbr[4], parent;
-  int xc, yc;
+  char fname[100];
+  OctIndex  parent;
+  std::map<OctIndex, Neighbor> neighbors;
+  std::map<OctIndex, Decision> uncleDecisions;
+  int xc, yc, zc;
 
   //data
-  double imsg;
+  float imsg;
 
-  double* u;
-  double* u2;
-  double* u3;
-  double *x;
-  double *y;
+  float* u;
+  float* u2;
+  float* u3;
+  float *x;
+  float *y;
+  float *z;
 
-  double *left_edge;
-  double *right_edge;
-        
-  /* Required In Case of Dummy Nodes */
-  double *top_edge;
-  double *bottom_edge;
+  float *left_surface;
+  float *right_surface;
+  float *top_surface;
+  float *bottom_surface;
+  float *forward_surface;
+  float *backward_surface;
 
   int iterations;
   int meshGenIterations;
-        
-  double up;
-  double un;
-  double myt, mydt;
-  double dx, dy, nx, ny;
-  double xmin, xmax, ymin, ymax;
-        
-  double itBeginTime, remeshStartTime;
-  void mem_allocate(double* &p, int size);
+
+  float up;
+  float un;
+  float myt, mydt;
+  float dx, dy, dz, nx, ny, nz;
+  float xmin, xmax, ymin, ymax, zmin, zmax;
+  
+  float itBeginTime;
+  float lastBusyTime, lastIdleTime;
+  float remeshStartTime, remeshEndTime;
+  void mem_allocate(float* &p, int size);
   void mem_allocate_all();
-  QuadIndex getRefinedNeighbor(int NBR);
+  void mem_deallocate_all();
+  OctIndex getRefinedNeighbor(int NBR);
   int getSourceDirection(int NBR);
-  double* getGhostBuffer(int dir);
+  float* getGhostBuffer(int dir);
   int getGhostCount(int dir);
-  double lastIdleTimeQD;
+  float lastIdleTimeQD;
+  std::ofstream logfile;
 
   bool finishedPhase1;
+  int nChildDataRecvd;
+  bool phase1Over;
 
   ~Advection();
 
   /* Constructors */
-  Advection() { usesAutoMeasure = CmiFalse; }
-  Advection(CkMigrateMessage* m) { usesAutoMeasure = CmiFalse; }
-  Advection(double, double, double, double);
-  Advection(double dx, double dy,
-            double myt, double mydt, double xmin, double ymin,
-            int meshGenIterations_, int iterations_, 
-            std::vector<double> refined_u, bool *parent_nbr_exists, 
-            bool *parent_nbr_isRefined, Decision *parent_nbr_decision);
+  Advection() { usesAtSync = CmiTrue; usesAutoMeasure = CmiFalse; }
+  Advection(CkMigrateMessage* m) : CBase_Advection(m){ 
+    usesAutoMeasure = CmiFalse; 
+    usesAtSync = true;
+    VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str(), std::ofstream::app););
+    VB(logfile << "migrated to a new processor" << std::endl;)
+  }
+  Advection(float, float, float, float, float, float);
+  Advection(float dx, float dy, float dz,
+            float myt, float mydt,
+            float xmin, float ymin, float zmin,
+            int meshGenIterations_, int iterations_,
+            std::vector<float> refined_u,
+            std::map<OctIndex, Neighbor> neighbors);
 
-  void initializeRestofTheData(); // common function for initialization
-
+  void initializeRestofTheData(); // common function initialization for
+  
   void pup(PUP::er &p);
 
   /* initial mesh generation*/
   void applyInitialCondition();
-  void process(int, int, int, double*);
+  void process(int, int, int, int, float*);
   void compute();
 
   /*Phase1 Entry Methods*/
   void makeGranularityDecisionAndCommunicate();
   Decision getGranularityDecision();
 
-  //void doMeshRestructure();
   void resetMeshRestructureData();
-  void exchangePhase1Msg(int, Decision, int);
+  void prepareData4Exchange();
+  void processPhase1Msg(int, int, Decision, int);
+
   void updateDecisionState(int cascade_length, Decision newDecision);
-  void informParent(int, Decision, int cascade_length);
-  void recvParentDecision(int cascade_length);
+
+  void processChildDecision( int, Decision, int);
+
+  void processParentDecision(int cascade_length);
 
   /*Phase2 entry methods*/
-  void setNbrStateUponCoarsening(int, bool*, bool*, Decision*);
+  void setNbrStateUponCoarsening(int, int, std::map<OctIndex, Neighbor>&, std::map<OctIndex, Decision> &);
   void sendReadyData();
   // Returns whether a message was sent
   void sendGhost(int);
   void doPhase2();
   void updateMeshState();
   
-  void recvChildData(int, double, double, int, int, std::vector<double>, bool*, bool*, Decision*);
+  void recvChildData(int, float, float, int, int, std::vector<float>, std::map<OctIndex, Neighbor> neighbors, std::map<OctIndex, Decision> uncleDecisions);
   void interpolateAndSend(int);
+  void interpolateAndSendToNephew(int, OctIndex);
   void refine();
-  void interpolate(double*, std::vector<double>&, int, int, int, int);
-  void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, double xmin, double ymin);
+  void interpolate(float*, std::vector<float>&, int, int, int, int, int, int);
+  void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float xmin, float ymin, float zmin);
 
   /*Load Balancing functions*/
   void startLdb();
   void ResumeFromSync();
-  void UserSetLBLoad();
+  void UserSetLBLoad() { setObjTime((isRefined?0:1)); }
 
   bool isRoot();
+
+  // AMR3D
+  int amr3d_i;
+  int ichild;
+  void printData();
 };
 
-/*class InitRefineMsg: public CMessage_InitRefineMsg{
-
- public:
-  bool isInMeshGenerationPhase;
-  double dx, dy, myt, mydt, xmin, ymin, *refined_u;
-  int meshGenIterations, iterations;
-  bool *parent_nbr_exists;
-  bool *parent_nbr_isRefined;
-  Decision *parent_nbr_decision;
-
-  InitRefineMsg(){};
-  InitRefineMsg(bool isInMeshGenerationPhase, double dx, double dy, double myt, double mydt, double xmin, double ymin, 
-                int meshGenIterations, int iterations, vector<double>& refined_u, bool *nbr_exists, bool *nbr_isRefined, Decision *nbr_decision);
-};*/
-
-/*class ChildDataMsg: public CMessage_ChildDataMsg{
- public:
-  bool isInMeshGenerationPhase;
-  int childNum;
-  double myt, mydt; 
-  int meshGenIterations, iterations;
-  double *child_u;
-  bool *child_nbr_exists;
-  bool *child_nbr_isRefined;
-  Decision *child_nbr_decision;
-        
-  ChildDataMsg(bool isInMeshGenerationPhase, int cnum, double myt, double mydt, int meshGenIterations, int iterations, double* u, bool* nbr_exists, bool* nbr_isRefined, Decision* nbr_decision);
-};*/
-
 class AdvectionGroup : public CBase_AdvectionGroup {
-  std::vector<int> cascades;
-  std::vector<double> qdlatencies, remeshlatencies;
   int workUnitCount;
-  int numNotificationsExpected, numNotificationsRecvd;
-  int nChanges;
-  public:
-  bool meshUpdated;
-
+  std::map<int, std::pair<float, float> > qdtimes;
+  std::map<int, std::pair<float, float> > remeshtimes;
+  std::map<int, int> workUnits;
+  std::map<int, int> minLoad;
+  std::map<int, int> maxLoad;
+  std::map<int, float> avgLoad;
  public:
+  AdvectionGroup_SDAG_CODE
   AdvectionGroup();
+  AdvectionGroup(CkMigrateMessage *m);
+  void pup(PUP::er &p){}
+  void incrementWorkUnitCount(int);
+  void recordQdTime(int iter, float a, float b){
+    if (qdtimes.find(iter) == qdtimes.end())
+      qdtimes[iter] = std::pair<float, float>(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+    qdtimes[iter].first = std::max(qdtimes[iter].first, a);
+    qdtimes[iter].second = std::min(qdtimes[iter].second, b);
+  }
 
-  void incrementWorkUnitCount();
-  void recordCascade(int iteration, int length);
-  void collectCascades(CkCallback cb);
-  void recordQDLatency(int iteration, double latency);
-  void recordRemeshLatency(int iteration, double latency);
+  void recordRemeshTime(int iter, float a, float b){
+    if (remeshtimes.find(iter) == remeshtimes.end())
+      remeshtimes[iter] = std::pair<float, float>(0, std::numeric_limits<float>::max());
+    remeshtimes[iter].first = std::max(remeshtimes[iter].first, a);
+    remeshtimes[iter].second = std::min(remeshtimes[iter].second, b);
+  }
+
+  void processQdTimes(map<int, pair<float, float> > peQdtimes, map<int, pair<float, float> > peRemeshtimes, map<int, int> peWorkunits, map<int, int> peminLoad, map<int, int> pemaxLoad, map<int, float> peavgLoad);
+
+  void printLogs();
+
   void reduceWorkUnits();
-  void reduceLatencies();
   void meshGenerationPhaseIsOver();
-  void notifyMeshUpdate(Decision);
-  void meshUpdateReductionClient(int);
-  void resetMeshUpdateCounters();
 };
 
 extern CProxy_AdvectionGroup ppc;

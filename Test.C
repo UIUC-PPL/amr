@@ -35,11 +35,6 @@ float tmax, t, dt, cfl;
 float start_time, end_time;
 
 Main::Main(CkArgMsg* m){
-  ckout<<"Running amr code revision: "<<amrRevision<<endl;
-
-  mainProxy = thisProxy;
-  iterations = 0;
-
   if(m->argc < 5){
     ckout << "Usage: " << m->argv[0] << "[max_depth] [block_size] [iterations] [lb_freq] [array_dim]?" << endl; 
     CkExit();
@@ -97,10 +92,6 @@ Main::Main(CkArgMsg* m){
   anz = min(vz, (float)0.0);
 
   /*****End Initialization **********/
-  CProxy_AdvMap map = CProxy_AdvMap::ckNew();
-  CkArrayOptions opts;
-  opts.setMap(map);
-  qtree = CProxy_Advection::ckNew(opts);
 
   //save the total number of worker chares we have in this simulation
   num_chares = num_chare_rows*num_chare_cols*num_chare_Zs;
@@ -127,21 +118,26 @@ Main::Main(CkArgMsg* m){
   CkPrintf("Running Advection on %d processors with (%d,%d,%d) elements, minDepth = %d, maxDepth = %d, blockSize = %d, maxIter = %d\n",
            CkNumPes(), array_width, array_height, array_width, min_depth, max_depth, block_height, max_iterations);
 
-  for (int i = 0; i < num_chare_rows; ++i)
-    for (int j = 0; j < num_chare_cols; ++j)
-      for (int k = 0; k < num_chare_Zs; ++k)
-        qtree[OctIndex(i, j, k, min_depth)].insert(xmin, xmax, ymin, ymax, zmin, zmax);
+  mainProxy = thisProxy;
+
+  CProxy_AdvMap map = CProxy_AdvMap::ckNew();
+  CkArrayOptions opts;
+  opts.setMap(map);
+  qtree = CProxy_Advection::ckNew(opts);
+
+  qtree[OctIndex(0, 0, 0, 1)].insert(0,0,0,0,0,0);
+  qtree[OctIndex(0, 0, 1, 1)].insert(0,0,0,0,0,0);
 
   qtree.doneInserting();
 
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
-  ppc = CProxy_AdvectionGroup::ckNew();
+  //ppc = CProxy_AdvectionGroup::ckNew();
 
 }
 
 void Main::startMeshGeneration() {
   start_time = CkWallTimer();
-  qtree.iterate();
+  qtree.test();
 }
 
 void Main::terminate(){
@@ -153,6 +149,34 @@ void Main::totalWorkUnits(int total) {
   CkPrintf("total work units = %d\n", total);
   nresponses = 0;
   ppc.reduceQdTimes();
+}
+
+void Main::getQdTimes(map<int, pair<float, float> > peQdtimes, map<int, pair<float, float> > peRemeshtimes){
+  for(map<int, std::pair<float, float> >::iterator it = peQdtimes.begin(); it!=peQdtimes.end(); it++){
+    if(qdtimes.find(it->first) == qdtimes.end())
+      qdtimes[it->first] = std::pair<float, float>(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+    qdtimes[it->first].first = max(qdtimes[it->first].first, it->second.first);
+    qdtimes[it->first].second = min(qdtimes[it->first].second, it->second.second);
+  }
+  for(map<int, std::pair<float, float> >::iterator it = peRemeshtimes.begin(); it!=peRemeshtimes.end(); it++){
+    if(remeshtimes.find(it->first) == remeshtimes.end())
+      remeshtimes[it->first] = std::pair<float, float>(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+    remeshtimes[it->first].first = max(remeshtimes[it->first].first, it->second.first);
+    remeshtimes[it->first].second = min(remeshtimes[it->first].second, it->second.second);
+  }
+
+  if(++nresponses == CkNumPes()){
+    ckout << "qd times - ";
+    for(map<int, pair<float, float> >::iterator it = qdtimes.begin(); it!=qdtimes.end(); it++)
+      ckout << it->first << "," << it->second.second - it->second.first << " ";
+    ckout << endl;
+
+    ckout << "remesh times - ";
+    for(map<int, pair<float, float> >::iterator it = remeshtimes.begin(); it!=remeshtimes.end(); it++)
+      ckout << it->first << "," << it->second.second - it->second.first << " ";
+    ckout << endl;
+    CkExit();
+  }
 }
 
 #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
@@ -167,17 +191,22 @@ struct AdvMap : public CBase_AdvMap {
   int procNum(int arrayHdl, const CkArrayIndex& i) {
     int numPes = CkNumPes();
     const OctIndex& idx = *reinterpret_cast<const OctIndex*>(i.data());
-    int baseBits = 8;
+    int baseBits = 3*min_depth;
 
-    unsigned long long val = idx.bitVector >> (sizeof(unsigned int)*8 - baseBits);
+    //unsigned long long val = idx.bitVector >> (sizeof(unsigned int)*8 - baseBits);
+    unsigned long long val = idx.bitVector.rightShit(numBitsForStorage - baseBits).v[0];
     unsigned long long hash = GOLDEN_RATIO_PRIME_64 * val;
 
     int basePE = hash >> (64 - bits);
+    
+    ArrayBitVector temp = idx.bitVector.leftShift(baseBits);
+    temp = idx.bitVector.rightShit(numBitsForStorage-idx.nbits+baseBits);
+    unsigned long long offset = temp.v[1] << 32 + temp.v[1];
 
-    unsigned long validBits = idx.bitVector & ((1L << 24) - 1);
-    validBits += (1L << 22);
-    unsigned long offset = validBits >> (sizeof(unsigned int)*8 - idx.nbits);
-    offset += (idx.nbits == 8);
+    //unsigned long validBits = idx.bitVector & ((1L << 24) - 1);
+    //validBits += (1L << 22);
+    //unsigned long offset = validBits >> (sizeof(unsigned int)*8 - idx.nbits);
+    offset += (idx.nbits == baseBits);
 
     int pe = (basePE + offset - 1) % numPes;
 

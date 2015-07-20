@@ -141,9 +141,9 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   ~Advection();
 
   /* Constructors */
-  Advection() { usesAtSync = CmiTrue; usesAutoMeasure = CmiFalse; }
+  Advection() { usesAtSync = true; usesAutoMeasure = false; }
   Advection(CkMigrateMessage* m) : CBase_Advection(m){ 
-    usesAutoMeasure = CmiFalse; 
+    usesAutoMeasure = false;
     usesAtSync = true;
     VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str(), std::ofstream::app););
     VB(logfile << "migrated to a new processor" << std::endl;)

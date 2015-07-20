@@ -423,7 +423,7 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
 }
 
 void Advection::initializeRestofTheData(){
-  usesAutoMeasure = CmiFalse;
+  usesAutoMeasure = false;
   usesAtSync = true;
   remeshStartTime = 0;
   mem_allocate_all();

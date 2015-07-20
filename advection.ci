@@ -143,9 +143,11 @@ module Advection{
         std::map<OctIndex, Neighbor> neighbors,
 				std::map<OctIndex, Decision> uncleDecisions);
     entry void startLdb();
-    entry void phase1Finish() serial{
+    entry void phase1Finish() {
+     serial{
       //inform everybody that phase 1 is over
       thisProxy.startPhase2(meshGenIterations);
+     }
     };
     entry void makeGranularityDecisionAndCommunicate();
     //sdag entry method that specifies the control flow 
@@ -253,7 +255,8 @@ module Advection{
       }
     };
 
-    entry void iterate() serial {
+    entry void iterate(){
+      serial {
       //in the initial mesh generation phase
       //the mesh keeps on remeshing itself
       //until it has reached a stable state based
@@ -282,6 +285,7 @@ module Advection{
         if(iterations % refine_frequency == 0) doRemeshing();//time to do remeshing
         else doComputationStep();
       }
+     }
     };
 
     entry void printSelf() {

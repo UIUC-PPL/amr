@@ -1,6 +1,6 @@
 
 CHARMHOME ?= ~/charm/net-linux-x86_64
-CHARMC ?= $(CHARMHOME)/bin/charmc -tracemode projections -I.
+CHARMC ?= $(CHARMHOME)/bin/charmc -I.
 CXX=$(CHARMC)
 
 OPTS ?= -O3

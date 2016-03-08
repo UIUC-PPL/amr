@@ -899,16 +899,16 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
 
 void Advection::compute(){
   //if(iterations==1){
-#if 0
+#ifdef LOGGER
     char logfilename[100];
     sprintf(logfilename, "out/snap_%s_%d.vtk", thisIndex.getIndexString().c_str(), iterations);
-    /*logfile.open(logfilename);
+    logfile.open(logfilename);
     logfile.precision(8);
-    logfile << "Variables=\"X\",\"Y\",\"Z\",\"radius\",\"nodeid\"\n";
-    logfile << "Zone I = 16, J = 16, K = 16, F = POINT\n";
+    //logfile << "Variables=\"X\",\"Y\",\"Z\",\"radius\",\"nodeid\"\n";
+    //logfile << "Zone I = 16, J = 16, K = 16, F = POINT\n";
     printData();
-    logfile.close();*/
-    int dims[] = {block_height+1, block_width+1, block_depth+1};
+    logfile.close();
+    /*int dims[] = {block_height+1, block_width+1, block_depth+1};
     int vardims[] = {1};
     int centering[] = {0};
     const char *varnames[]  = {"viscosity"};
@@ -940,7 +940,7 @@ void Advection::compute(){
             }
         }
         logfile << std::endl;
-    }
+    }*/
 #endif
   //}
   memcpy(u2, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));

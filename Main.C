@@ -155,6 +155,10 @@ void Main::totalWorkUnits(int total) {
   ppc.reduceQdTimes();
 }
 
+void Main::boundsCheck(int result) {
+  ckout << "bounds check: \e[1;31m" << result << "\e[m" << endl;
+}
+
 #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
 
 struct AdvMap : public CBase_AdvMap {

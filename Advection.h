@@ -7,6 +7,7 @@
 
 class Neighbor {
 
+  int upper_bound, lower_bound;
   bool refined;
   bool dataSent;
   Decision decision;
@@ -15,10 +16,10 @@ class Neighbor {
 
 public:
 
-  Neighbor() : refined(false), dataSent(false), decision(INV),
+  Neighbor() : refined(false), dataSent(false), decision(INV), upper_bound(-1),
                dir(-1) {}
 
-  Neighbor(int dir) : refined(false), dataSent(false), decision(INV),
+  Neighbor(int dir) : refined(false), dataSent(false), decision(INV), upper_bound(-1),
                       dir(dir) {}
 
   int getDir() { return dir; }
@@ -39,6 +40,22 @@ public:
     refined = value;
   }
 
+  void setUpperBound(int value) {
+    upper_bound = value;
+  }
+
+  int getUpperBound() {
+    return upper_bound;
+  }
+
+  void setLowerBound(int value) {
+    lower_bound = value;
+  }
+
+  int getLowerBound() {
+    return lower_bound;
+  }
+
   Decision getDecision(int child = -1) {
     assert((child == -1) == !refined);
     Decision &D = (child == -1) ? decision : childDecisions[child];
@@ -52,6 +69,7 @@ public:
   }
 
   void pup(PUP::er &p) {
+    p|upper_bound;
     p|refined;
     p|dataSent;
     p|decision;
@@ -76,6 +94,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
         
   //tree information
   bool isRefined;
+  bool isMaxRefined;
   int depth;
 
   bool child_isRefined[NUM_CHILDREN];
@@ -94,6 +113,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   std::map<OctIndex, Neighbor> neighbors;
   std::map<OctIndex, Decision> uncleDecisions;
   int xc, yc, zc;
+
+  int lower_bound, upper_bound;
 
   //data
   float imsg;
@@ -160,6 +181,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   
   void pup(PUP::er &p);
 
+  void updateBounds(int new_lower_bound, int new_upper_bound);
+
   /* initial mesh generation*/
   void applyInitialCondition();
   void process(int, int, int, int, float*);
@@ -171,7 +194,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   void resetMeshRestructureData();
   void prepareData4Exchange();
-  void processPhase1Msg(int, int, Decision, int);
+  void processPhase1Msg(int, int, Decision, int, int, int);
 
   void updateDecisionState(int cascade_length, Decision newDecision);
 

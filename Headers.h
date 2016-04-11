@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <iostream>
 #include "charm++.h"
 #include "pup_stl.h"
 using namespace std;

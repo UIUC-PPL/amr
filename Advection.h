@@ -16,11 +16,11 @@ class Neighbor {
 
 public:
 
-  Neighbor() : refined(false), dataSent(false), decision(INV), upper_bound(-1),
-               dir(-1) {}
+  Neighbor() : refined(false), dataSent(false), decision(INV),
+               upper_bound(-1), lower_bound(-1), dir(-1) {}
 
-  Neighbor(int dir) : refined(false), dataSent(false), decision(INV), upper_bound(-1),
-                      dir(dir) {}
+  Neighbor(int dir) : refined(false), dataSent(false), decision(INV),
+                      upper_bound(-1), lower_bound(-1), dir(dir) {}
 
   int getDir() { return dir; }
 
@@ -30,6 +30,10 @@ public:
 
   bool isDataSent() {
     return dataSent;
+  }
+
+  bool isConverged() {
+    return lower_bound == upper_bound;
   }
 
   void setDataSent(bool value) {
@@ -182,6 +186,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void pup(PUP::er &p);
 
   void updateBounds(int new_lower_bound, int new_upper_bound);
+  void notifyAllNeighbors(int cascade_length);
 
   /* initial mesh generation*/
   void applyInitialCondition();
@@ -194,7 +199,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   void resetMeshRestructureData();
   void prepareData4Exchange();
-  void processPhase1Msg(int, int, Decision, int, int, int);
+  void processPhase1Msg(int, int, Decision, int, int, int, OctIndex);
 
   void updateDecisionState(int cascade_length, Decision newDecision);
 

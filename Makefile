@@ -6,8 +6,6 @@ CXX=$(CHARMC)
 OPTS ?= -O0 -g
 CXXFLAGS += -DAMR_REVISION=$(REVNUM) $(OPTS)
 
-# LDFLAGS += -memory charmdebug
-
 OBJS = OctIndex.o Advection.o Main.o 
 
 all: advection
@@ -27,11 +25,8 @@ OctIndex.o: OctIndex.C OctIndex.h Advection.decl.h
 debug: all
 	~/programming/ppl/ccs_tools/bin/charmdebug ./advection 3 32 30 9 +p4
 
-# test: all
-# 	./charmrun +p4 ++local ./advection 3 32 5 9 +balancer DistributedLB
-
 test: all
-	./charmrun +p4 ++local ./advection 5 32 60 9 +balancer DistributedLB
+	./charmrun +p4 ++local ./advection 4 32 30 9 +balancer DistributedLB
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp log/*log

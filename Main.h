@@ -3,6 +3,7 @@
 
 #include "Main.decl.h"
 class Main: public CBase_Main {
+
  public:
   int num_chares;
   int iterations;

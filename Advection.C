@@ -1729,9 +1729,23 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
       upper_bound = lower_bound;
   }
 
+  // If the bounds were updated...
   if (olb != lower_bound || oub != upper_bound) {
-    if (lower_bound == upper_bound)
-      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "(converged) ";);
+    // And we converged...
+    if (lower_bound == upper_bound) {
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "bounds converged"
+                 << std::endl;);
+      if (decision == INV) {
+        if (lower_bound < thisIndex.getDepth()) {
+          decision = COARSEN;
+        } else if (lower_bound == thisIndex.getDepth()) {
+          decision = STAY;
+        } else {
+          decision = REFINE;
+        }
+      }
+    }
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
                << "updating bounds from (" << olb << "," << oub
                << ") to (" << lower_bound << "," << upper_bound

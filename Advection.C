@@ -342,7 +342,7 @@ void Advection::prepareData4Exchange(){
 }
 
 void Advection::applyInitialCondition(){
-  VB(logfile << "applying initial condition" << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "applying initial condition" << std::endl;);
   float rcub;
   for(int i=0; i<block_width+2; i++)
     for(int j=0; j<block_height+2; j++)
@@ -351,7 +351,7 @@ void Advection::applyInitialCondition(){
                (y[j] - yctr)*(y[j]-yctr) +
                (z[k] - zctr)*(z[k]-zctr);
         u[index(i, j, k)] = (rcub<=radius*radius) ? 2:1;
-        //VB(logfile << x[i] << " " << y[j] << " " << z[k] << ": " << rcub << " " << radius*radius << " " << u[index(i, j, k)] << std::endl;);
+        //VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << x[i] << " " << y[j] << " " << z[k] << ": " << rcub << " " << radius*radius << " " << u[index(i, j, k)] << std::endl;);
       }
 }
 
@@ -452,7 +452,7 @@ void Advection::initializeRestofTheData(){
   this->isRefined = false;
 
   FOR_EACH_NEIGHBOR
-    VB(logfile << "neighbor in dir " << i << " is " << thisIndex.getNeighbor(i).getIndexString().c_str() << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "neighbor in dir " << i << " is " << thisIndex.getNeighbor(i).getIndexString().c_str() << std::endl;);
     neighbors[thisIndex.getNeighbor(i)] = Neighbor(i);
   END_FOR
 
@@ -652,14 +652,14 @@ int Advection::getGhostCount(int dir) {
 
 void Advection::sendGhost(int dir){
   int count = getGhostCount(dir);
-  VB(logfile << "ghost count in direction " << dir << " = " << count << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "ghost count in direction " << dir << " = " << count << std::endl;);
   float* boundary;
 
   OctIndex QI = thisIndex.getNeighbor(dir);
   map<OctIndex, Neighbor>::iterator I = neighbors.find(QI);
 
   if (I == neighbors.end()) {
-    VB(logfile << "neighbor is an uncle" << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "neighbor is an uncle" << std::endl;);
     // Uncle case, neighbor doesn't exist in this direction (at this level)
     OctIndex receiver = QI.getParent();
 
@@ -696,14 +696,14 @@ void Advection::sendGhost(int dir){
     thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(dir), thisIndex.getOctant(), count, boundary);
   } else if (!I->second.isRefined()) {
     // Friend
-    VB(logfile << "neighbor " << QI.getIndexString() << " is a friend" << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "neighbor " << QI.getIndexString() << " is a friend" << std::endl;);
     boundary = getGhostBuffer(dir);
     thisProxy(QI).receiveGhosts(iterations, getSourceDirection(dir), -1, count, boundary);
   }
 }
 
 void Advection::process(int iteration, int dir, int quadrant, int size, float gh[]){
-  VB(logfile << "received ghost from direction " << dir << ", octant " << quadrant << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received ghost from direction " << dir << ", octant " << quadrant << std::endl;);
   bool fromNephew = (quadrant >= 0);
 
   OctIndex QI = thisIndex.getNeighbor(dir);
@@ -715,7 +715,7 @@ void Advection::process(int iteration, int dir, int quadrant, int size, float gh
 
   int xmin, xmax, ymin, ymax, zmin, zmax;
   populateRanges(dir, quadrant, xmin, xmax, ymin, ymax, zmin, zmax);
-  VB(logfile << "after populate ranges " << " (iteration : " << iteration << ") " << dir << " " << quadrant << " " \
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "after populate ranges " << " (iteration : " << iteration << ") " << dir << " " << quadrant << " " \
              << xmin << " " << xmax << " " << ymin << " " << ymax << " " \
              << zmin << " " << zmax << std::endl;);
   int dx = (xmin == xmax) ? 0 : 1;
@@ -741,12 +741,12 @@ void Advection::process(int iteration, int dir, int quadrant, int size, float gh
   for(int i=0; i<size; ++i, ++iter){
       VB(
         if(y[iter.getY()]==0.46875) 
-            //logfile << std::setw(5) << gh[i] << " ";
-            logfile << "setting " << x[iter.getX()] << ", " << y[iter.getY()] << ", " << z[iter.getZ()] << " = " << gh[i] << std::endl;
+            //logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::setw(5) << gh[i] << " ";
+            logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "setting " << x[iter.getX()] << ", " << y[iter.getY()] << ", " << z[iter.getZ()] << " = " << gh[i] << std::endl;
        ); 
       *iter = gh[i];
   }
-  VB(logfile << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::endl;);
   assert(iter.isDone());
 }
 
@@ -912,8 +912,8 @@ void Advection::compute(){
     sprintf(logfilename, "out/snap_%s_%d.vtk", thisIndex.getIndexString().c_str(), iterations);
     /*logfile.open(logfilename);
     logfile.precision(8);
-    logfile << "Variables=\"X\",\"Y\",\"Z\",\"radius\",\"nodeid\"\n";
-    logfile << "Zone I = 16, J = 16, K = 16, F = POINT\n";
+    logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "Variables=\"X\",\"Y\",\"Z\",\"radius\",\"nodeid\"\n";
+    logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "Zone I = 16, J = 16, K = 16, F = POINT\n";
     printData();
     logfile.close();*/
     int dims[] = {block_height+1, block_width+1, block_depth+1};
@@ -944,10 +944,10 @@ void Advection::compute(){
         for(int j=0; j<=block_height+1; j++){
             for(int i=0; i<=block_width+1; i++){
                 if(y[j]==0.484375)
-                    logfile << std::setw(10) << u[index(i,j,k)] << " ";
+                    logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::setw(10) << u[index(i,j,k)] << " ";
             }
         }
-        logfile << std::endl;
+        logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::endl;
     }
 #endif
   //}
@@ -1001,15 +1001,15 @@ void Advection::compute(){
       u[index(i,j,k)] = 0.5*(u2[index(i,j,k)] + u3[index(i,j,k)]);
   END_FOR
 #if 0
-    logfile << "after compute" << std::endl;
+    logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "after compute" << std::endl;
     for(int k=1; k<=block_depth; k++){
         for(int j=1; j<=block_height; j++){
             for(int i=1; i<=block_width; i++){
                 if(y[j]==0.484375)
-                    logfile << std::setw(10) << u[index(i,j,k)] << " ";
+                    logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::setw(10) << u[index(i,j,k)] << " ";
             }
         }
-        logfile << std::endl;
+        logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << std::endl;
     }
   #endif
 }
@@ -1100,7 +1100,10 @@ void Advection::resetMeshRestructureData(){
 void Advection::makeGranularityDecisionAndCommunicate(){
   if(isLeaf) {//run this on leaf nodes
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
-    VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+               << thisIndex.getIndexString().c_str() << " decision = " << newDecision
+               << " with isMaxRefined " << isMaxRefined
+               << std::endl;);
 
     if (isMaxRefined && newDecision != REFINE)
       updateBounds(lower_bound, thisIndex.getDepth());
@@ -1143,7 +1146,7 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
     return; // Don't communicate the 'default' decision to parent
 
   if(parent != thisIndex){
-    VB(logfile << "sending informParent, decision = " << decision << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending informParent, decision = " << decision << std::endl;);
     thisProxy(parent).informParent(meshGenIterations, thisIndex.getOctant(), decision, cascade_length);
   }
 }
@@ -1156,7 +1159,7 @@ void Advection::notifyAllNeighbors(int cascade_length) {
       Neighbor & N = neighbors[QI];
       if (!N.isRefined()) {
         // isFriend
-        VB(logfile << "sending exchangePhase1Msg(1), decision = " << decision
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending exchangePhase1Msg(1), decision = " << decision
                    << ", bounds = (" << lower_bound << "," << upper_bound << ")"
                    << ", depth = " << thisIndex.getDepth()
                    << ", receiver = " << QI.getIndexString() << std::endl;);
@@ -1172,19 +1175,19 @@ void Advection::notifyAllNeighbors(int cascade_length) {
         // XXX: -2 means "we're your uncle"
         for (std::vector<OctIndex>::iterator I = children.begin(),
              E = children.end(); I != E; ++I){
-        VB(logfile << "sending exchangePhase1Msg(2), decision = " << decision
-                   << ", bounds = (" << lower_bound << "," << upper_bound << ")"
-                   << ", depth = " << thisIndex.getDepth()
-                   << ", receiver = " << I->getIndexString() << std::endl;);
-        VB(logfile.flush(););
-        thisProxy(*I).exchangePhase1Msg(meshGenIterations, getSourceDirection(i),
-                                        -2, decision, cascade_length,
-                                        thisIndex, lower_bound, upper_bound, thisIndex);
+          VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending exchangePhase1Msg(2), decision = " << decision
+                     << ", bounds = (" << lower_bound << "," << upper_bound << ")"
+                     << ", depth = " << thisIndex.getDepth()
+                     << ", receiver = " << I->getIndexString() << std::endl;);
+          VB(logfile.flush(););
+          thisProxy(*I).exchangePhase1Msg(meshGenIterations, getSourceDirection(i),
+                                          -2, decision, cascade_length,
+                                          thisIndex, lower_bound, upper_bound, thisIndex);
         }
       }
     } else {
       // Does not exist, talk to uncle
-      VB(logfile << "sending exchangePhase1Msg(3), decision = " << decision
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending exchangePhase1Msg(3), decision = " << decision
                  << ", bounds = (" << lower_bound << "," << upper_bound << ")"
                  << ", depth = " << thisIndex.getDepth()
                  << ", receiver = " << QI.getParent().getIndexString() << std::endl;);
@@ -1200,7 +1203,7 @@ void Advection::notifyAllNeighbors(int cascade_length) {
 //  a) If the parent is a grandparent and also have children that are leaves
 //  b) when a child sends REFINE/STAY message to the parent
 void Advection::processChildDecision(int childNum, Decision dec, int cascade_length) {
-  VB(logfile << "recvd informParent, childNum " << childNum << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd informParent, childNum " << childNum << std::endl;);
   if(childNum >= 0) child_decision[childNum]=dec;
 
   if(dec==REFINE) child_isRefined[childNum]=true;
@@ -1209,7 +1212,7 @@ void Advection::processChildDecision(int childNum, Decision dec, int cascade_len
     parentHasAlreadyMadeDecision = true;
     FOR_EACH_CHILD
       if(i!=childNum && !child_isRefined[i]){
-        VB(logfile << "sending message to child " << thisIndex.getChild(i).getIndexString().c_str() << ", miterattions " << meshGenIterations << std::endl;);
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending message to child " << thisIndex.getChild(i).getIndexString().c_str() << ", miterattions " << meshGenIterations << std::endl;);
         thisProxy(thisIndex.getChild(i)).recvParentDecision(meshGenIterations, cascade_length);
       }
     END_FOR
@@ -1226,39 +1229,41 @@ void Advection::processParentDecision(int cascade_length) {
 
 void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision, int cascade_length,
                                  int remote_lower_bound, int remote_upper_bound, OctIndex src) {
-  VB(logfile << "isLeaf: " << isLeaf << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "isLeaf: " << isLeaf << std::endl;);
   Decision newDecision = decision;
   OctIndex QI = thisIndex.getNeighbor(dir);
-  VB(logfile << "received exchangePhase1Msg, dir " << dir << ", quadrant " << quadrant << ", idx " << QI.getIndexString() << ", src " << src.getIndexString() << std::endl;);
-  VB(logfile << QI.getIndexString() << " decision: " << remoteDecision
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received exchangePhase1Msg, dir " << dir << ", quadrant " << quadrant << ", idx " << QI.getIndexString() << ", src " << src.getIndexString() << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << QI.getIndexString() << " decision: " << remoteDecision
              << ", bounds = (" << remote_lower_bound << "," << remote_upper_bound << ")"
              << std::endl;);
-  if(!isLeaf)
-    VB(logfile << "only leaves should exchange remesh messages" << std::endl;)
+  if(!isLeaf) {
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "only leaves should exchange remesh messages" << std::endl;)
+  }
   assert(isLeaf && "Only leaves should exchange remesh messages");
 
-  if (quadrant == -2)
-    assert(!neighbors.count(QI) && "Uncle in our neighbor map");
-  else{
+  if (quadrant == -2) {
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+               << "uncle " << src.getIndexString() << " is in our neighbor map" << std::endl;);
+  } else {
     VB(if(neighbors.count(QI)==0){
-      logfile << thisIndex.getIndexString().c_str() << " didn't know that " << QI.getIndexString().c_str() << " existed" << std::endl;
+      logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << thisIndex.getIndexString().c_str() << " didn't know that " << QI.getIndexString().c_str() << " existed" << std::endl;
 
       for(map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
-        logfile << it->first.getIndexString().c_str() << std::endl;
+        logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << it->first.getIndexString().c_str() << std::endl;
     });
     assert(neighbors.count(QI) && "Received message from neighbor we didn't know existed!");
   }
 
   // Ignore decisions sent from our uncle
   if (!neighbors.count(QI)) {
-    VB(logfile << "received message from uncle" << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received message from uncle" << std::endl;);
     OctIndex uncleIndex = QI.getParent();
     if (uncleDecisions.count(uncleIndex)) {
       uncleDecisions[uncleIndex] = max(uncleDecisions[uncleIndex], remoteDecision);
     } else {
       uncleDecisions[uncleIndex] = remoteDecision;
     }
-    VB(logfile << "done processing message: decision = " << decision << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "done processing message: decision = " << decision << std::endl;);
     return;
   }
 
@@ -1290,7 +1295,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
 
 /**** PHASE2 FUNCTIONS ****/
 void Advection::doPhase2(){
-  VB(logfile << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
   if(decision == COARSEN){//send data to the parent
     vector<float> child_u;
     if(inInitialMeshGenerationPhase==false){
@@ -1300,7 +1305,7 @@ void Advection::doPhase2(){
           for(int k=1; k<=block_depth; k+=2)
             child_u[index_c(i/2, j/2, k/2)] = downSample(u, i, j, k);
     }
-    VB(logfile << "coarsening .. sending data to parent " << meshGenIterations << std::endl;);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "coarsening .. sending data to parent " << meshGenIterations << std::endl;);
     thisProxy(parent).recvChildData(meshGenIterations, thisIndex.getOctant(), myt, mydt, meshGenIterations, iterations, child_u, neighbors, uncleDecisions);
     thisProxy[thisIndex].ckDestroy();
     //thisProxy.doneInserting();
@@ -1363,7 +1368,7 @@ void Advection::updateMeshState(){
     // Remove the elements marked, avoid iterator badness
     for (std::vector<OctIndex>::iterator I = ToRemove.begin(),
          E = ToRemove.end(); I != E; ++I) {
-      VB(logfile << "erasing " << I->getIndexString().c_str() << std::endl;);
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "erasing " << I->getIndexString().c_str() << std::endl;);
       assert(neighbors.count(*I));
       neighbors.erase(*I);
     }
@@ -1372,7 +1377,7 @@ void Advection::updateMeshState(){
     isRefined=true;
   }
   else if(isRefined && !isGrandParent() && !parentHasAlreadyMadeDecision){
-    VB(logfile << thisIndex.getIndexString().c_str() << " setting isRefined to false "
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << thisIndex.getIndexString().c_str() << " setting isRefined to false "
           << isRefined << " " << isGrandParent() << " " << parentHasAlreadyMadeDecision << std::endl;);
     isRefined = false;
     //set up the sdag for receving child data
@@ -1393,7 +1398,7 @@ void Advection::recvChildData(int childNum, float myt, float mydt,
                               int meshGenIterations, int iterations, vector<float> child_u, 
                               map<OctIndex, Neighbor> childNeighbors,
                               map<OctIndex, Decision> childUncleDecisions){
-  VB(logfile << "recvd data from child: " << childNum << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd data from child: " << childNum << std::endl;);
   this->myt = myt;
   this->mydt = mydt;
   this->iterations = iterations;
@@ -1406,7 +1411,7 @@ void Advection::recvChildData(int childNum, float myt, float mydt,
 
   // If a leaf is coarsening into us, we should know
   // that we are no longer refined.  Check this now.
-  if(isRefined) VB(logfile << "leaves coarsened into refined node" << std::endl;);
+  if(isRefined) VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "leaves coarsened into refined node" << std::endl;);
   assert(!isRefined && "Leaves coarsened into refined node?");
 
   if(inInitialMeshGenerationPhase) applyInitialCondition();
@@ -1539,8 +1544,8 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
     refined_u.resize(block_width*block_height*block_depth);
     interpolate(u, refined_u, xstart, xend, ystart, yend, zstart, zend);
   }
-  VB(logfile << thisIndex.getIndexString().c_str() << " isRefined = " << isRefined << std::endl; 
-  logfile << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << thisIndex.getIndexString().c_str() << " isRefined = " << isRefined << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
   thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, xmin, ymin, zmin, meshGenIterations, iterations, refined_u, neighbors);
 }
 
@@ -1621,18 +1626,26 @@ Advection::Advection(float dx, float dy, float dz,
           switch (parentNeighbor.getDecision()) {
             //case REFINE: break;
             case STAY: shouldDelete = true; break;
-            case COARSEN: VB(logfile << "this neighbor cannot derefine" << std::endl;); 
-                        CkAbort("this neighbor cannot derefine");
+            case COARSEN:
+              VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                         << "neighbor " << parentIt->first.getIndexString()
+                         << " cannot derefine" << std::endl;);
+              CkAbort("neighbor cannot derefine");
           }
         }
       }
     }
 
     // Advance iterator, removing this quadindex/neighbor pair if requested.
-    if (shouldDelete)
+    if (shouldDelete) {
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "deleting neighbor " << it->first.getIndexString()
+                 << std::endl;);
+
       neighbors.erase(it++);
-    else
+    } else {
       ++it;
+    }
   }
 
   assert(neighbors.size() >= numDims);
@@ -1664,8 +1677,8 @@ void Advection::startLdb(){
   AtSync();
   //ckout << "at sync" << endl;
   //if (isRoot())
-  VB(logfile << "starting ldb" << std::endl;);
-  VB(logfile << "memory usage: " << CmiMemoryUsage() << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "starting ldb" << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "memory usage: " << CmiMemoryUsage() << std::endl;);
   if(isRoot()){
     //LBDatabaseObj()->StartLB();
     ckout << "ldb start time: " << CmiWallTimer() << endl;
@@ -1674,7 +1687,7 @@ void Advection::startLdb(){
 
 void Advection::ResumeFromSync() {
   if(isRoot()) ckout << "ldb end time: " << CmiWallTimer() << endl;
-  VB(logfile << "resuming from load balancing" << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "resuming from load balancing" << std::endl;);
   //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
   if(isLeaf)
     ppc.ckLocalBranch()->incrementWorkUnitCount(iterations);
@@ -1690,7 +1703,7 @@ void Advection::printData() {
   for(int xIndex = 1; xIndex <= block_width; xIndex++){
     for(int yIndex = 1; yIndex <= block_height; yIndex++) {
       for(int zIndex = 1; zIndex <= block_depth; zIndex++) {
-        logfile << x[xIndex] << " " << y[yIndex] << " " << z[zIndex] << " " << u[index(xIndex,yIndex,zIndex)] << " " << cntr++ << std::endl;
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << x[xIndex] << " " << y[yIndex] << " " << z[zIndex] << " " << u[index(xIndex,yIndex,zIndex)] << " " << cntr++ << std::endl;);
       }
     }
   }
@@ -1718,8 +1731,13 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
 
   if (olb != lower_bound || oub != upper_bound) {
     if (lower_bound == upper_bound)
-      VB(logfile << "(converged) ";);
-    VB(logfile << "updating bounds from (" << olb << "," << oub << ") to (" << lower_bound << "," << upper_bound << ") from depth " << thisIndex.getDepth() << std::endl;);
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "(converged) ";);
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+               << "updating bounds from (" << olb << "," << oub
+               << ") to (" << lower_bound << "," << upper_bound
+               << ") from depth " << thisIndex.getDepth()
+               << " with decision " << decision
+               << std::endl;);
     notifyAllNeighbors(-1);
   }
 

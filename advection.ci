@@ -160,7 +160,7 @@ module Advection{
       serial {
         remeshStartTime = CmiWallTimer();
         if(isRoot()) ckout << "doing remeshing now.. iterations = " << iterations << ", meshGenIterations = " << meshGenIterations << endl;
-        logfile << "begin remeshing, miterations " << meshGenIterations << std::endl;
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "begin remeshing, miterations " << meshGenIterations << std::endl;);
         if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) exchangeGhosts();
         else signalExchangeGhostsCompletion();
 
@@ -200,7 +200,7 @@ module Advection{
       //when all the chares have come to a consensus
       //about their granularity decision
       when signalExchangeGhostsCompletion() serial {
-          VB(logfile << "registering qd, isLeaf = " << isLeaf << std::endl;);
+          VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "registering qd, isLeaf = " << isLeaf << std::endl;);
           thisProxy[thisIndex].makeGranularityDecisionAndCommunicate();
           if(isRoot()){
             if(iterations%lb_freq==0 && iterations >= 1)
@@ -219,7 +219,7 @@ module Advection{
       while(!phase1Over){
         serial {
           lastBusyTime = CmiWallTimer();
-          VB(logfile << " in while loop, miterations " << meshGenIterations << std::endl;);
+          VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << " in while loop, miterations " << meshGenIterations << std::endl;);
         }
 
         case {
@@ -228,20 +228,20 @@ module Advection{
                                                     int remote_lower_bound, int remote_upper_bound,
                                                     OctIndex src, bool third_case)
           serial {
-            VB(logfile << "iterations: " << iterations << std::endl;);
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "iterations: " << iterations << std::endl;);
             processPhase1Msg(dir, quad, dec, length, remote_lower_bound, remote_upper_bound, src);
-            VB(logfile << "out of processPhase1msg" << std::endl;);
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "out of processPhase1msg" << std::endl;);
             lastBusyTime = CmiWallTimer();
           }
 
           when recvParentDecision[meshGenIterations](int iterations, int length) serial {
-            VB(logfile << "recvd message from parent" << std::endl;);
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from parent" << std::endl;);
             processParentDecision(length);
             lastBusyTime = CmiWallTimer();
           }
 
           when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) serial {
-            VB(logfile << "recvd message from child " << thisIndex.getChild(cnum).getIndexString() << ", iterations " << meshGenIterations << std::endl;);
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from child " << thisIndex.getChild(cnum).getIndexString() << ", iterations " << meshGenIterations << std::endl;);
             processChildDecision(cnum, dec, length);
             lastBusyTime = CmiWallTimer();
           }
@@ -250,8 +250,8 @@ module Advection{
             lastIdleTime = CmiWallTimer();
             ppc.ckLocalBranch()->recordQdTime(meshGenIterations, lastBusyTime, lastIdleTime);
             if(isRoot()) ckout << "starting phase 2, iterations = " << meshgeniter << ", meshGenIterations = " << meshGenIterations << endl;
-            VB(logfile << "QD detected: phase1 over" << std::endl;
-            logfile << "decision: " << decision << std::endl;);
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "QD detected: phase1 over" << std::endl;
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "decision: " << decision << std::endl;);)
 
             int check = isLeaf ? (lower_bound == upper_bound) : 1;
             CkCallback boundsCb(CkReductionTarget(Main, boundsCheck), mainProxy);
@@ -384,7 +384,7 @@ module Advection{
     entry void wait4ChildData(){
       serial{mem_allocate_all();}
       for(ichild=0; ichild<NUM_CHILDREN; ichild++){
-          serial{VB(logfile << "waiting for child data " << meshGenIterations << std::endl;);}
+          serial{VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "waiting for child data " << meshGenIterations << std::endl;);}
           when recvChildData[meshGenIterations](int iter, int a, float b, float c, int d, int e, 
           std::vector<float> f, std::map<OctIndex, Neighbor> g, std::map<OctIndex, Decision> h) 
           serial{

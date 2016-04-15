@@ -254,8 +254,8 @@ module Advection{
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "decision: " << decision << std::endl;);)
 
             int check = isLeaf ? (lower_bound == upper_bound) : 1;
-            CkCallback boundsCb(CkReductionTarget(Main, boundsCheck), mainProxy);
-            contribute(sizeof(int), &check, CkReduction::logical_and, boundsCb);
+            /* CkCallback boundsCb(CkReductionTarget(Main, boundsCheck), mainProxy); */
+            /* contribute(sizeof(int), &check, CkReduction::logical_and, boundsCb); */
 
             if (isLeaf &&
                 !((decision == COARSEN && lower_bound == thisIndex.getDepth() - 1) ||

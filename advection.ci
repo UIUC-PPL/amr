@@ -165,21 +165,13 @@ module Advection{
         else signalExchangeGhostsCompletion();
 
         lower_bound = max(thisIndex.getDepth()-1, 0);
-        upper_bound = thisIndex.getDepth()+1;
+        upper_bound = min(thisIndex.getDepth()+1, max_depth);
         isMaxRefined = true;
 
         if (isLeaf) {
-          for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
-               iend = neighbors.end(); it != iend; ++it) {
+          for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it) {
             if (it->second.isRefined()) {
               isMaxRefined = false;
-
-              // Adjust state based on the leaf rule:
-              //  -- If all siblings are leaves, start in (-1, 1, Default)
-              //  -- Otherwise, start in (0, 1, STAY)
-              if (it->first.getParent() == thisIndex.getParent()) {
-                updateDecisionState(1, STAY);
-              }
             }
           }
         }
@@ -261,15 +253,15 @@ module Advection{
                 !((decision == COARSEN && lower_bound == thisIndex.getDepth() - 1) ||
                   (decision == STAY    && lower_bound == thisIndex.getDepth()    ) ||
                   (decision == REFINE  && lower_bound == thisIndex.getDepth() + 1))) {
-              CkPrintf("[%s] \e[1;36m incorrect lower bound (lb=%d, depth=%d, dec=%d)\e[m\n",
+              CkPrintf("[%s] \e[1;36m incorrect lower bound (lb=%d, ub=%d, depth=%d, dec=%d)\e[m\n",
                         thisIndex.getIndexString().c_str(),
-                        lower_bound, thisIndex.getDepth(), decision);
+                        lower_bound, upper_bound,
+                        thisIndex.getDepth(), decision);
             }
 
             if (!check) {
               int max_upper_bound = -1, min_lower_bound = max_depth+1;
-              for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
-                   iend = neighbors.end(); it != iend; ++it) {
+              for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it) {
                 max_upper_bound = max(max_upper_bound, it->second.getUpperBound());
                 min_lower_bound = min(min_lower_bound, it->second.getLowerBound());
               }

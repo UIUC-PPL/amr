@@ -401,8 +401,8 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
 {
   __sdag_init();
 
-  lower_bound = thisIndex.getDepth()-1;
-  upper_bound = thisIndex.getDepth()+1;
+  lower_bound = max(thisIndex.getDepth()-1, 0);
+  upper_bound = min(thisIndex.getDepth()+1, max_depth);
   isMaxRefined = false;
 
   thisIndex.getCoordinates(xc, yc, zc);
@@ -1098,7 +1098,7 @@ void Advection::resetMeshRestructureData(){
 }
 
 void Advection::makeGranularityDecisionAndCommunicate(){
-  if(isLeaf) {//run this on leaf nodes
+  if(isLeaf && lower_bound != upper_bound) {//run this on leaf nodes
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
                << thisIndex.getIndexString().c_str() << " decision = " << newDecision
@@ -1157,6 +1157,7 @@ void Advection::notifyAllNeighbors(int cascade_length) {
 
     if (neighbors.count(QI)) {
       Neighbor & N = neighbors[QI];
+
       if (!N.isRefined()) {
         // isFriend
         VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending exchangePhase1Msg(1), decision = " << decision
@@ -1615,6 +1616,7 @@ Advection::Advection(float dx, float dy, float dz,
         shouldDelete = true;
       } else {
         Neighbor parentNeighbor = parentIt->second;
+        // This neighbor may not exist, so it's completely possible that its "parent" isn't refined.
         if (parentNeighbor.isRefined()) {
           switch (parentNeighbor.getDecision(neighborOctIndex.getOctant())) {
             case COARSEN: shouldDelete = true; break;

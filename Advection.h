@@ -1,9 +1,9 @@
 #if !defined(ADVECTION_H)
 #define ADVECTION_H
 
+#include "Constants.h"
+
 #include "Advection.decl.h"
-
-
 
 class Neighbor {
 
@@ -17,10 +17,10 @@ class Neighbor {
 public:
 
   Neighbor() : refined(false), dataSent(false), decision(INV),
-               upper_bound(-1), lower_bound(-1), dir(-1) {}
+               upper_bound(100), lower_bound(-1), dir(-1) {}
 
   Neighbor(int dir) : refined(false), dataSent(false), decision(INV),
-                      upper_bound(-1), lower_bound(-1), dir(dir) {}
+                      upper_bound(100), lower_bound(-1), dir(dir) {}
 
   int getDir() { return dir; }
 
@@ -71,6 +71,7 @@ public:
 
   void pup(PUP::er &p) {
     p|upper_bound;
+    p|lower_bound;
     p|refined;
     p|dataSent;
     p|decision;
@@ -80,6 +81,8 @@ public:
 
   void resetDecision() {
     decision = COARSEN;
+    lower_bound =  -1;
+    upper_bound = 100;
     for (int i = 0; i < NUM_CHILDREN; ++i)
       childDecisions[i] = COARSEN;
   }

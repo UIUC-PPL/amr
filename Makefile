@@ -11,7 +11,7 @@ OBJS = OctIndex.o Advection.o Main.o
 all: advection
 
 advection: $(OBJS)
-	$(CHARMC) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^ -module DistributedLB 
+	$(CHARMC) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci
@@ -26,7 +26,7 @@ debug: all
 	~/programming/ppl/ccs_tools/bin/charmdebug ./advection 3 32 30 9 +p4
 
 test: all
-	./charmrun +p4 ++local ./advection 4 32 30 9 +balancer DistributedLB
+	./charmrun +p4 ++local ./advection 5 32 30 9
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp log/*log

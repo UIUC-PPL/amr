@@ -428,7 +428,6 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
 
 void Advection::initializeRestofTheData(){
   usesAutoMeasure = false;
-  usesAtSync = true;
   remeshStartTime = 0;
   mem_allocate_all();
   VB(logfile.open(string("log/"+thisIndex.getIndexString()+".log").c_str()););

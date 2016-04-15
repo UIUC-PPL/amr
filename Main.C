@@ -34,6 +34,10 @@ float tmax, t, dt, cfl;
 
 float start_time, end_time;
 
+void procInit() {
+  TurnManualLBOn();
+}
+
 Main::Main(CkArgMsg* m){
   ckout<<"Running amr code revision: "<<amrRevision<<endl;
 

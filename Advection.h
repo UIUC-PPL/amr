@@ -44,16 +44,13 @@ public:
     refined = value;
   }
 
-  void setUpperBound(int value) {
-    upper_bound = value;
+  void setBounds(int lower, int upper) {
+    lower_bound = max(lower_bound, lower);
+    upper_bound = min(upper_bound, upper);
   }
 
   int getUpperBound() {
     return upper_bound;
-  }
-
-  void setLowerBound(int value) {
-    lower_bound = value;
   }
 
   int getLowerBound() {

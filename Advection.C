@@ -1283,8 +1283,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
     newDecision = std::max(decision, remoteDecision);
   }
 
-  N.setUpperBound(remote_upper_bound);
-  N.setLowerBound(remote_lower_bound);
+  N.setBounds(remote_lower_bound, remote_upper_bound);
 
   int new_lower_bound = max(lower_bound, remote_lower_bound-1);
   int new_upper_bound = min(upper_bound, remote_upper_bound+1);

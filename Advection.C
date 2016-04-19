@@ -1722,6 +1722,8 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
     VB(logfile << "updating bounds from (" << olb << "," << oub << ") to (" << lower_bound << "," << upper_bound << ") from depth " << thisIndex.getDepth() << std::endl;);
     notifyAllNeighbors(-1);
   }
+
+  assert(lower_bound <= upper_bound && "bounds crossed");
 }
 
 #include "Advection.def.h"

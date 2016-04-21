@@ -1105,7 +1105,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
                << std::endl;);
 
     if (isMaxRefined && newDecision != REFINE)
-      updateBounds(lower_bound, thisIndex.getDepth());
+      updateBounds(lower_bound, thisIndex.getDepth(), decision == newDecision);
 
     updateDecisionState(1, newDecision);
   }
@@ -1123,10 +1123,10 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
 
   switch (newDecision) {
     case STAY:
-      updateBounds(max(lower_bound, thisIndex.getDepth()), upper_bound);
+      updateBounds(max(lower_bound, thisIndex.getDepth()), upper_bound, decision == newDecision);
       break;
     case REFINE:
-      updateBounds(thisIndex.getDepth()+1, thisIndex.getDepth()+1);
+      updateBounds(thisIndex.getDepth()+1, thisIndex.getDepth()+1, decision == newDecision);
       break;
     default:
       break;
@@ -1287,7 +1287,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
 
   int new_lower_bound = max(lower_bound, remote_lower_bound-1);
   int new_upper_bound = min(upper_bound, remote_upper_bound+1);
-  updateBounds(new_lower_bound, new_upper_bound);
+  updateBounds(new_lower_bound, new_upper_bound, decision == newDecision);
 
   updateDecisionState(cascade_length, newDecision);
 }
@@ -1711,7 +1711,7 @@ void Advection::printData() {
   //thisProxy[parent].donePrinting();
 }
 
-void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
+void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool notify_neighbors) {
   int olb = lower_bound, oub = upper_bound;
 
   lower_bound = new_lower_bound;
@@ -1744,6 +1744,8 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
         } else {
           decision = REFINE;
         }
+
+        notify_neighbors = true;
       }
     }
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
@@ -1752,7 +1754,11 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound) {
                << ") from depth " << thisIndex.getDepth()
                << " with decision " << decision
                << std::endl;);
-    notifyAllNeighbors(-1);
+
+    // If the decision changed, we will already notify neighbors after this
+    // function call, so avoid sending multiple messages.
+    if (notify_neighbors)
+      notifyAllNeighbors(-1);
   }
 
   assert(lower_bound <= upper_bound && "bounds crossed");

@@ -185,7 +185,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   
   void pup(PUP::er &p);
 
-  void updateBounds(int new_lower_bound, int new_upper_bound);
+  void updateBounds(int new_lower_bound, int new_upper_bound, bool notify_neighbors = true);
   void notifyAllNeighbors(int cascade_length);
 
   /* initial mesh generation*/

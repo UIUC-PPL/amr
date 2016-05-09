@@ -164,10 +164,6 @@ module Advection{
     entry void doRemeshing() {
       serial {
         remeshStartTime = CmiWallTimer();
-        if(isRoot()) ckout << "doing remeshing now.. iterations = " << iterations << ", meshGenIterations = " << meshGenIterations << endl;
-        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "begin remeshing, miterations " << meshGenIterations << std::endl;);
-        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) exchangeGhosts();
-        else signalExchangeGhostsCompletion();
 
         lower_bound = max(thisIndex.getDepth()-1, 0);
         upper_bound = min(thisIndex.getDepth()+1, max_depth);
@@ -180,6 +176,11 @@ module Advection{
         if (isLeaf)
           for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
             isMaxRefined &= !it->second.isRefined();
+
+        if(isRoot()) ckout << "doing remeshing now.. iterations = " << iterations << ", meshGenIterations = " << meshGenIterations << endl;
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "begin remeshing, miterations " << meshGenIterations << std::endl;);
+        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) exchangeGhosts();
+        else signalExchangeGhostsCompletion();
       }
 
       //Remshing takes place in two phases:

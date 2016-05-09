@@ -244,33 +244,6 @@ module Advection{
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "QD detected: phase1 over" << std::endl;
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "decision: " << decision << std::endl;);)
 
-            int check = isLeaf ? (lower_bound == upper_bound) : 1;
-            /* CkCallback boundsCb(CkReductionTarget(Main, boundsCheck), mainProxy); */
-            /* contribute(sizeof(int), &check, CkReduction::logical_and, boundsCb); */
-
-            if (isLeaf &&
-                !((decision == COARSEN && lower_bound == thisIndex.getDepth() - 1) ||
-                  (decision == STAY    && lower_bound == thisIndex.getDepth()    ) ||
-                  (decision == REFINE  && lower_bound == thisIndex.getDepth() + 1))) {
-              CkPrintf("[%s] \e[1;36m incorrect lower bound (lb=%d, ub=%d, depth=%d, dec=%d)\e[m\n",
-                        thisIndex.getIndexString().c_str(),
-                        lower_bound, upper_bound,
-                        thisIndex.getDepth(), decision);
-            }
-
-            if (!check) {
-              int max_upper_bound = -1, min_lower_bound = max_depth+1;
-              for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it) {
-                max_upper_bound = max(max_upper_bound, it->second.getUpperBound());
-                min_lower_bound = min(min_lower_bound, it->second.getLowerBound());
-              }
-              CkPrintf("[%s] \e[1;36m(lb=%d, ub=%d, mlb=%d, mub=%d, depth=%d, dec=%d, iter=%d)\e[m\n",
-                        thisIndex.getIndexString().c_str(),
-                        lower_bound, upper_bound,
-                        min_lower_bound, max_upper_bound,
-                        thisIndex.getDepth(), decision, meshgeniter);
-            }
-
             doPhase2();
             phase1Over = true;
             //iterate();

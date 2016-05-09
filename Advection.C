@@ -1803,6 +1803,73 @@ void Advection::printData() {
   //thisProxy[parent].donePrinting();
 }
 
+bool decisionReady(Decision decision, int lower_bound, int depth) {
+  return (decision == COARSEN && lower_bound == depth - 1) ||
+         (decision == STAY    && lower_bound == depth    ) ||
+         (decision == REFINE  && lower_bound == depth + 1);
+}
+
+bool Advection::checkNeighborhoodConvergence() {
+  bool tmp, all_converged = true;
+  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); ++it) {
+    Neighbor& N = it->second;
+    if (N.isRefined()) {
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "neighbor " << it->first.getIndexString()
+                 << " is refined -- checking for nephew convergence"
+                 << std::endl;);
+      std::vector<int> children;
+      getChildrenIndices(it->first, getSourceDirection(N.getDir()), children);
+      VB(std::vector<OctIndex> childrenOI;);
+      VB(getChildrenInDir(it->first, getSourceDirection(N.getDir()), childrenOI););
+      for (int i = 0; i < children.size(); ++i) {
+        tmp = N.isConverged(children[i]) && decisionReady(N.getDecision(children[i]),
+                                                          N.getLowerBound(children[i]),
+                                                          it->first.getDepth()+1);
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                   << "checking convergence for nephew #" << children[i]
+                   << " (" << childrenOI[i].getIndexString() << ")"
+                   << ", bounds (" << N.getLowerBound(children[i]) << "," << N.getUpperBound(children[i])
+                   << "), decision " << N.getDecision(children[i]) << ": "
+                   << tmp
+                   << std::endl;);
+        all_converged &= tmp;
+      }
+    } else {
+      tmp = N.isConverged() && decisionReady(N.getDecision(),
+                                             N.getLowerBound(),
+                                             it->first.getDepth());
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "neighbor " << it->first.getIndexString()
+                 << " isn't refined -- checking that decision " << N.getDecision()
+                 << " matches bounds (" << N.getLowerBound() << "," << N.getUpperBound() << "): "
+                 << tmp
+                 << std::endl;);
+      all_converged &= tmp;
+    }
+  }
+
+  for (map<OctIndex, std::pair<int,int> >::iterator it = uncleBounds.begin();
+       it != uncleBounds.end(); ++it) {
+    Decision uncle_decision = uncleDecisions[it->first];
+    int uncle_lower_bound = it->second.first,
+        uncle_upper_bound = it->second.second;
+    tmp = (uncle_lower_bound == uncle_upper_bound) &&
+           decisionReady(uncle_decision,
+                         uncle_lower_bound,
+                         it->first.getDepth());
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+               << "checking that uncle " << it->first.getIndexString()
+               << " decision " << uncle_decision
+               << " matches bounds (" << uncle_lower_bound << "," << uncle_upper_bound << "): "
+               << tmp
+               << std::endl;);
+    all_converged &= tmp;
+  }
+
+  return all_converged;
+}
+
 int Advection::getNeighborhoodMaxUpperBound() {
   int max_upper_bound = -1;
 
@@ -1907,7 +1974,13 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
       notifyAllNeighbors(-1);
   }
 
-  assert(lower_bound <= upper_bound && "bounds crossed");
+  if (lower_bound == upper_bound && checkNeighborhoodConvergence()) {
+    VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+               << "all neighbors have converged"
+               << std::endl;);
+
+    thisProxy[thisIndex].startPhase2(meshGenIterations);
+  }
 }
 
 #include "Advection.def.h"

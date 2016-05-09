@@ -261,6 +261,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   bool isRoot();
 
   int getNeighborhoodMaxUpperBound();
+  bool checkNeighborhoodConvergence();
 
   // AMR3D
   int amr3d_i;

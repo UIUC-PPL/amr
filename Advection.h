@@ -135,6 +135,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
 
   bool parentHasAlreadyMadeDecision;//to be used by a parent
   bool hasReceivedParentDecision;
+  bool hasInformedCouldCoarsenNow;
   char fname[100];
   OctIndex  parent;
   std::map<OctIndex, Neighbor> neighbors;
@@ -143,6 +144,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int xc, yc, zc;
 
   int lower_bound, upper_bound;
+
+  bool couldCoarsenNow[NUM_CHILDREN];
+
+  int numCouldCoarsenNow;
 
   //data
   float imsg;

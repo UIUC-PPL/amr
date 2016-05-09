@@ -139,6 +139,8 @@ module Advection{
                                  int quad, Decision dec, int length, OctIndex qi,
                                  int remote_lower_bound, int remote_upper_bound, OctIndex src,
                                  bool parent_case = false);
+    entry void notifyCouldCoarsenNow(int iteration, OctIndex src);
+    entry void informParentCouldCoarsenNow(int iteration, OctIndex src);
     
     //remeshing phase 2 entry methods
     entry void startPhase2(int);
@@ -170,6 +172,8 @@ module Advection{
         upper_bound = min(thisIndex.getDepth()+1, max_depth);
         isMaxRefined = true;
         computedLocalErrorCondition = false;
+        numCouldCoarsenNow = 0;
+        hasInformedCouldCoarsenNow = false;
 
         if (isLeaf)
           for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
@@ -231,6 +235,41 @@ module Advection{
           when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) serial "informParent" {
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from child " << thisIndex.getChild(cnum).getIndexString() << ", iterations " << meshGenIterations << std::endl;);
             processChildDecision(cnum, dec, length);
+            lastBusyTime = CmiWallTimer();
+          }
+
+          when informParentCouldCoarsenNow[meshGenIterations](int iteration, OctIndex src) serial "informParentCouldCoarsenNow" {
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                       << "received informParentCouldCoarsenNow from " << src.getIndexString()
+                       << ", octant " << src.getOctant()
+                       << std::endl;);
+
+            FOR_EACH_CHILD
+              if(i != src.getOctant()) {
+                VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                           << "sending couldCoarsenNow message to child " << thisIndex.getChild(i).getIndexString().c_str()
+                           << std::endl;);
+                thisProxy(thisIndex.getChild(i)).notifyCouldCoarsenNow(meshGenIterations, src);
+              }
+            END_FOR
+          }
+
+          when notifyCouldCoarsenNow[meshGenIterations](int iteration, OctIndex src) serial "notifyCouldCoarsenNow" {
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                       << "received notifyCouldCoarsenNow message from " << src.getIndexString()
+                       << ", octant " << src.getOctant()
+                       << std::endl;);
+            if (lower_bound != upper_bound) {
+              if (!couldCoarsenNow[src.getOctant()]) {
+                numCouldCoarsenNow++;
+                couldCoarsenNow[src.getOctant()] = true;
+              }
+              if (numCouldCoarsenNow == NUM_CHILDREN-1)
+                updateBounds(lower_bound, upper_bound);
+              VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                         << "notifyCouldCoarsenNow numCouldCoarsenNow: " << numCouldCoarsenNow
+                         << std::endl;);
+            }
             lastBusyTime = CmiWallTimer();
           }
 

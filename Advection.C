@@ -421,6 +421,7 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
   lower_bound = max(thisIndex.getDepth()-1, 0);
   upper_bound = min(thisIndex.getDepth()+1, max_depth);
   isMaxRefined = false;
+  numCouldCoarsenNow = 0;
   computedLocalErrorCondition = false;
 
   thisIndex.getCoordinates(xc, yc, zc);
@@ -465,6 +466,7 @@ void Advection::initializeRestofTheData(){
 
   FOR_EACH_CHILD
     child_isRefined[i] = false;
+    couldCoarsenNow[i] = false;
   END_FOR
   this->isRefined = false;
 
@@ -492,7 +494,9 @@ void Advection::pup(PUP::er &p){
   p|isRefined;
   p|depth;
 
+  PUParray(p, couldCoarsenNow, NUM_CHILDREN);
   PUParray(p, child_isRefined, NUM_CHILDREN);
+  p|numCouldCoarsenNow;
 
   p|ghostReceived;
 
@@ -1119,8 +1123,10 @@ void Advection::resetMeshRestructureData(){
     it->second.resetDecision();
   }
 
-  for (int i = 0; i < NUM_CHILDREN; ++i)
+  for (int i = 0; i < NUM_CHILDREN; ++i) {
     child_decision[i] = INV;
+    couldCoarsenNow[i] = false;
+  }
 }
 
 void Advection::makeGranularityDecisionAndCommunicate(){
@@ -1451,6 +1457,12 @@ void Advection::updateMeshState(){
     return;
   }
 
+  FOR_EACH_CHILD
+    // Actually for each sibling, of which there are as many
+    // as there are children.
+    couldCoarsenNow[i] = false;
+  END_FOR
+
   if(isGrandParent()) {
     FOR_EACH_CHILD
       if(child_decision[i]==INV && child_isRefined[i])//did not receive any message
@@ -1650,6 +1662,7 @@ Advection::Advection(float dx, float dy, float dz,
   this->lower_bound = max(thisIndex.getDepth()-1, 0);
   this->upper_bound = min(thisIndex.getDepth()+1, max_depth);
 
+  this->numCouldCoarsenNow = 0;
   this->computedLocalErrorCondition = false;
 
   this->dx = dx;
@@ -1830,7 +1843,17 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
     int max_upper_bound = getNeighborhoodMaxUpperBound();
 
     if (max_upper_bound <= lower_bound + 1) {
+      // Notify all non-converged siblings that this node cannot be made to stay/refine.
+      if (!hasInformedCouldCoarsenNow && notify_neighbors &&
+          computedLocalErrorCondition && decision == COARSEN) {
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                   << "sending informParentCouldCoarsenNow "
+                   << std::endl;);
+        thisProxy(thisIndex.getParent()).informParentCouldCoarsenNow(meshGenIterations, thisIndex);
+        hasInformedCouldCoarsenNow = true;
+      }
 
+      if (decision != COARSEN || numCouldCoarsenNow == NUM_CHILDREN-1)
         upper_bound = lower_bound;
     } else if (max_upper_bound == upper_bound && computedLocalErrorCondition) {
       upper_bound--;

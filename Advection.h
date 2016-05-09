@@ -138,6 +138,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   OctIndex  parent;
   std::map<OctIndex, Neighbor> neighbors;
   std::map<OctIndex, Decision> uncleDecisions;
+  std::map<OctIndex, std::pair<int,int> > uncleBounds;
   int xc, yc, zc;
 
   int lower_bound, upper_bound;

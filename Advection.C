@@ -486,6 +486,7 @@ void Advection::pup(PUP::er &p){
   p|parent;
   p|neighbors;
   p|uncleDecisions;
+  p|uncleBounds;
 
   p|xc;
   p|yc;
@@ -657,7 +658,10 @@ void Advection::sendGhost(int dir){
   OctIndex QI = thisIndex.getNeighbor(dir);
   map<OctIndex, Neighbor>::iterator I = neighbors.find(QI);
 
-  if (I == neighbors.end()) {
+  // TODO: The depth comparison was added because during development the
+  //       neighbors map had some uncles in it, so the first test wasn't enough.
+  //       That problem may be gone now, so that condition test should be removed.
+  if (I == neighbors.end() || I->first.getDepth() < thisIndex.getDepth()) {
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "neighbor is an uncle" << std::endl;);
     // Uncle case, neighbor doesn't exist in this direction (at this level)
     OctIndex receiver = QI.getParent();
@@ -1089,6 +1093,7 @@ void Advection::resetMeshRestructureData(){
   hasReceivedParentDecision=false;
 
   uncleDecisions.clear();
+  uncleBounds.clear();
 
   for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
        iend = neighbors.end(); it != iend; ++it) {
@@ -1203,6 +1208,12 @@ void Advection::notifyAllNeighbors(int cascade_length) {
       thisProxy(QI.getParent()).exchangePhase1Msg(meshGenIterations, getSourceDirection(i),
                                                   thisIndex.getOctant(), decision, cascade_length,
                                                   thisIndex, lower_bound, upper_bound, thisIndex, true);
+
+      if (uncleDecisions.find(QI.getParent()) == uncleDecisions.end()) {
+        uncleDecisions[QI.getParent()] = COARSEN;
+        uncleBounds[QI.getParent()].first  = -1;
+        uncleBounds[QI.getParent()].second = 100;
+      }
     }
   }
 }
@@ -1239,7 +1250,12 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
                                  int remote_lower_bound, int remote_upper_bound, OctIndex src) {
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "isLeaf: " << isLeaf << std::endl;);
   Decision newDecision = decision;
-  OctIndex QI = thisIndex.getNeighbor(dir);
+  OctIndex QI;
+  if (quadrant == -2) {
+    QI = src;
+  } else {
+    QI = thisIndex.getNeighbor(dir);
+  }
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received exchangePhase1Msg, dir " << dir << ", quadrant " << quadrant << ", idx " << QI.getIndexString() << ", src " << src.getIndexString() << std::endl;);
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << src.getIndexString() << " decision: " << remoteDecision
              << ", bounds = (" << remote_lower_bound << "," << remote_upper_bound << ")"
@@ -1263,41 +1279,50 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
   }
 
   // Ignore decisions sent from our uncle
-  if (!neighbors.count(QI)) {
+  if (quadrant == -2) {
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received message from uncle" << std::endl;);
-    OctIndex uncleIndex = QI.getParent();
-    if (uncleDecisions.count(uncleIndex)) {
+    OctIndex uncleIndex = QI;
+    if (uncleDecisions.find(uncleIndex) != uncleDecisions.end()) {
       uncleDecisions[uncleIndex] = max(uncleDecisions[uncleIndex], remoteDecision);
+      uncleBounds[uncleIndex].first  = max(uncleBounds[uncleIndex].first,  remote_lower_bound);
+      uncleBounds[uncleIndex].second = min(uncleBounds[uncleIndex].second, remote_upper_bound);
     } else {
       uncleDecisions[uncleIndex] = remoteDecision;
+      uncleBounds[uncleIndex].first  = remote_lower_bound;
+      uncleBounds[uncleIndex].second = remote_upper_bound;
     }
+
+    int new_lower_bound = max(lower_bound, remote_lower_bound-1);
+    int new_upper_bound = min(upper_bound, remote_upper_bound+1);
+    updateBounds(new_lower_bound, new_upper_bound);
+
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "done processing message: decision = " << decision << std::endl;);
-    return;
-  }
-
-  Neighbor &N = neighbors[QI];
-
-  if(quadrant == -1)
-    assert(!N.isRefined());
-  else
-    assert(N.isRefined());
-  remoteDecision = N.setDecision(remoteDecision, quadrant);
-
-  if(!N.isRefined()) {
-    if(remoteDecision == REFINE) {
-      newDecision = std::max(STAY, decision);
-    }
   } else {
-    newDecision = std::max(decision, remoteDecision);
+    Neighbor &N = neighbors[QI];
+
+    if(quadrant == -1)
+      assert(!N.isRefined());
+    else
+      assert(N.isRefined());
+
+    remoteDecision = N.setDecision(remoteDecision, quadrant);
+
+    if(!N.isRefined()) {
+      if(remoteDecision == REFINE) {
+        newDecision = std::max(STAY, decision);
+      }
+    } else {
+      newDecision = std::max(decision, remoteDecision);
+    }
+
+    N.setBounds(remote_lower_bound, remote_upper_bound, quadrant);
+
+    int new_lower_bound = max(lower_bound, remote_lower_bound-1);
+    int new_upper_bound = min(upper_bound, remote_upper_bound+1);
+    updateBounds(new_lower_bound, new_upper_bound, decision == newDecision);
+
+    updateDecisionState(cascade_length, newDecision);
   }
-
-  N.setBounds(remote_lower_bound, remote_upper_bound);
-
-  int new_lower_bound = max(lower_bound, remote_lower_bound-1);
-  int new_upper_bound = min(upper_bound, remote_upper_bound+1);
-  updateBounds(new_lower_bound, new_upper_bound, decision == newDecision);
-
-  updateDecisionState(cascade_length, newDecision);
 }
 
 /**** PHASE2 FUNCTIONS ****/

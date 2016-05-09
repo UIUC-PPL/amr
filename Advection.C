@@ -422,6 +422,7 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
   upper_bound = min(thisIndex.getDepth()+1, max_depth);
   isMaxRefined = false;
   numCouldCoarsenNow = 0;
+  numChildrenConverged = 0;
   computedLocalErrorCondition = false;
 
   thisIndex.getCoordinates(xc, yc, zc);
@@ -466,8 +467,10 @@ void Advection::initializeRestofTheData(){
 
   FOR_EACH_CHILD
     child_isRefined[i] = false;
+    childConverged[i]  = false;
     couldCoarsenNow[i] = false;
   END_FOR
+  numChildrenConverged = 0;
   this->isRefined = false;
 
   FOR_EACH_NEIGHBOR
@@ -496,6 +499,8 @@ void Advection::pup(PUP::er &p){
 
   PUParray(p, couldCoarsenNow, NUM_CHILDREN);
   PUParray(p, child_isRefined, NUM_CHILDREN);
+  PUParray(p, childConverged,  NUM_CHILDREN);
+  p|numChildrenConverged;
   p|numCouldCoarsenNow;
 
   p|ghostReceived;
@@ -1125,8 +1130,10 @@ void Advection::resetMeshRestructureData(){
 
   for (int i = 0; i < NUM_CHILDREN; ++i) {
     child_decision[i] = INV;
+    childConverged[i]  = false;
     couldCoarsenNow[i] = false;
   }
+  numChildrenConverged = 0;
 }
 
 void Advection::makeGranularityDecisionAndCommunicate(){
@@ -1458,10 +1465,12 @@ void Advection::updateMeshState(){
   }
 
   FOR_EACH_CHILD
+    childConverged[i]  = false;
     // Actually for each sibling, of which there are as many
     // as there are children.
     couldCoarsenNow[i] = false;
   END_FOR
+  numChildrenConverged = 0;
 
   if(isGrandParent()) {
     FOR_EACH_CHILD
@@ -1664,6 +1673,7 @@ Advection::Advection(float dx, float dy, float dz,
 
   this->numCouldCoarsenNow = 0;
   this->computedLocalErrorCondition = false;
+  this->numChildrenConverged = 0;
 
   this->dx = dx;
   this->dy = dy;
@@ -1869,6 +1879,9 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
       VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
                  << "bounds converged"
                  << std::endl;);
+      if (thisIndex.getNbits() > 3*min_depth)
+        thisProxy(thisIndex.getParent()).notifyParentOfConvergence(meshGenIterations, thisIndex);
+
       if (decision == INV) {
         if (lower_bound < thisIndex.getDepth()) {
           decision = COARSEN;

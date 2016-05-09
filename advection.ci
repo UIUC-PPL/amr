@@ -141,6 +141,7 @@ module Advection{
                                  bool parent_case = false);
     entry void notifyCouldCoarsenNow(int iteration, OctIndex src);
     entry void informParentCouldCoarsenNow(int iteration, OctIndex src);
+    entry void notifyParentOfConvergence(int iteration, OctIndex src);
     
     //remeshing phase 2 entry methods
     entry void startPhase2(int);
@@ -172,6 +173,7 @@ module Advection{
         upper_bound = min(thisIndex.getDepth()+1, max_depth);
         isMaxRefined = true;
         computedLocalErrorCondition = false;
+        numChildrenConverged = 0;
         numCouldCoarsenNow = 0;
         hasInformedCouldCoarsenNow = false;
 
@@ -235,6 +237,31 @@ module Advection{
           when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) serial "informParent" {
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from child " << thisIndex.getChild(cnum).getIndexString() << ", iterations " << meshGenIterations << std::endl;);
             processChildDecision(cnum, dec, length);
+            lastBusyTime = CmiWallTimer();
+          }
+
+          when notifyParentOfConvergence[meshGenIterations](int iterations, OctIndex src) serial "notifyParentOfConvergence" {
+            VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                       << "received notifyParentOfConvergence from child " << src.getIndexString()
+                       << " octant " << src.getOctant()
+                       << std::endl;);
+            if (lower_bound != upper_bound) {
+              if (!childConverged[src.getOctant()]) {
+                numChildrenConverged++;
+                childConverged[src.getOctant()] = true;
+              }
+              if (numChildrenConverged == 8) {
+                lower_bound = thisIndex.getDepth();
+                upper_bound = thisIndex.getDepth();
+                if (thisIndex.getNbits() > 3*min_depth)
+                  thisProxy(thisIndex.getParent()).notifyParentOfConvergence(meshGenIterations, thisIndex);
+                thisProxy[thisIndex].startPhase2(meshGenIterations);
+              }
+              VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                         << "notifyParentOfConvergence count: " << numChildrenConverged
+                         << std::endl;);
+            }
+
             lastBusyTime = CmiWallTimer();
           }
 

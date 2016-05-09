@@ -146,8 +146,10 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int lower_bound, upper_bound;
 
   bool couldCoarsenNow[NUM_CHILDREN];
+  bool childConverged[NUM_CHILDREN];
 
   int numCouldCoarsenNow;
+  int numChildrenConverged;
 
   //data
   float imsg;

@@ -170,13 +170,9 @@ module Advection{
         upper_bound = min(thisIndex.getDepth()+1, max_depth);
         isMaxRefined = true;
 
-        if (isLeaf) {
-          for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it) {
-            if (it->second.isRefined()) {
-              isMaxRefined = false;
-            }
-          }
-        }
+        if (isLeaf)
+          for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
+            isMaxRefined &= !it->second.isRefined();
       }
 
       //Remshing takes place in two phases:

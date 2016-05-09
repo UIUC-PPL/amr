@@ -12,6 +12,7 @@ class Neighbor {
   bool dataSent;
   Decision decision;
   Decision childDecisions[NUM_CHILDREN];
+  int childBounds[2*NUM_CHILDREN];
   int dir;
 
 public:
@@ -32,8 +33,12 @@ public:
     return dataSent;
   }
 
-  bool isConverged() {
-    return lower_bound == upper_bound;
+  bool isConverged(int child = -1) {
+    if (child == -1) {
+      return lower_bound == upper_bound;
+    } else {
+      return childBounds[2*child+0] == childBounds[2*child+1];
+    }
   }
 
   void setDataSent(bool value) {
@@ -44,17 +49,30 @@ public:
     refined = value;
   }
 
-  void setBounds(int lower, int upper) {
-    lower_bound = max(lower_bound, lower);
-    upper_bound = min(upper_bound, upper);
+  void setBounds(int lower, int upper, int child = -1) {
+    if (child == -1) {
+      lower_bound = max(lower_bound, lower);
+      upper_bound = min(upper_bound, upper);
+    } else {
+      childBounds[2*child+0] = max(childBounds[2*child+0], lower);
+      childBounds[2*child+1] = min(childBounds[2*child+1], upper);
+    }
   }
 
-  int getUpperBound() {
-    return upper_bound;
+  int getUpperBound(int child = -1) {
+    if (child == -1) {
+      return upper_bound;
+    } else {
+      return childBounds[2*child+1];
+    }
   }
 
-  int getLowerBound() {
-    return lower_bound;
+  int getLowerBound(int child = -1) {
+    if (child == -1) {
+      return lower_bound;
+    } else {
+      return childBounds[2*child];
+    }
   }
 
   Decision getDecision(int child = -1) {
@@ -77,14 +95,18 @@ public:
     p|decision;
     p|dir;
     PUParray(p, childDecisions, NUM_CHILDREN);
+    PUParray(p, childBounds,  2*NUM_CHILDREN);
   }
 
   void resetDecision() {
     decision = COARSEN;
     lower_bound =  -1;
     upper_bound = 100;
-    for (int i = 0; i < NUM_CHILDREN; ++i)
+    for (int i = 0; i < NUM_CHILDREN; ++i) {
       childDecisions[i] = COARSEN;
+      childBounds[2*i+0] =  -1;
+      childBounds[2*i+1] = 100;
+    }
   }
 };
 

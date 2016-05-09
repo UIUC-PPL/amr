@@ -78,6 +78,23 @@ inline void getChildrenInDir(OctIndex myIndex, int dir, std::vector<OctIndex> &c
   return;
 }
 
+inline void getChildrenIndices(OctIndex myIndex, int dir, std::vector<int> &children) {
+  // Given an index "myIndex", return the children that share the surface
+  // specified by 'dir'.
+  switch (dir) {
+  case LEFT:     populateIndices(LOW,  BOTH, BOTH, children); break;
+  case RIGHT:    populateIndices(HIGH, BOTH, BOTH, children); break;
+  case UP:       populateIndices(BOTH, HIGH, BOTH, children); break;
+  case DOWN:     populateIndices(BOTH, LOW,  BOTH, children); break;
+  case FORWARD:  populateIndices(BOTH, BOTH, HIGH, children); break;
+  case BACKWARD: populateIndices(BOTH, BOTH, LOW,  children); break;
+  }
+
+  assert(children.size() == 4);
+  return;
+}
+
+
 inline void setFirstHalf(int &min, int &max) {
   max /= 2;
 }
@@ -1758,6 +1775,34 @@ void Advection::printData() {
   //thisProxy[parent].donePrinting();
 }
 
+int Advection::getNeighborhoodMaxUpperBound() {
+  int max_upper_bound = -1;
+
+  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin();
+       it != neighbors.end(); ++it) {
+    Neighbor& N = it->second;
+    if (N.isRefined()) {
+      std::vector<int> children;
+      getChildrenIndices(it->first, getSourceDirection(N.getDir()), children);
+      for (int i = 0; i < children.size(); ++i)
+        max_upper_bound = max(max_upper_bound, N.getUpperBound(children[i]));
+    } else {
+      if (it->first.getParent() != thisIndex.getParent())
+        max_upper_bound = max(max_upper_bound, N.getUpperBound());
+    }
+  }
+
+  for (map<OctIndex, std::pair<int,int> >::iterator it = uncleBounds.begin();
+       it != uncleBounds.end(); ++it)
+    max_upper_bound = max(max_upper_bound, it->second.second);
+
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+             << "max_upper_bound " << max_upper_bound
+             << std::endl;);
+
+  return max_upper_bound;
+}
+
 void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool notify_neighbors) {
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
              << "in updateBounds new_lower_bound " << new_lower_bound
@@ -1777,13 +1822,12 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
   // Check if we can converge now by looking at the neighborhood's maximum
   // upper bound.
   if (decision != INV && lower_bound != upper_bound) {
-    int max_upper_bound = -1;
-    for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it)
-      if (thisIndex.getParent() == it->first.getParent())
-        max_upper_bound = max(max_upper_bound, it->second.getUpperBound());
+    int max_upper_bound = getNeighborhoodMaxUpperBound();
 
-    if (max_upper_bound <= lower_bound + 1 && max_upper_bound != -1)
-      upper_bound = lower_bound;
+    if (max_upper_bound <= lower_bound + 1) {
+
+        upper_bound = lower_bound;
+    }
   }
 
   assert(lower_bound <= upper_bound && "bounds crossed");

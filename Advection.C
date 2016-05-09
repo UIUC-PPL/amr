@@ -421,6 +421,7 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
   lower_bound = max(thisIndex.getDepth()-1, 0);
   upper_bound = min(thisIndex.getDepth()+1, max_depth);
   isMaxRefined = false;
+  computedLocalErrorCondition = false;
 
   thisIndex.getCoordinates(xc, yc, zc);
   dx = (xmax - xmin)/float(array_width);
@@ -486,6 +487,7 @@ void Advection::pup(PUP::er &p){
   p|lower_bound;
   p|upper_bound;
   p|isMaxRefined;
+  p|computedLocalErrorCondition;
 
   p|isRefined;
   p|depth;
@@ -1133,6 +1135,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
       updateBounds(lower_bound, thisIndex.getDepth(), decision == newDecision);
 
     updateDecisionState(1, newDecision);
+    computedLocalErrorCondition = true;
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(meshGenIterations,-1, INV, 1);
 }
@@ -1647,6 +1650,8 @@ Advection::Advection(float dx, float dy, float dz,
   this->lower_bound = max(thisIndex.getDepth()-1, 0);
   this->upper_bound = min(thisIndex.getDepth()+1, max_depth);
 
+  this->computedLocalErrorCondition = false;
+
   this->dx = dx;
   this->dy = dy;
   this->dz = dz;
@@ -1827,6 +1832,8 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
     if (max_upper_bound <= lower_bound + 1) {
 
         upper_bound = lower_bound;
+    } else if (max_upper_bound == upper_bound && computedLocalErrorCondition) {
+      upper_bound--;
     }
   }
 

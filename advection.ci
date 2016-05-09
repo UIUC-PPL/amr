@@ -169,6 +169,7 @@ module Advection{
         lower_bound = max(thisIndex.getDepth()-1, 0);
         upper_bound = min(thisIndex.getDepth()+1, max_depth);
         isMaxRefined = true;
+        computedLocalErrorCondition = false;
 
         if (isLeaf)
           for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); ++it)

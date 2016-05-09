@@ -121,6 +121,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   //tree information
   bool isRefined;
   bool isMaxRefined;
+  bool computedLocalErrorCondition;
   int depth;
 
   bool child_isRefined[NUM_CHILDREN];

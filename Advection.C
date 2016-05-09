@@ -717,6 +717,9 @@ void Advection::process(int iteration, int dir, int quadrant, int size, float gh
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "after populate ranges " << " (iteration : " << iteration << ") " << dir << " " << quadrant << " " \
              << xmin << " " << xmax << " " << ymin << " " << ymax << " " \
              << zmin << " " << zmax << std::endl;);
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+             << "imsg " << imsg
+             << std::endl;);
   int dx = (xmin == xmax) ? 0 : 1;
   int dy = (ymin == ymax) ? 0 : 1;
   int dz = (zmin == zmax) ? 0 : 1;
@@ -1100,7 +1103,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
   if(isLeaf && lower_bound != upper_bound) {//run this on leaf nodes
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
-               << thisIndex.getIndexString().c_str() << " decision = " << newDecision
+               << "local error condition decision = " << newDecision
                << " with isMaxRefined " << isMaxRefined
                << std::endl;);
 
@@ -1114,6 +1117,9 @@ void Advection::makeGranularityDecisionAndCommunicate(){
 
 /***** PHASE1 FUNCTIONS****/
 void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+             << "in updateDecisionState newDecision " << newDecision
+             << std::endl;);
   cascade_length++;
 
   assert(isLeaf);
@@ -1190,7 +1196,9 @@ void Advection::notifyAllNeighbors(int cascade_length) {
       VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "sending exchangePhase1Msg(3), decision = " << decision
                  << ", bounds = (" << lower_bound << "," << upper_bound << ")"
                  << ", depth = " << thisIndex.getDepth()
-                 << ", receiver = " << QI.getParent().getIndexString() << std::endl;);
+                 << ", receiver = " << QI.getParent().getIndexString()
+                 << ", QI = " << QI.getIndexString()
+                 << std::endl;);
       VB(logfile.flush(););
       thisProxy(QI.getParent()).exchangePhase1Msg(meshGenIterations, getSourceDirection(i),
                                                   thisIndex.getOctant(), decision, cascade_length,
@@ -1233,7 +1241,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
   Decision newDecision = decision;
   OctIndex QI = thisIndex.getNeighbor(dir);
   VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "received exchangePhase1Msg, dir " << dir << ", quadrant " << quadrant << ", idx " << QI.getIndexString() << ", src " << src.getIndexString() << std::endl;);
-  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << QI.getIndexString() << " decision: " << remoteDecision
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << src.getIndexString() << " decision: " << remoteDecision
              << ", bounds = (" << remote_lower_bound << "," << remote_upper_bound << ")"
              << std::endl;);
   if(!isLeaf) {
@@ -1325,7 +1333,12 @@ void Advection::updateMeshState(){
     for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
          iend = neighbors.end(); it != iend; ++it) {
       Neighbor &N = it->second;
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "in updateMeshState looking at neighbor " << it->first.getIndexString()
+                 << " refined " << N.isRefined(););
       if (!N.isRefined()) {
+        VB(logfile << " decision " << N.getDecision()
+                   << std::endl;);
         switch(N.getDecision()) {
           case REFINE:      N.setRefined(true); break;
           case STAY:        N.setRefined(false); break;
@@ -1334,6 +1347,7 @@ void Advection::updateMeshState(){
         }
       }
       else {
+        VB(logfile << std::endl;);
         // TODO: Only check nephews sharing a surface with us
         // For now, abuse the fact that default is COARSEN
         // and only nephews adjacent to us send messages,
@@ -1353,14 +1367,22 @@ void Advection::updateMeshState(){
     for (int i = 0; i < NUM_NEIGHBORS; ++i) {
       OctIndex QI = thisIndex.getNeighbor(i);
       OctIndex uncleIndex = QI.getParent();
+      VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                 << "potential neighbor " << QI.getIndexString()
+                 << " parent " << uncleIndex.getIndexString(););
       if (uncleDecisions.count(uncleIndex)) {
         assert(!neighbors.count(uncleIndex));
         assert(!neighbors.count(QI));
 
         Decision d = uncleDecisions[uncleIndex];
+        VB(logfile << " in uncleDecisions with decision " << d
+                   << std::endl;);
         if (d == REFINE) {
           neighbors[QI] = Neighbor(i);
         }
+      } else {
+        VB(logfile << " isn't in uncleDecisions"
+                   << std::endl;);
       }
     }
 
@@ -1712,6 +1734,16 @@ void Advection::printData() {
 }
 
 void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool notify_neighbors) {
+  VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+             << "in updateBounds new_lower_bound " << new_lower_bound
+             << " new_upper_bound " << new_upper_bound;);
+  VB(if (new_lower_bound <= new_upper_bound) {
+       logfile << " (ok)" << std::endl;
+     } else {
+       logfile << " (crossed)" << std::endl;
+     });
+  assert(new_lower_bound <= new_upper_bound && "new bounds crossed");
+
   int olb = lower_bound, oub = upper_bound;
 
   lower_bound = new_lower_bound;
@@ -1728,6 +1760,8 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
     if (max_upper_bound <= lower_bound + 1 && max_upper_bound != -1)
       upper_bound = lower_bound;
   }
+
+  assert(lower_bound <= upper_bound && "bounds crossed");
 
   // If the bounds were updated...
   if (olb != lower_bound || oub != upper_bound) {

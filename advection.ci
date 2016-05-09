@@ -218,26 +218,26 @@ module Advection{
                                                     int quad, Decision dec, int length, OctIndex qi,
                                                     int remote_lower_bound, int remote_upper_bound,
                                                     OctIndex src, bool third_case)
-          serial {
+          serial "exchangePhase1Msg" {
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "iterations: " << iterations << std::endl;);
             processPhase1Msg(dir, quad, dec, length, remote_lower_bound, remote_upper_bound, src);
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "out of processPhase1msg" << std::endl;);
             lastBusyTime = CmiWallTimer();
           }
 
-          when recvParentDecision[meshGenIterations](int iterations, int length) serial {
+          when recvParentDecision[meshGenIterations](int iterations, int length) serial "recvParentDecision" {
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from parent" << std::endl;);
             processParentDecision(length);
             lastBusyTime = CmiWallTimer();
           }
 
-          when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) serial {
+          when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) serial "informParent" {
             VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] " << "recvd message from child " << thisIndex.getChild(cnum).getIndexString() << ", iterations " << meshGenIterations << std::endl;);
             processChildDecision(cnum, dec, length);
             lastBusyTime = CmiWallTimer();
           }
 
-          when startPhase2[meshGenIterations](int meshgeniter) serial {
+          when startPhase2[meshGenIterations](int meshgeniter) serial "startPhase2" {
             lastIdleTime = CmiWallTimer();
             ppc.ckLocalBranch()->recordQdTime(meshGenIterations, lastBusyTime, lastIdleTime);
             if(isRoot()) ckout << "starting phase 2, iterations = " << meshgeniter << ", meshGenIterations = " << meshGenIterations << endl;
@@ -279,13 +279,13 @@ module Advection{
         }
       }
 
-      serial {
+      serial "phase1Over" {
         phase1Over=false;
       }
     };
 
     entry void doComputationStep(){
-      serial {
+      serial "doComputationStep" {
         //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
         if(isLeaf)
           ppc.ckLocalBranch()->incrementWorkUnitCount(iterations);
@@ -296,7 +296,7 @@ module Advection{
         if(isLeaf) exchangeGhosts();
         else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
-      when signalExchangeGhostsCompletion() serial {
+      when signalExchangeGhostsCompletion() serial "signalExchangeGhostsCompletion" {
         //only the leaf chares do the computation
         //others just move on to the next iteration
         if(isLeaf) compute();
@@ -305,7 +305,7 @@ module Advection{
     };
 
     entry void iterate(){
-      serial {
+      serial "iterate" {
       //in the initial mesh generation phase
       //the mesh keeps on remeshing itself
       //until it has reached a stable state based
@@ -350,7 +350,7 @@ module Advection{
     entry void donePrinting();
 
     entry void exchangeGhosts(){
-      serial {
+      serial "exchangeGhosts" {
         prepareData4Exchange();
         //send boundaries to neighbors which are 
         //on the same level  as you and to your
@@ -363,7 +363,7 @@ module Advection{
       }
 
       while (imsg < 6) {
-        when receiveGhosts[iterations] (int iter, int dir, int quadrant, int width, float u1[width]) serial {
+        when receiveGhosts[iterations] (int iter, int dir, int quadrant, int width, float u1[width]) serial "receiveGhosts" {
           process(iter, dir, quadrant, width, u1);
           //send interpolated data to nephews
           sendReadyData();

@@ -1920,7 +1920,7 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
     int max_upper_bound = getNeighborhoodMaxUpperBound();
 
     if (max_upper_bound <= lower_bound + 1) {
-      // Notify all non-converged siblings that this node cannot be made to stay/refine.
+      // Notify all siblings that this node cannot be forced to stay/refine by non-siblings.
       if (!hasInformedCouldCoarsenNow && notify_neighbors &&
           computedLocalErrorCondition && decision == COARSEN) {
         VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
@@ -1946,9 +1946,12 @@ void Advection::updateBounds(int new_lower_bound, int new_upper_bound, bool noti
       VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
                  << "bounds converged"
                  << std::endl;);
+      // If we have a parent...
       if (thisIndex.getNbits() > 3*min_depth)
         thisProxy(thisIndex.getParent()).notifyParentOfConvergence(meshGenIterations, thisIndex);
 
+      // If our bounds converged but somehow we still don't have
+      // a decision, infer from the bounds
       if (decision == INV) {
         if (lower_bound < thisIndex.getDepth()) {
           decision = COARSEN;

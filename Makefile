@@ -1,9 +1,10 @@
 
-CHARMHOME ?= ~/programming/ppl/charm/net-darwin-x86_64
+CHARMHOME ?= ~/programming/ppl/charm/netlrts-darwin-x86_64
 CHARMC ?= $(CHARMHOME)/bin/charmc -I.
 CXX=$(CHARMC)
 
-OPTS ?= -O0 -g
+# OPTS ?= -O0 -g
+OPTS ?= -O3
 CXXFLAGS += -DAMR_REVISION=$(REVNUM) $(OPTS)
 
 OBJS = OctIndex.o Advection.o Main.o 
@@ -26,7 +27,7 @@ debug: all
 	~/programming/ppl/ccs_tools/bin/charmdebug ./advection 3 32 30 9 +p4
 
 test: all
-	./charmrun +p4 ++local ./advection 5 32 30 9
+	./charmrun +p8 ++local ./advection 4 8 30 9
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp log/*log

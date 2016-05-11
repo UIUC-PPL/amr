@@ -248,9 +248,11 @@ module Advection{
                 numChildrenConverged++;
                 childConverged[src.getOctant()] = true;
               }
+              // Move on to phase 2 if all children have converged
               if (numChildrenConverged == 8) {
                 lower_bound = thisIndex.getDepth();
                 upper_bound = thisIndex.getDepth();
+                // If we have a parent...
                 if (thisIndex.getNbits() > 3*min_depth)
                   thisProxy(thisIndex.getParent()).notifyParentOfConvergence(meshGenIterations, thisIndex);
                 thisProxy[thisIndex].startPhase2(meshGenIterations);
@@ -289,6 +291,7 @@ module Advection{
                 numCouldCoarsenNow++;
                 couldCoarsenNow[src.getOctant()] = true;
               }
+              // If all my other siblings could converge now, try doing so.
               if (numCouldCoarsenNow == NUM_CHILDREN-1)
                 updateBounds(lower_bound, upper_bound);
               VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
@@ -333,6 +336,10 @@ module Advection{
       when signalExchangeGhostsCompletion() serial "signalExchangeGhostsCompletion" {
         //only the leaf chares do the computation
         //others just move on to the next iteration
+        VB(logfile << "[" << meshGenIterations << ", (" << lower_bound << "," << upper_bound << ")] "
+                   << "signalExchangeGhostsCompletion"
+                   << std::endl;);
+
         if(isLeaf) compute();
         iterate();
       }

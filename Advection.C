@@ -1146,10 +1146,11 @@ void Advection::makeGranularityDecisionAndCommunicate(){
                << " with isMaxRefined " << isMaxRefined
                << std::endl;);
 
+    updateDecisionState(1, newDecision);
+
     if (isMaxRefined && newDecision != REFINE)
       updateBounds(lower_bound, thisIndex.getDepth(), decision == newDecision);
 
-    updateDecisionState(1, newDecision);
     computedLocalErrorCondition = true;
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(meshGenIterations,-1, INV, 1);

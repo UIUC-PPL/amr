@@ -7,9 +7,11 @@ CXX=$(CHARMC)
 OPTS ?= -O3
 CXXFLAGS += -DAMR_REVISION=$(REVNUM) $(OPTS)
 
-OBJS = OctIndex.o Advection.o Main.o 
+OBJS = OctIndex.o Advection.o Main.o circular.o
 
 all: advection
+
+circular.o: circular.C circular.h
 
 advection: $(OBJS)
 	$(CHARMC) $(CXXFLAGS) $(LDFLAGS) -language charm++ -o $@ $^
@@ -19,7 +21,7 @@ advection.ci.stamp: advection.ci
 	$(CHARMC) $<
 	touch $@
 
-Advection.o: Advection.C Advection.h OctIndex.h Main.decl.h Advection.decl.h
+Advection.o: Advection.C Advection.h OctIndex.h Main.decl.h Advection.decl.h circular.h
 Main.o: Main.C Advection.h OctIndex.h Main.decl.h Advection.decl.h
 OctIndex.o: OctIndex.C OctIndex.h Advection.decl.h
 
@@ -27,7 +29,7 @@ debug: all
 	~/programming/ppl/ccs_tools/bin/charmdebug ./advection 3 32 30 9 +p4
 
 test: all
-	./charmrun +p8 ++local ./advection 4 8 30 9
+	./charmrun +p4 ++local ./advection 4 8 30 9
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o advection charmrun advection.ci.stamp log/*log

@@ -53,6 +53,7 @@ mainmodule Main{
     entry void startMeshGeneration();
     entry [reductiontarget] void totalWorkUnits(int total);
     entry [reductiontarget] void boundsCheck(int result);
+    entry [reductiontarget] void logFlushDone();
   };
 
   group [migratable] AdvMap : CkArrayMap {
@@ -159,11 +160,30 @@ module Advection{
      }
     };
     entry void makeGranularityDecisionAndCommunicate();
+
+    entry void hangChecker() serial {
+      ckout << "[" << CkMyPe() << "] Hang detected! Flushing buffers to disk" << endl;
+      thisProxy.flushBuffers();
+    }
+
+    entry void flushBuffers() serial {
+      std::ofstream log;
+      log.open(string("log/"+thisIndex.getIndexString()+".log").c_str());
+      logfile.really_flush(log);
+      log.close();
+
+      CkCallback flushDoneCB(CkReductionTarget(Main, logFlushDone), mainProxy);
+      contribute(flushDoneCB);
+    }
+
     //sdag entry method that specifies the control flow 
     //of the Remeshing phase
     entry void doRemeshing() {
       serial {
         remeshStartTime = CmiWallTimer();
+
+        if(isRoot())
+          CkStartQD(CkCallback(CkIndex_Advection::hangChecker(), thisProxy[thisIndex]));
 
         lower_bound = max(thisIndex.getDepth()-1, 0);
         upper_bound = min(thisIndex.getDepth()+1, max_depth);

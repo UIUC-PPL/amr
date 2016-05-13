@@ -5,6 +5,8 @@
 
 #include "Advection.decl.h"
 
+#include "circular.h"
+
 class Neighbor {
 
   int upper_bound, lower_bound;
@@ -188,7 +190,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   float* getGhostBuffer(int dir);
   int getGhostCount(int dir);
   float lastIdleTimeQD;
-  std::ofstream logfile;
+  RingStream logfile;
 
   bool finishedPhase1;
   int nChildDataRecvd;

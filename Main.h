@@ -15,6 +15,7 @@ class Main: public CBase_Main {
   void startMeshGeneration();
   void totalWorkUnits(int total);
   void boundsCheck(int result);
+  void logFlushDone();
 };
 
 #endif

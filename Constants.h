@@ -6,7 +6,7 @@
 #endif
 #define _QUOTEIT(x) #x
 
-// #define LOGGER
+#define LOGGER
 
 #define INQUOTES(x) _QUOTEIT(x)
 #ifdef LOGGER

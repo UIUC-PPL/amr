@@ -489,6 +489,8 @@ void Advection::pup(PUP::er &p){
   CBase_Advection::pup(p);
   __sdag_pup(p);
 
+  p|logfile;
+
   p|lower_bound;
   p|upper_bound;
   p|isMaxRefined;

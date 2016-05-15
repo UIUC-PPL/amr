@@ -1144,9 +1144,8 @@ void Advection::makeGranularityDecisionAndCommunicate(){
                << " with isMaxRefined " << isMaxRefined
                << std::endl;);
 
-    computedLocalErrorCondition = true;
-
     updateDecisionState(1, newDecision);
+    computedLocalErrorCondition = true;
 
     if (isMaxRefined && newDecision != REFINE)
       updateBounds(lower_bound, thisIndex.getDepth(), decision == newDecision);

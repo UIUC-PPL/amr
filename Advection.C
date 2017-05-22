@@ -497,8 +497,12 @@ void Advection::pup(PUP::er &p){
 
   p|iterations;
   p|meshGenIterations;
-  p|up;
-  p|un;
+  p|up_x;
+  p|un_x;
+  p|up_y;
+  p|un_y;
+  p|up_z;
+  p|un_z;
   p|myt;
   p|mydt;
 
@@ -944,52 +948,29 @@ void Advection::compute(){
   memcpy(u2, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   memcpy(u3, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   FOR_EACH_ZONE
-      up = (u[index(i+1,j,k)] - u[index(i,j,k)])/dx;
-      un = (u[index(i,j,k)]-u[index(i-1,j,k)])/dx;
+      up_x = (u[index(i+1,j,k)] - u[index(i,j,k)])/dx;
+      un_x = (u[index(i,j,k)]-u[index(i-1,j,k)])/dx;
+      up_y = (u[index(i,j+1,k)] - u[index(i,j,k)])/dy;
+      un_y = (u[index(i,j,k)] - u[index(i,j-1,k)])/dy;
+      up_z = (u[index(i,j,k+1)] - u[index(i,j,k)])/dz;
+      un_z = (u[index(i,j,k)] - u[index(i,j,k-1)])/dz;
 
-      u2[index(i,j,k)] = u[index(i,j,k)] - dt* (apx*un + anx*up);
-  END_FOR
-
-  FOR_EACH_ZONE
-      up = (u[index(i,j+1,k)] - u[index(i,j,k)])/dy;
-      un = (u[index(i,j,k)] - u[index(i,j-1,k)])/dy;
-
-      u2[index(i,j,k)] = u2[index(i,j,k)] - dt*(apy*un + any*up);
-  END_FOR
-
-  FOR_EACH_ZONE
-      up = (u[index(i,j,k+1)] - u[index(i,j,k)])/dz;
-      un = (u[index(i,j,k)] - u[index(i,j,k-1)])/dz;
-
-      u2[index(i,j,k)] = u2[index(i,j,k)] - dt*(apz*un + anz*up);
+      u2[index(i,j,k)] = u[index(i,j,k)] - dt* (apx*un_x + anx*up_x) - dt*(apy*un_y + any*up_y) - dt*(apz*un_z + anz*up_z);
   END_FOR
 
   // =========================================
   FOR_EACH_ZONE
-      up = (u2[index(i+1,j,k)] - u2[index(i,j,k)])/dx;
-      un = (u2[index(i,j,k)] - u2[index(i-1,j,k)])/dx;
+      up_x = (u2[index(i+1,j,k)] - u2[index(i,j,k)])/dx;
+      un_x = (u2[index(i,j,k)] - u2[index(i-1,j,k)])/dx;
+      up_y = (u2[index(i,j+1,k)] - u2[index(i,j,k)])/dy;
+      un_y = (u2[index(i,j,k)] - u2[index(i,j-1,k)])/dy;
+      up_z = (u2[index(i,j,k+1)] - u2[index(i,j,k)])/dz;
+      un_z = (u2[index(i,j,k)] - u2[index(i,j,k-1)])/dz;
 
-      u3[index(i,j,k)] = u2[index(i,j,k)] - dt* (apx*un + anx*up);
-  END_FOR
-
-  FOR_EACH_ZONE
-      up = (u2[index(i,j+1,k)] - u2[index(i,j,k)])/dy;
-      un = (u2[index(i,j,k)] - u2[index(i,j-1,k)])/dy;
-
-      u3[index(i,j,k)] = u3[index(i,j,k)] - dt*(apy*un + any*up);
-  END_FOR
-
-  FOR_EACH_ZONE
-      up = (u2[index(i,j,k+1)] - u2[index(i,j,k)])/dz;
-      un = (u2[index(i,j,k)] - u2[index(i,j,k-1)])/dz;
-
-      u3[index(i,j,k)] = u3[index(i,j,k)] - dt*(apz*un + anz*up);
-  END_FOR
-
-  // =========================================
-  FOR_EACH_ZONE
+      u3[index(i,j,k)] = u2[index(i,j,k)] - dt* (apx*un_x + anx*up_x) - dt*(apy*un_y + any*up_y) - dt*(apz*un_z + anz*up_z);
       u[index(i,j,k)] = 0.5*(u2[index(i,j,k)] + u3[index(i,j,k)]);
   END_FOR
+
 #if 0
     logfile << "after compute" << std::endl;
     for(int k=1; k<=block_depth; k++){

@@ -34,6 +34,17 @@ extern int max_iterations, refine_frequency, lb_freq;
 float refine_filter = 0.01;
 float refine_cutoff=0.2, derefine_cutoff=0.05;
 
+#ifdef USE_GPU
+extern void createStream(cudaStream_t*);
+extern void destroyStream(cudaStream_t);
+extern void allocateHostMemory(void**, size_t);
+extern void freeHostMemory(void*);
+extern void allocateDeviceMemory(void**, size_t);
+extern void freeDeviceMemory(void*);
+extern float invokeDecisionKernel(cudaStream_t, float*, float*, float*, float*, float*, float*, float, float, float, float, int, void*);
+extern void invokeComputeKernel(cudaStream_t, float*, float*, float*, float*, float, float, float, float, float, float, float, float, float, float, int, void*);
+#endif
+
 CProxy_AdvectionGroup ppc;
 
 enum BitsToUse { LOW, HIGH, BOTH };
@@ -202,6 +213,19 @@ inline bool getOctantRange(int octant,
 AdvectionGroup::AdvectionGroup()
   :workUnitCount(0)
 {
+#ifdef TIMER
+  compute_time_sum = 0.0;
+  compute_time_cnt = 0;
+  decision_time_sum = 0.0;
+  decision_time_cnt = 0;
+#endif
+
+#ifdef USE_GPU
+  size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
+  allocateDeviceMemory((void**)&d_delu, delu_size);
+  allocateDeviceMemory((void**)&d_delua, delu_size);
+#endif
+
   delu = new float***[numDims];
   delua = new float***[numDims];
 
@@ -220,6 +244,12 @@ AdvectionGroup::AdvectionGroup()
 }
 
 AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
+#ifdef USE_GPU
+  size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
+  allocateDeviceMemory((void**)&d_delu, delu_size);
+  allocateDeviceMemory((void**)&d_delua, delu_size);
+#endif
+
   delu = new float***[numDims];
   delua = new float***[numDims];
 
@@ -235,6 +265,13 @@ AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
       }
     }
   }
+}
+
+AdvectionGroup::~AdvectionGroup() {
+#ifdef USE_GPU
+  freeDeviceMemory(d_delu);
+  freeDeviceMemory(d_delua);
+#endif
 }
 
 void AdvectionGroup::incrementWorkUnitCount(int iterations) {
@@ -299,6 +336,12 @@ void AdvectionGroup::printLogs(){
       ckout << it->first << "," << int(avgLoad[it->first]*100)/100. << "," << minLoad[it->first] << "," << maxLoad[it->first] << " ";
     }
     ckout << endl;
+
+#ifdef TIMER
+    ckout << "Compute function average time: " << compute_time_sum/compute_time_cnt << endl;
+    ckout << "Refinement decision average time: " << decision_time_sum/decision_time_cnt << endl;
+#endif
+
     CkExit();
 }
 
@@ -357,10 +400,21 @@ void Advection::mem_allocate(float* &p, int size){
   p = new float[size];
 }
 
+#ifdef USE_GPU
+extern void mem_allocate_host(void** ptr, size_t size);
+extern void mem_deallocate_host(void* ptr);
+#endif
+
 void Advection::mem_allocate_all(){
+#ifdef USE_GPU
+  mem_allocate_host((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  mem_allocate_host((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  mem_allocate_host((void**)&u3, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+#else
   mem_allocate(u, (block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate(u2, (block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate(u3, (block_width+2)*(block_height+2)*(block_depth+2));
+#endif
 
   mem_allocate(x, block_width+2);
   mem_allocate(y, block_height+2);
@@ -377,9 +431,15 @@ void Advection::mem_allocate_all(){
 }
 
 void Advection::mem_deallocate_all(){
+#ifdef USE_GPU
+  mem_deallocate_host(u);
+  mem_deallocate_host(u2);
+  mem_deallocate_host(u3);
+#else
   delete [] u;
   delete [] u2;
   delete [] u3;
+#endif
 
   delete [] x;
   delete [] y;
@@ -418,6 +478,16 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
   iterations=0;
   meshGenIterations=0;
   initializeRestofTheData();
+
+#ifdef USE_GPU
+  allocateDeviceMemory((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_error, sizeof(float));
+  allocateHostMemory((void**)&h_error, sizeof(float));
+  createStream(&computeStream);
+  createStream(&decisionStream);
+#endif
 }
 
 void Advection::initializeRestofTheData(){
@@ -527,7 +597,11 @@ void Advection::pup(PUP::er &p){
 
 Advection::~Advection(){
   if (isLeaf){
+#ifdef USE_GPU
+    mem_deallocate_host(u);
+#else
     delete [] u;
+#endif
     delete [] u2;
     delete [] u3;
 
@@ -541,6 +615,16 @@ Advection::~Advection(){
     delete [] forward_surface;
     delete [] backward_surface;
   }
+
+#ifdef USE_GPU
+  freeDeviceMemory(d_u);
+  freeDeviceMemory(d_u2);
+  freeDeviceMemory(d_u3);
+  freeDeviceMemory(d_error);
+  freeHostMemory(h_error);
+  destroyStream(computeStream);
+  destroyStream(decisionStream);
+#endif
 }
 
 inline float downSample(float* u, int x, int y, int z) {
@@ -899,6 +983,18 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
   thisProxy(QI).receiveGhosts(iterations, uncledir, -2, count, boundary);
 }
 
+void Advection::computeDone() {
+#if defined(USE_GPU) && defined(USE_HAPI)
+#ifdef TIMER
+  double time_dur = CkWallTimer() - compute_start_time;
+  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
+  ppcGrp->addComputeTime(time_dur);
+#endif // TIMER
+
+  iterate();
+#endif
+}
+
 void Advection::compute(){
   //if(iterations==1){
 #ifdef LOGGER
@@ -945,6 +1041,13 @@ void Advection::compute(){
     }*/
 #endif
   //}
+
+#ifdef TIMER
+  compute_start_time = CkWallTimer();
+#endif
+
+#ifndef USE_GPU
+  /********** CPU CODE **********/
   memcpy(u2, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   memcpy(u3, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   FOR_EACH_ZONE
@@ -970,6 +1073,24 @@ void Advection::compute(){
       u3[index(i,j,k)] = u2[index(i,j,k)] - dt* (apx*un_x + anx*up_x) - dt*(apy*un_y + any*up_y) - dt*(apz*un_z + anz*up_z);
       u[index(i,j,k)] = 0.5*(u2[index(i,j,k)] + u3[index(i,j,k)]);
   END_FOR
+#else
+  /********** GPU CODE **********/
+#ifndef USE_HAPI
+  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_width, NULL);
+#else
+  // create callback
+  CkArrayIndexOctIndex myIndex = CkArrayIndexOctIndex(thisIndex);
+  CkCallback *cb = new CkCallback(CkIndex_Advection::computeDone(), myIndex, thisProxy);
+
+  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_width, cb);
+#endif // USE_HAPI
+#endif // USE_GPU
+
+#if defined(TIMER) && !defined(USE_HAPI)
+  double compute_time = CkWallTimer() - compute_start_time;
+  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
+  ppcGrp->addComputeTime(compute_time);
+#endif
 
 #if 0
     logfile << "after compute" << std::endl;
@@ -983,6 +1104,38 @@ void Advection::compute(){
         logfile << std::endl;
     }
   #endif
+
+#ifndef USE_HAPI
+  iterate();
+#endif
+}
+
+void Advection::gotErrorFromGPU() {
+#if defined(USE_GPU) && defined(USE_HAPI)
+  float error = sqrt(*h_error);
+  //CkPrintf("error_gpu: %f\n", error);
+
+  Decision newDecision;
+  if (error < derefine_cutoff && thisIndex.getDepth() > min_depth) {
+    newDecision = COARSEN;
+  }
+  else if (error < refine_cutoff && thisIndex.getDepth() < max_depth) {
+    newDecision = REFINE;
+  }
+  else {
+    newDecision = STAY;
+  }
+
+#ifdef TIMER
+  double decision_time = CkWallTimer() - decision_start_time;
+  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
+  ppcGrp->addDecisionTime(decision_time);
+#endif
+
+  newDecision = (decision != REFINE) ? max(decision, newDecision) : decision;
+  VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
+  updateDecisionState(1, newDecision);
+#endif
 }
 
 Decision Advection::getGranularityDecision(){
@@ -993,6 +1146,12 @@ Decision Advection::getGranularityDecision(){
 
   AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
 
+#ifdef TIMER
+  decision_start_time = CkWallTimer();
+#endif
+
+#ifndef USE_GPU
+  /********** CPU CODE **********/
   for(int i=1; i <= block_width; i++){
     for(int j=1; j<=block_height; j++){
       for(int k=1; k<=block_depth; k++){
@@ -1048,10 +1207,44 @@ Decision Advection::getGranularityDecision(){
       }
     }
   }
+
+#ifdef TIMER
+  double decision_time = CkWallTimer() - decision_start_time;
+  ppcGrp->addDecisionTime(decision_time);
+#endif
+
   error = sqrt(error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;  
   else return STAY;
+#else
+  /********** GPU CODE **********/
+#ifndef USE_HAPI
+  // execute GPU kernel
+  float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
+  error = sqrt(error_gpu);
+
+#ifdef TIMER
+  double decision_time = CkWallTimer() - decision_start_time;
+  ppcGrp->addDecisionTime(decision_time);
+#endif
+
+  error = sqrt(error);
+  if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
+  else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
+  else return STAY;
+#else // USE_HAPI
+  // create callback
+  CkArrayIndexOctIndex myIndex = CkArrayIndexOctIndex(thisIndex);
+  CkCallback *cb = new CkCallback(CkIndex_Advection::gotErrorFromGPU(), myIndex, thisProxy);
+
+  // offload
+  invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, cb);
+
+  return STAY; // return dummy value
+
+#endif // USE_HAPI
+#endif // USE_GPU
 }
 
 void Advection::resetMeshRestructureData(){
@@ -1072,9 +1265,14 @@ void Advection::resetMeshRestructureData(){
 
 void Advection::makeGranularityDecisionAndCommunicate(){
   if(isLeaf) {//run this on leaf nodes
+#ifndef USE_HAPI
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
     updateDecisionState(1, newDecision);
+#else
+    // With HAPI the decision is made asynchronously, so we can't decide yet
+    getGranularityDecision();
+#endif
   }
   else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(meshGenIterations,-1, INV, 1);
 }
@@ -1496,6 +1694,16 @@ Advection::Advection(float dx, float dy, float dz,
 {
   __sdag_init();
 
+#ifdef USE_GPU
+  allocateDeviceMemory((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  allocateDeviceMemory((void**)&d_error, sizeof(float));
+  allocateHostMemory((void**)&h_error, sizeof(float));
+  createStream(&computeStream);
+  createStream(&decisionStream);
+#endif
+
   this->dx = dx;
   this->dy = dy;
   this->dz = dz;
@@ -1572,6 +1780,8 @@ Advection::Advection(float dx, float dy, float dz,
 }
 
 void Advection::startLdb(){
+#ifndef USE_HAPI
+  // Turn load balancing off with HAPI, needs more testing
   UserSetLBLoad();
   /*if(isRoot()){ 
     ckout << "at sync" << endl;
@@ -1587,6 +1797,7 @@ void Advection::startLdb(){
     //LBDatabaseObj()->StartLB();
     ckout << "ldb start time: " << CmiWallTimer() << endl;
   }
+#endif
 }
 
 void Advection::ResumeFromSync() {

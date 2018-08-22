@@ -3,7 +3,10 @@
 
 #include "Advection.decl.h"
 
-
+#ifdef USE_GPU
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
 class Neighbor {
 
@@ -105,6 +108,17 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   float *y;
   float *z;
 
+#ifdef USE_GPU
+  float* d_u;
+  float* d_u2;
+  float* d_u3;
+  float* d_error;
+  float* h_error;
+
+  cudaStream_t computeStream;
+  cudaStream_t decisionStream;
+#endif
+
   float *left_surface;
   float *right_surface;
   float *top_surface;
@@ -138,6 +152,11 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int nChildDataRecvd;
   bool phase1Over;
 
+#ifdef TIMER
+  double compute_start_time;
+  double decision_start_time;
+#endif
+
   ~Advection();
 
   /* Constructors */
@@ -164,10 +183,12 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void applyInitialCondition();
   void process(int, int, int, int, float*);
   void compute();
+  void computeDone(); // GPU - HAPI
 
   /*Phase1 Entry Methods*/
   void makeGranularityDecisionAndCommunicate();
   Decision getGranularityDecision();
+  void gotErrorFromGPU(); // GPU - HAPI
 
   void resetMeshRestructureData();
   void prepareData4Exchange();
@@ -215,12 +236,25 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   std::map<int, int> minLoad;
   std::map<int, int> maxLoad;
   std::map<int, float> avgLoad;
+#ifdef TIMER
+  double compute_time_sum;
+  int compute_time_cnt;
+  double decision_time_sum;
+  int decision_time_cnt;
+#endif
+
  public:
   float ****delu, ****delua;
   float delu2[numDims2], delu3[numDims2], delu4[numDims2];
+#ifdef USE_GPU
+  float* d_delu;
+  float* d_delua;
+#endif
+
   AdvectionGroup_SDAG_CODE
   AdvectionGroup();
   AdvectionGroup(CkMigrateMessage *m);
+  ~AdvectionGroup();
   void pup(PUP::er &p){}
   void incrementWorkUnitCount(int);
   void recordQdTime(int iter, float a, float b){
@@ -243,6 +277,17 @@ class AdvectionGroup : public CBase_AdvectionGroup {
 
   void reduceWorkUnits();
   void meshGenerationPhaseIsOver();
+
+#ifdef TIMER
+  void addComputeTime(double time) {
+    compute_time_sum += time;
+    compute_time_cnt++;
+  }
+  void addDecisionTime(double time) {
+    decision_time_sum += time;
+    decision_time_cnt++;
+  }
+#endif
 };
 
 extern CProxy_AdvectionGroup ppc;

@@ -178,10 +178,13 @@ module Advection{
           VB(logfile << "registering qd, isLeaf = " << isLeaf << std::endl;);
           thisProxy[thisIndex].makeGranularityDecisionAndCommunicate();
           if(isRoot()){
+            /*
             if(iterations%lb_freq==0 && iterations >= 1)
               CkStartQD(CkCallback(CkIndex_Advection::startLdb(), thisProxy));
             else
               CkStartQD(CkCallback(CkIndex_Advection::phase1Finish(), thisProxy[thisIndex]));
+            */
+            CkStartQD(CkCallback(CkIndex_Advection::phase1Finish(), thisProxy[thisIndex]));
           }
       }
       //in phase 2, the  blocks which need to be

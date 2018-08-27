@@ -11,7 +11,7 @@ CXXFLAGS += $(DEFINE) -DAMR_REVISION=$(REVNUM) $(OPTS)
 CUDATOOLKIT_HOME ?= /usr/local/cuda
 NVCC ?= $(CUDATOOLKIT_HOME)/bin/nvcc
 NVCC_FLAGS = -c --std=c++11 -O3
-NVCC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/src/arch/cuda/hybridAPI -I./lib/cub-1.6.4
+NVCC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/src/arch/cuda/hybridAPI -I./lib/cub
 CUDA_LD_LIBS = -L$(CUDATOOLKIT_HOME)/lib64 -lcudart
 
 # Object files

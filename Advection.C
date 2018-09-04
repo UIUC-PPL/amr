@@ -35,12 +35,13 @@ float refine_filter = 0.01;
 float refine_cutoff=0.2, derefine_cutoff=0.05;
 
 #ifdef USE_GPU
-extern void createStream(cudaStream_t*);
-extern void destroyStream(cudaStream_t);
-extern void allocateHostMemory(void**, size_t);
-extern void freeHostMemory(void*);
-extern void allocateDeviceMemory(void**, size_t);
-extern void freeDeviceMemory(void*);
+extern void mem_allocate_host(void** ptr, size_t size);
+extern void mem_deallocate_host(void* ptr);
+extern void mem_allocate_device(void** ptr, size_t size);
+extern void mem_deallocate_device(void* ptr);
+extern void stream_create(cudaStream_t* stream_ptr);
+extern void stream_destroy(cudaStream_t stream);
+
 extern float invokeDecisionKernel(cudaStream_t, float*, float*, float*, float*, float*, float*, float, float, float, float, int, void*);
 extern void invokeComputeKernel(cudaStream_t, float*, float*, float*, float*, float, float, float, float, float, float, float, float, float, float, int, void*);
 #endif
@@ -222,8 +223,8 @@ AdvectionGroup::AdvectionGroup()
 
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
-  allocateDeviceMemory((void**)&d_delu, delu_size);
-  allocateDeviceMemory((void**)&d_delua, delu_size);
+  mem_allocate_device((void**)&d_delu, delu_size);
+  mem_allocate_device((void**)&d_delua, delu_size);
 #endif
 
   delu = new float***[numDims];
@@ -246,8 +247,8 @@ AdvectionGroup::AdvectionGroup()
 AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
-  allocateDeviceMemory((void**)&d_delu, delu_size);
-  allocateDeviceMemory((void**)&d_delua, delu_size);
+  mem_allocate_device((void**)&d_delu, delu_size);
+  mem_allocate_device((void**)&d_delua, delu_size);
 #endif
 
   delu = new float***[numDims];
@@ -269,8 +270,8 @@ AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
 
 AdvectionGroup::~AdvectionGroup() {
 #ifdef USE_GPU
-  freeDeviceMemory(d_delu);
-  freeDeviceMemory(d_delua);
+  mem_deallocate_device(d_delu);
+  mem_deallocate_device(d_delua);
 #endif
 }
 
@@ -400,16 +401,16 @@ void Advection::mem_allocate(float* &p, int size){
   p = new float[size];
 }
 
-#ifdef USE_GPU
-extern void mem_allocate_host(void** ptr, size_t size);
-extern void mem_deallocate_host(void* ptr);
-#endif
-
 void Advection::mem_allocate_all(){
 #ifdef USE_GPU
   mem_allocate_host((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
   mem_allocate_host((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
   mem_allocate_host((void**)&u3, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  mem_allocate_host((void**)&h_error, sizeof(float));
+  mem_allocate_device((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  mem_allocate_device((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  mem_allocate_device((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  mem_allocate_device((void**)&d_error, sizeof(float));
 #else
   mem_allocate(u, (block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate(u2, (block_width+2)*(block_height+2)*(block_depth+2));
@@ -435,6 +436,11 @@ void Advection::mem_deallocate_all(){
   mem_deallocate_host(u);
   mem_deallocate_host(u2);
   mem_deallocate_host(u3);
+  mem_deallocate_host(h_error);
+  mem_deallocate_device(d_u);
+  mem_deallocate_device(d_u2);
+  mem_deallocate_device(d_u3);
+  mem_deallocate_device(d_error);
 #else
   delete [] u;
   delete [] u2;
@@ -444,14 +450,13 @@ void Advection::mem_deallocate_all(){
   delete [] x;
   delete [] y;
   delete [] z;
-  
+
   delete [] left_surface;
   delete [] right_surface;
   delete [] top_surface;
   delete [] bottom_surface;
   delete [] forward_surface;
   delete [] backward_surface;
-
 }
 
 Advection::Advection(float xmin, float xmax, float ymin, float ymax,
@@ -477,24 +482,23 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
 
   iterations=0;
   meshGenIterations=0;
-  initializeRestofTheData();
+
+  // Allocate all necessary buffers
+  mem_allocate_all();
 
 #ifdef USE_GPU
-  allocateDeviceMemory((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_error, sizeof(float));
-  allocateHostMemory((void**)&h_error, sizeof(float));
-  createStream(&computeStream);
-  createStream(&decisionStream);
+  // Create CUDA streams for GPU execution
+  stream_create(&computeStream);
+  stream_create(&decisionStream);
 #endif
+
+  initializeRestofTheData();
 }
 
 void Advection::initializeRestofTheData(){
   usesAutoMeasure = false;
   usesAtSync = true;
   remeshStartTime = 0;
-  mem_allocate_all();
   VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str()););
   if(inInitialMeshGenerationPhase){
     for(int i=0; i<block_width+2; i++)
@@ -556,7 +560,7 @@ void Advection::pup(PUP::er &p){
   p|phase1Over;
 
   if(p.isUnpacking()){
-    mem_allocate_all();
+    mem_allocate_all(); // Needed as there is no migration constructor
     //resetMeshRestructureData();
   }
 
@@ -596,34 +600,13 @@ void Advection::pup(PUP::er &p){
 }
 
 Advection::~Advection(){
-  if (isLeaf){
-#ifdef USE_GPU
-    mem_deallocate_host(u);
-#else
-    delete [] u;
-#endif
-    delete [] u2;
-    delete [] u3;
-
-    delete [] x;
-    delete [] y;
-    delete [] z;
-    delete [] left_surface;
-    delete [] right_surface;
-    delete [] top_surface;
-    delete [] bottom_surface;
-    delete [] forward_surface;
-    delete [] backward_surface;
+  if (isLeaf) {
+    mem_deallocate_all(); // FIXME: Shouldn't this be called for ALL chares?
   }
 
 #ifdef USE_GPU
-  freeDeviceMemory(d_u);
-  freeDeviceMemory(d_u2);
-  freeDeviceMemory(d_u3);
-  freeDeviceMemory(d_error);
-  freeHostMemory(h_error);
-  destroyStream(computeStream);
-  destroyStream(decisionStream);
+  stream_destroy(computeStream);
+  stream_destroy(decisionStream);
 #endif
 }
 
@@ -1694,16 +1677,6 @@ Advection::Advection(float dx, float dy, float dz,
 {
   __sdag_init();
 
-#ifdef USE_GPU
-  allocateDeviceMemory((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  allocateDeviceMemory((void**)&d_error, sizeof(float));
-  allocateHostMemory((void**)&h_error, sizeof(float));
-  createStream(&computeStream);
-  createStream(&decisionStream);
-#endif
-
   this->dx = dx;
   this->dy = dy;
   this->dz = dz;
@@ -1723,7 +1696,17 @@ Advection::Advection(float dx, float dy, float dz,
   this->meshGenIterations = meshGenIterations;
   this->iterations = iterations;
 
+  // Allocate all necessary buffers
+  mem_allocate_all();
+
+#ifdef USE_GPU
+  // Create CUDA streams for GPU execution
+  stream_create(&computeStream);
+  stream_create(&decisionStream);
+#endif
+
   initializeRestofTheData();
+
   nChildDataRecvd=0;
   map<OctIndex, Neighbor>::iterator it, iend;
   for (it = neighbors.begin(), iend = neighbors.end(); it != iend; ) {

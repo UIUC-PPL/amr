@@ -3,7 +3,7 @@ CHARM_DIR ?= ../charm-cuda
 CHARMC ?= $(CHARM_DIR)/bin/charmc -I.
 CHARM_INC = -I$(CHARM_DIR)/include
 CXX = $(CHARMC)
-OPTS ?= -O3
+OPTS ?= -O0 -g
 DEFINE = -DTIMER
 CXXFLAGS += $(DEFINE) -DAMR_REVISION=$(REVNUM) $(OPTS)
 

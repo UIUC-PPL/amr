@@ -33,6 +33,22 @@ void mem_deallocate_host(void* ptr) {
   gpuSafe(cudaFreeHost(ptr));
 }
 
+void mem_allocate_device(void** ptr, size_t size) {
+  gpuSafe(cudaMalloc(ptr, size));
+}
+
+void mem_deallocate_device(void* ptr) {
+  gpuSafe(cudaFree(ptr));
+}
+
+void stream_create(cudaStream_t* stream_ptr) {
+  gpuSafe(cudaStreamCreate(stream_ptr));
+}
+
+void stream_destroy(cudaStream_t stream) {
+  gpuSafe(cudaStreamDestroy(stream));
+}
+
 __device__ static float atomicMax(float* address, float val)
 {
   int* address_as_i = (int*) address;
@@ -314,30 +330,6 @@ __global__ void decisionKernel2(float *delu, float *delua, float *errors, float 
     atomicMax(errors, maxError);
 #endif // USE_SHARED_MEM
 #endif // USE_CUB
-}
-
-void createStream(cudaStream_t* stream_ptr) {
-  gpuSafe(cudaStreamCreate(stream_ptr));
-}
-
-void destroyStream(cudaStream_t stream) {
-  gpuSafe(cudaStreamDestroy(stream));
-}
-
-void allocateHostMemory(void** ptr, size_t size) {
-  gpuSafe(cudaMallocHost(ptr, size));
-}
-
-void freeHostMemory(void* ptr) {
-  gpuSafe(cudaFreeHost(ptr));
-}
-
-void allocateDeviceMemory(void** ptr, size_t size) {
-  gpuSafe(cudaMalloc(ptr, size));
-}
-
-void freeDeviceMemory(void* ptr) {
-  gpuSafe(cudaFree(ptr));
 }
 
 float invokeDecisionKernel(cudaStream_t decisionStream, float* u, float* h_error, float* d_error, float* d_u, float* d_delu, float* d_delua, float refine_filter, float dx, float dy, float dz, int block_size, void* cb) {

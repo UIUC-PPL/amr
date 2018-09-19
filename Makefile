@@ -25,13 +25,13 @@ TARGET = advection
 all: $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi
 
 $(TARGET)-cpu: $(CPU_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) -module DistributedLB
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) -module CommonLBs
 
 $(TARGET)-gpu: $(GPU_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module DistributedLB
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
 
 $(TARGET)-hapi: $(HAPI_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module DistributedLB
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci

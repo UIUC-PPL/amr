@@ -1,7 +1,7 @@
 # Charm++ compilation settings
-CHARM_DIR ?= ../charm-cuda
-CHARMC ?= $(CHARM_DIR)/bin/charmc -I.
-CHARM_INC = -I$(CHARM_DIR)/include
+CHARM_DIR ?= ../charm
+CHARMC ?= $(CHARM_DIR)/bin/charmc -I. $(CHARMC_INC)
+CHARMC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/include
 CXX = $(CHARMC)
 OPTS ?= -O3
 DEFINE = -DTIMER
@@ -31,7 +31,7 @@ $(TARGET)-gpu: $(GPU_OBJS)
 	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module DistributedLB
 
 $(TARGET)-hapi: $(HAPI_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) -module DistributedLB
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module DistributedLB
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci
@@ -49,12 +49,12 @@ OctIndex.o: OctIndex.C OctIndex.h Advection.decl.h
 AdvectionGPU.o: Advection.C Advection.h OctIndex.h Main.decl.h Advection.decl.h
 	$(CHARMC) $(CXXFLAGS) -DUSE_GPU -c $< -o $@
 AdvectionCU.o: Advection.cu
-	$(NVCC) $(NVCC_FLAGS) $(NVCC_INC) $(CHARMINC) -o $@ $<
+	$(NVCC) $(NVCC_FLAGS) $(NVCC_INC) -o $@ $<
 
 AdvectionHAPI.o: Advection.C Advection.h OctIndex.h Main.decl.h Advection.decl.h
 	$(CHARMC) $(CXXFLAGS) -DUSE_GPU -DUSE_HAPI -c $< -o $@
 AdvectionHAPICU.o: Advection.cu
-	$(NVCC) $(NVCC_FLAGS) -DUSE_HAPI $(NVCC_INC) $(CHARMINC) -o $@ $<
+	$(NVCC) $(NVCC_FLAGS) -DUSE_HAPI $(NVCC_INC) -o $@ $<
 
 # Tests are currently set for SMP
 test: $(TARGET)-cpu

@@ -411,6 +411,9 @@ void Advection::mem_allocate_all(){
   mem_allocate_device((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate_device((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate_device((void**)&d_error, sizeof(float));
+
+  stream_create(&computeStream);
+  stream_create(&decisionStream);
 #else
   mem_allocate(u, (block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate(u2, (block_width+2)*(block_height+2)*(block_depth+2));
@@ -423,10 +426,8 @@ void Advection::mem_allocate_all(){
 
   mem_allocate(left_surface, block_height*block_depth);
   mem_allocate(right_surface, block_height*block_depth);
-
   mem_allocate(top_surface, block_width*block_depth);
   mem_allocate(bottom_surface, block_width*block_depth);
-
   mem_allocate(forward_surface, block_width*block_height);
   mem_allocate(backward_surface, block_width*block_height);
 }
@@ -441,6 +442,9 @@ void Advection::mem_deallocate_all(){
   mem_deallocate_device(d_u2);
   mem_deallocate_device(d_u3);
   mem_deallocate_device(d_error);
+
+  stream_destroy(computeStream);
+  stream_destroy(decisionStream);
 #else
   delete [] u;
   delete [] u2;
@@ -459,11 +463,10 @@ void Advection::mem_deallocate_all(){
   delete [] backward_surface;
 }
 
+// Constructor used to create initial chares
 Advection::Advection(float xmin, float xmax, float ymin, float ymax,
                      float zmin, float zmax)
 {
-  __sdag_init();
-
   thisIndex.getCoordinates(xc, yc, zc);
   dx = (xmax - xmin)/float(array_width);
   dy = (ymax - ymin)/float(array_height);
@@ -485,12 +488,6 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
 
   // Allocate all necessary buffers
   mem_allocate_all();
-
-#ifdef USE_GPU
-  // Create CUDA streams for GPU execution
-  stream_create(&computeStream);
-  stream_create(&decisionStream);
-#endif
 
   initializeRestofTheData();
 }
@@ -532,9 +529,6 @@ void Advection::initializeRestofTheData(){
 
 //added for array migration - see how 2D arrays can be packed
 void Advection::pup(PUP::er &p){
-  CBase_Advection::pup(p);
-  __sdag_pup(p);
-
   p|isRefined;
   p|depth;
 
@@ -603,11 +597,6 @@ Advection::~Advection(){
   if (isLeaf) {
     mem_deallocate_all(); // FIXME: Shouldn't this be called for ALL chares?
   }
-
-#ifdef USE_GPU
-  stream_destroy(computeStream);
-  stream_destroy(decisionStream);
-#endif
 }
 
 inline float downSample(float* u, int x, int y, int z) {
@@ -1671,12 +1660,11 @@ bool Advection::isGrandParent() {
   return ret;
 }
 
+// Constructor used to create children chares on refinement
 Advection::Advection(float dx, float dy, float dz,
                      float myt, float mydt, float xmin, float ymin, float zmin,
                      int meshGenIterations, int iterations, vector<float> refined_u, map<OctIndex, Neighbor> parentNeighbors)
 {
-  __sdag_init();
-
   this->dx = dx;
   this->dy = dy;
   this->dz = dz;
@@ -1698,12 +1686,6 @@ Advection::Advection(float dx, float dy, float dz,
 
   // Allocate all necessary buffers
   mem_allocate_all();
-
-#ifdef USE_GPU
-  // Create CUDA streams for GPU execution
-  stream_create(&computeStream);
-  stream_create(&decisionStream);
-#endif
 
   initializeRestofTheData();
 

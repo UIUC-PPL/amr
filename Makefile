@@ -3,7 +3,7 @@ CHARM_DIR ?= ../charm
 CHARMC ?= $(CHARM_DIR)/bin/charmc -I. $(CHARMC_INC)
 CHARMC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/include
 CXX = $(CHARMC)
-OPTS ?= -O0 -g
+OPTS ?= -O3
 DEFINE = -DTIMER
 CXXFLAGS += $(DEFINE) -DAMR_REVISION=$(REVNUM) $(OPTS)
 

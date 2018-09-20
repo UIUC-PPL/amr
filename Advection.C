@@ -28,7 +28,7 @@ extern float vx, vy, vz;
 extern float apx, anx, apy, any, apz, anz;
 extern float tmax, t, dt, cfl;
 extern int max_iterations, refine_frequency, lb_freq;
-//extern bool inInitialMeshGenerationPhase;
+
 #define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
 
 float refine_filter = 0.01;
@@ -347,7 +347,6 @@ void AdvectionGroup::printLogs(){
 }
 
 void AdvectionGroup::meshGenerationPhaseIsOver(){
-  //inInitialMeshGenerationPhase=false;
 }
 
 void Advection::prepareData4Exchange(){
@@ -1383,7 +1382,7 @@ void Advection::doPhase2(){
   VB(logfile << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
   if(decision == COARSEN){//send data to the parent
     vector<float> child_u;
-    if(inInitialMeshGenerationPhase==false){
+    if(!inInitialMeshGenerationPhase){
       child_u.resize((block_height*block_width*block_depth)/8);
       for(int i=1; i<= block_width; i+=2)
         for(int j=1; j<=block_height; j+=2)

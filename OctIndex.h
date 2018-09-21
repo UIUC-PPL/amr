@@ -31,7 +31,7 @@ public:
   bool operator!=(OctIndex qidx) const {
     return !(*this == qidx);
   }
-    
+
   bool operator==(OctIndex qidx) const {
     return (nbits == qidx.nbits && getIndexString() == qidx.getIndexString()) ? true : false;
   }

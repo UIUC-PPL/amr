@@ -1,5 +1,5 @@
-#if !defined(ADVECTION_H)
-#define ADVECTION_H
+#ifndef ADVECTION_H_
+#define ADVECTION_H_
 
 #include "Advection.decl.h"
 
@@ -292,4 +292,4 @@ class AdvectionGroup : public CBase_AdvectionGroup {
 
 extern CProxy_AdvectionGroup ppc;
 
-#endif // ADVECTION_H
+#endif // ADVECTION_H_

@@ -23,8 +23,6 @@ using std::min;
 /* readonly */ int max_iterations, refine_frequency;
 /* readonly */ int lb_freq; // load balancing frequency
 
-/* readonly */ const char amrRevision[] = INQUOTES(AMR_REVISION);
-
 /* readonly */ float xmin, xmax, ymin, ymax, zmin, zmax;
 /* readonly */ float xctr, yctr, zctr, radius;
 /* readonly */ float dx, dy, dz, vx, vy, vz;
@@ -34,8 +32,6 @@ using std::min;
 /* readonly */ float start_time, end_time;
 
 Main::Main(CkArgMsg* m) {
-  ckout << "* Running AMR code revision: " << amrRevision << endl;
-
   mainProxy = thisProxy;
   iterations = 0;
 

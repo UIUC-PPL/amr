@@ -58,13 +58,13 @@ AdvectionHAPICU.o: Advection.cu
 
 # Tests are currently set for SMP
 test: $(TARGET)-cpu
-	./charmrun +p8 ./$(TARGET)-cpu 3 32 30 9 +balancer DistributedLB ++ppn 8
+	./charmrun +p8 ./$(TARGET)-cpu 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
 
 test-gpu: $(TARGET)-gpu
-	./charmrun +p8 ./$(TARGET)-gpu 3 32 30 9 +balancer DistributedLB ++ppn 8
+	./charmrun +p8 ./$(TARGET)-gpu 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
 
 test-hapi: $(TARGET)-hapi
-	./charmrun +p8 ./$(TARGET)-hapi 3 32 30 9 +balancer DistributedLB ++ppn 8
+	./charmrun +p8 ./$(TARGET)-hapi 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi charmrun advection.ci.stamp

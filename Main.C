@@ -4,114 +4,129 @@
 using std::max;
 using std::min;
 
-/* readonly */ CProxy_Advection qtree;
 /* readonly */ CProxy_Main mainProxy;
+/* readonly */ CProxy_Advection qtree;
 
 /* readonly */ int array_height;
 /* readonly */ int array_width;
 /* readonly */ int array_depth;
 
-/* readonly */ int num_chare_rows;
-/* readonly */ int num_chare_cols;
-/* readonly */ int num_chare_Zs;
-
 /* readonly */ int block_height;
 /* readonly */ int block_width;
 /* readonly */ int block_depth;
 
+/* readonly */ int num_chare_rows;
+/* readonly */ int num_chare_cols;
+/* readonly */ int num_chare_Zs;
+
 /* readonly */ int min_depth, max_depth;
-/* readonly */ int max_iterations, refine_frequency;
+/* readonly */ int max_iters;
+/* readonly */ int refine_freq;
 /* readonly */ int lb_freq; // load balancing frequency
 
-/* readonly */ float xmin, xmax, ymin, ymax, zmin, zmax;
-/* readonly */ float xctr, yctr, zctr, radius;
+/* readonly */ float x_min, x_max, y_min, y_max, z_min, z_max;
 /* readonly */ float dx, dy, dz, vx, vy, vz;
 /* readonly */ float apx, anx, apy, any, apz, anz;
+/* readonly */ float x_ctr, y_ctr, z_ctr, radius;
 /* readonly */ float tmax, t, dt, cfl;
 
 /* readonly */ float start_time, end_time;
 
 Main::Main(CkArgMsg* m) {
   mainProxy = thisProxy;
-  iterations = 0;
 
-  // Handle arguments
-  if(m->argc < 5 || m->argc > 6) {
-    ckout << "Usage: " << m->argv[0] << " [max_depth] [block_size] [iterations] [lb_freq] [array_dim]?" << endl;
+  // Set default parameters
+  array_height = array_width = array_depth = 128;
+  block_height = block_width = block_depth = 32;
+  max_depth = 3;
+  max_iters = 30;
+  refine_freq = 3;
+  lb_freq = 9;
+
+  // Process command line arguments
+  int c;
+  while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:h")) != -1) {
+    switch (c) {
+      case 'a':
+        array_height = array_width = array_depth = atoi(optarg);
+        break;
+      case 'b':
+        block_height = block_width = block_depth = atoi(optarg);
+        break;
+      case 'd':
+        max_depth = atoi(optarg);
+        if (max_depth >= 11) {
+          ckerr << "Depth is too large for bitvector index" << endl;
+          CkExit();
+        }
+        break;
+      case 'i':
+        max_iters = atoi(optarg);
+        break;
+      case 'l':
+        lb_freq = atoi(optarg);
+        break;
+      case 'r':
+        refine_freq = atoi(optarg);
+        break;
+      case 'h':
+        ckout << "\n[AMR Advection Mini-App Options]\n\n"
+              << "\t-a\ttotal 3D array size\n"
+              << "\t-b\tblock size per chare\n"
+              << "\t-d\tmaximum depth of refinement\n"
+              << "\t-i\tnumber of iterations\n"
+              << "\t-r\trefinement frequency\n"
+              << "\t-l\tload balancing frequency\n"
+              << endl;
+        CkExit();
+      default:
+        CkExit();
+    }
+  }
+
+  for (int i = optind; i < m->argc; i++)
+    printf("Non-option argument %s\n", m->argv[i]);
+
+  // Check if array size is divisible by block size
+  if (array_width < block_width || array_width % block_width != 0) {
+    ckout << "Array size (" << array_width << ") should be divisible by block size ("
+          << block_width << ")" << endl;
     CkExit();
   }
 
-  // Set max depth
-  max_depth = atoi(m->argv[1]);
-  if (max_depth >= 11) {
-    ckout << "Error: depth too high for bitvector index" << endl;
-    CkExit();
-  }
-
-  // Set block size
-  block_width = block_height = block_depth = atoi(m->argv[2]);
-
-  // Set number of iterations
-  max_iterations = atoi(m->argv[3]);
-
-  // Set load balancing frequency
-  lb_freq = atoi(m->argv[4]);
-  refine_frequency = 3;
-  if (lb_freq % refine_frequency != 0) {
-    ckout << "Error: load balancing frequency should be a mulitple of refine frequency (3)" << endl;
-    CkExit();
-  }
-
-  // Set entire grid size
-  if (m->argc == 6)
-    array_width = array_height = array_depth = atoi(m->argv[5]);
-  else
-    array_width = array_height = array_depth = 128;
-
-  if(array_width < block_width || array_width % block_width < 0) {
-    ckout << "Error: incompatible arguments: array size = " << array_width << "block size = " << block_width << endl;
+  // Check if load balancing frequency is a multiple of refine frequency
+  if (lb_freq < refine_freq || lb_freq % refine_freq != 0) {
+    ckerr << "Load balancing frequency (" << lb_freq << ") should be a multiple of"
+          << "refine frequency (" << refine_freq << ")" << endl;
     CkExit();
   }
 
   // Set number of chares per dimension
-  num_chare_rows = num_chare_cols = num_chare_Zs = array_width/block_width;
-  num_chares = num_chare_rows * num_chare_cols * num_chare_Zs;
+  num_chare_rows = num_chare_cols = num_chare_Zs = array_width / block_width;
+  int num_chares = num_chare_rows * num_chare_cols * num_chare_Zs;
 
-  // Set min depth
+  // Set minimum depth
   float fdepth = log(num_chares) / log(NUM_CHILDREN);
   min_depth = (fabs(fdepth - ceil(fdepth)) < 0.000001) ? ceil(fdepth) : floor(fdepth);
   if (min_depth > max_depth) {
-    ckout << "Error: minimum depth > maximum depth: try increasing max_depth" << endl;
+    ckerr << "Minimum depth > maximum depth: try increasing maximum depth" << endl;
     CkExit();
   }
   if (min_depth == 0) {
-    ckout << "Error: need more than 1 chare for the whole simulation" << endl;
+    ckerr << "Minimum depth is 0, 1 or more chares are required to run the simulation" << endl;
     CkExit();
   }
 
   // Initialize constants
-  xmin = 0;
-  xmax = 1;
-  ymin = 0;
-  ymax = 1;
-  zmin = 0;
-  zmax = 1;
-  t = 0;
-  tmax = 10000;
-  cfl = 0.4;
-  vx = 0.0;
-  vy = 0.0;
-  vz = 0.1;
+  x_min = 0; x_max = 1;
+  y_min = 0; y_max = 1;
+  z_min = 0; z_max = 1;
 
-  dx = (xmax - xmin)/float(array_width);
-  dy = (ymax - ymin)/float(array_height);
-  dz = (zmax - zmin)/float(array_depth);
+  dx = (x_max - x_min) / float(array_width);
+  dy = (y_max - y_min) / float(array_height);
+  dz = (z_max - z_min) / float(array_depth);
 
-  xctr = 0.5;
-  yctr = 0.5;
-  zctr = 0.5;
-
-  radius = 0.2;
+  vx = 0.0; vy = 0.0; vz = 0.1;
 
   apx = max(vx, (float)0.0);
   anx = min(vx, (float)0.0);
@@ -120,37 +135,40 @@ Main::Main(CkArgMsg* m) {
   apz = max(vz, (float)0.0);
   anz = min(vz, (float)0.0);
 
-  // Create tree of chares
-  CProxy_AdvMap map = CProxy_AdvMap::ckNew();
-  CkArrayOptions opts;
-  opts.setMap(map);
-  qtree = CProxy_Advection::ckNew(opts);
+  x_ctr = 0.5; y_ctr = 0.5; z_ctr = 0.5;
+  radius = 0.2;
 
-  dt = min(min(dx,dy),dz) / sqrt(vx*vx + vy*vy + vz*vz) * cfl;
+  t = 0; tmax = 10000;
+  cfl = 0.4;
+  dt = min(min(dx, dy), dz) / sqrt(vx * vx + vy * vy + vz * vz) * cfl;
   dt /= pow(2., max_depth - min_depth);
   if ((t + dt) >= tmax)
     dt = tmax - t;
   t = t + dt;
 
-  CkPrintf("* Constants\n\tdx = %f, apx = %f, anx = %f, dt = %f, t = %f\n", dx, apx, anx, dt, t);
-  CkPrintf("* Running Advection on %d processor(s)\n"
-      "\tArray dimension: %d x %d x %d\n"
-      "\tBlock dimension: %d x %d x %d\n"
-      "\tNumber of chares: %d x %d x %d\n"
-      "\tMinimum depth: %d\n"
-      "\tMaximum depth: %d\n"
-      "\tMaximum number of iterations: %d\n"
-      "\tLoad balacning frequency: %d\n",
-      CkNumPes(), array_width, array_height, array_depth,
-      block_width, block_height, block_depth,
-      num_chare_rows, num_chare_cols, num_chare_Zs,
-      min_depth, max_depth, max_iterations, lb_freq);
+  CkPrintf("[AMR Advection Mini-App]\n"
+           "* Array dimension: %d x %d x %d\n"
+           "* Block dimension: %d x %d x %d\n"
+           "* Chares: %d x %d x %d\n"
+           "* Minimum depth: %d\n"
+           "* Maximum depth: %d\n"
+           "* Number of iterations: %d\n"
+           "* Refinement frequency: %d\n"
+           "* Load balancing frequency: %d\n",
+           array_width, array_height, array_depth,
+           block_width, block_height, block_depth,
+           num_chare_rows, num_chare_cols, num_chare_Zs,
+           min_depth, max_depth, max_iters, refine_freq, lb_freq);
 
-  // Dynamic insertion of chares
+  // Create tree of chares
+  CProxy_AdvMap map = CProxy_AdvMap::ckNew();
+  CkArrayOptions opts;
+  opts.setMap(map);
+  qtree = CProxy_Advection::ckNew(opts);
   for (int i = 0; i < num_chare_rows; ++i) {
     for (int j = 0; j < num_chare_cols; ++j) {
       for (int k = 0; k < num_chare_Zs; ++k) {
-        qtree[OctIndex(i, j, k, min_depth)].insert(xmin, xmax, ymin, ymax, zmin, zmax);
+        qtree[OctIndex(i, j, k, min_depth)].insert(x_min, x_max, y_min, y_max, z_min, z_max);
       }
     }
   }
@@ -166,33 +184,32 @@ void Main::startMeshGeneration() {
   qtree.iterate();
 }
 
-void Main::terminate(){
+void Main::terminate() {
   ckout << "Simulation time: " << CkWallTimer() - start_time << " s" << endl;
   ppc.reduceWorkUnits();
 }
 
 void Main::totalWorkUnits(int total) {
   CkPrintf("Total work units = %d\n", total);
-  nresponses = 0;
   ppc.reduceQdTimes();
 }
 
-#define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001ULL
-
+// Map chares to PEs
 struct AdvMap : public CBase_AdvMap {
   int bits;
   AdvMap() : bits(log2(CkNumPes())) { }
 
-  void pup(PUP::er &p){ bits = log2(CkNumPes()); }
-  AdvMap(CkMigrateMessage *m): CBase_AdvMap(m),bits(log2(CkNumPes())){}
+  void pup(PUP::er &p) { bits = log2(CkNumPes()); }
+  AdvMap(CkMigrateMessage* m): CBase_AdvMap(m), bits(log2(CkNumPes())) {}
 
   int procNum(int arrayHdl, const CkArrayIndex& i) {
+    const unsigned long long golden_ratio_prime_64 = 0x9e37fffffffc0001ULL;
     int numPes = CkNumPes();
     const OctIndex& idx = *reinterpret_cast<const OctIndex*>(i.data());
     int baseBits = 8;
 
     unsigned long long val = idx.bitVector >> (sizeof(unsigned int)*8 - baseBits);
-    unsigned long long hash = GOLDEN_RATIO_PRIME_64 * val;
+    unsigned long long hash = golden_ratio_prime_64 * val;
 
     int basePE = hash >> (64 - bits);
 

@@ -133,7 +133,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   float un_x, un_y, un_z;
   float myt, mydt;
   float dx, dy, dz, nx, ny, nz;
-  float xmin, xmax, ymin, ymax, zmin, zmax;
+  float x_min, x_max, y_min, y_max, z_min, z_max;
   
   float itBeginTime;
   float lastBusyTime, lastIdleTime;
@@ -170,7 +170,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   Advection(float, float, float, float, float, float);
   Advection(float dx, float dy, float dz,
             float myt, float mydt,
-            float xmin, float ymin, float zmin,
+            float x_min, float y_min, float z_min,
             int meshGenIterations_, int iterations_,
             std::vector<float> refined_u,
             std::map<OctIndex, Neighbor> neighbors);
@@ -213,7 +213,7 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   void interpolateAndSendToNephew(int, OctIndex);
   void refine();
   void interpolate(float*, std::vector<float>&, int, int, int, int, int, int);
-  void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float xmin, float ymin, float zmin);
+  void refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float x_min, float y_min, float z_min);
 
   /*Load Balancing functions*/
   void startLdb();

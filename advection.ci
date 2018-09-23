@@ -17,9 +17,9 @@ mainmodule Main {
   readonly int min_depth;
   readonly int max_depth;
 
-  readonly float xctr;
-  readonly float yctr;
-  readonly float zctr;
+  readonly float x_ctr;
+  readonly float y_ctr;
+  readonly float z_ctr;
   readonly float radius;
 
   readonly float vx;
@@ -36,8 +36,8 @@ mainmodule Main {
   readonly float dt;
   readonly float cfl;
 
-  readonly int max_iterations;
-  readonly int refine_frequency;
+  readonly int max_iters;
+  readonly int refine_freq;
   readonly int lb_freq;
 
   readonly CProxy_AdvectionGroup ppc;
@@ -277,7 +277,7 @@ module Advection {
     // In the initial mesh generation phase, the mesh keeps on remeshing itself
     // until it has reached a stable state based on the error estimate for the
     // initial conditions. After this phase is over, remeshing occurs after a certain
-    // number of iterations (defined by refine_frequency).
+    // number of iterations (defined by refine_freq).
     entry void iterate() {
       serial {
         if (/*inInitialMeshGenerationPhase*/ meshGenIterations++ < max_depth) {
@@ -287,13 +287,13 @@ module Advection {
           if (isRoot()) {
             ppc.meshGenerationPhaseIsOver();
           }
-          if (iterations % refine_frequency == 0) { // last one was a remeshing phase
+          if (iterations % refine_freq == 0) { // last one was a remeshing phase
             remeshEndTime = CmiWallTimer();
             ppc.ckLocalBranch()->recordRemeshTime(iterations, remeshStartTime, remeshEndTime);
           }
           iterations++;
           myt = myt + mydt;
-          if (iterations > max_iterations || myt >= tmax) {
+          if (iterations > max_iters || myt >= tmax) {
             if (isRoot()) {
               CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
             }
@@ -304,7 +304,7 @@ module Advection {
             mydt = tmax - myt;
           }
 
-          if (iterations % refine_frequency == 0) {
+          if (iterations % refine_freq == 0) {
             thisProxy[thisIndex].doRemeshing(); // time to do remeshing
           }
           else {

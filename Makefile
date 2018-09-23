@@ -22,16 +22,16 @@ HAPI_OBJS = $(SHARED_OBJS) AdvectionHAPI.o AdvectionHAPICU.o
 
 # Make commands
 TARGET = advection
-all: $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi
+all: cpu gpu hapi
 
-$(TARGET)-cpu: $(CPU_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) -module CommonLBs
+cpu: $(CPU_OBJS)
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $(TARGET)-$@ $^ $(LD_LIBS) -module CommonLBs
 
-$(TARGET)-gpu: $(GPU_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
+gpu: $(GPU_OBJS)
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $(TARGET)-$@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
 
-$(TARGET)-hapi: $(HAPI_OBJS)
-	$(CHARMC) $(CXXFLAGS) -language charm++ -o $@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
+hapi: $(HAPI_OBJS)
+	$(CHARMC) $(CXXFLAGS) -language charm++ -o $(TARGET)-$@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
 
 Advection.decl.h Main.decl.h: advection.ci.stamp
 advection.ci.stamp: advection.ci
@@ -57,14 +57,14 @@ AdvectionHAPICU.o: Advection.cu
 	$(NVCC) $(NVCC_FLAGS) -DUSE_HAPI $(NVCC_INC) -o $@ $<
 
 # Tests are currently set for SMP
-test: $(TARGET)-cpu
-	./charmrun +p8 ./$(TARGET)-cpu 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
+test: cpu
+	./charmrun +p8 ./$(TARGET)-$< -a 128 -b 32 -d 3 -i 30 -l 9 +balancer DistributedLB ++ppn 8 ++local
 
-test-gpu: $(TARGET)-gpu
-	./charmrun +p8 ./$(TARGET)-gpu 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
+test-gpu: gpu
+	./charmrun +p8 ./$(TARGET)-$< -a 128 -b 32 -d 3 -i 30 -l 9 +balancer DistributedLB ++ppn 8 ++local
 
-test-hapi: $(TARGET)-hapi
-	./charmrun +p8 ./$(TARGET)-hapi 3 32 30 9 +balancer DistributedLB ++ppn 8 ++local
+test-hapi: hapi
+	./charmrun +p8 ./$(TARGET)-$< -a 128 -b 32 -d 3 -i 30 -l 9 +balancer DistributedLB ++ppn 8 ++local
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi charmrun advection.ci.stamp

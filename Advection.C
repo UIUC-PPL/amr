@@ -23,11 +23,11 @@ extern int block_width, block_height, block_depth;
 extern int min_depth, max_depth;
 
 extern int nframe;
-extern float xctr, yctr, zctr, radius;
+extern float x_ctr, y_ctr, z_ctr, radius;
 extern float vx, vy, vz;
 extern float apx, anx, apy, any, apz, anz;
 extern float tmax, t, dt, cfl;
-extern int max_iterations, refine_frequency, lb_freq;
+extern int max_iters, refine_freq, lb_freq;
 
 #define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
 
@@ -115,100 +115,100 @@ enum {
   Z_MASK = 1 << 0
 };
 inline void populateRanges(int dir, int octant,
-                           int &xmin, int &xmax,
-                           int &ymin, int &ymax,
-                           int &zmin, int &zmax) {
-  xmin = 0; xmax = block_width-1;
-  ymin = 0; ymax = block_height-1;
-  zmin = 0; zmax = block_depth-1;
+                           int &x_min, int &x_max,
+                           int &y_min, int &y_max,
+                           int &z_min, int &z_max) {
+  x_min = 0; x_max = block_width-1;
+  y_min = 0; y_max = block_height-1;
+  z_min = 0; z_max = block_depth-1;
   switch (dir) {
   case UP:
-    ymin = ymax = block_height+1;
+    y_min = y_max = block_height+1;
     if (octant >= 0) {
       populateQuadrant(
         octant & X_MASK,
         octant & Z_MASK,
-        xmin, xmax,
-        zmin, zmax);
+        x_min, x_max,
+        z_min, z_max);
     }
     break;
   case DOWN:
-    ymax = 0;
+    y_max = 0;
     if (octant >= 0) {
       populateQuadrant(
         octant & X_MASK,
         octant & Z_MASK,
-        xmin, xmax,
-        zmin, zmax);
+        x_min, x_max,
+        z_min, z_max);
     }
     break;
   case LEFT:
-    xmax = 0;
+    x_max = 0;
     if (octant >= 0) {
       populateQuadrant(
         octant & Y_MASK,
         octant & Z_MASK,
-        ymin, ymax,
-        zmin, zmax);
+        y_min, y_max,
+        z_min, z_max);
     }
     break;
   case RIGHT:
-    xmin = xmax = block_width+1;
+    x_min = x_max = block_width+1;
     if (octant >= 0) {
       populateQuadrant(
         octant & Y_MASK,
         octant & Z_MASK,
-        ymin, ymax,
-        zmin, zmax);
+        y_min, y_max,
+        z_min, z_max);
     }
     break;
   case FORWARD:
-    zmin = zmax = block_depth+1;
+    z_min = z_max = block_depth+1;
     if (octant >= 0) {
       populateQuadrant(
         octant & X_MASK,
         octant & Y_MASK,
-        xmin, xmax,
-        ymin, ymax);
+        x_min, x_max,
+        y_min, y_max);
     }
     break;
   case BACKWARD:
-    zmax = 0;
+    z_max = 0;
     if (octant >= 0) {
       populateQuadrant(
         octant & X_MASK,
         octant & Y_MASK,
-        xmin, xmax,
-        ymin, ymax);
+        x_min, x_max,
+        y_min, y_max);
     }
     break;
   }
 }
 
 inline bool getOctantRange(int octant,
-                           int &xmin, int &xmax,
-                           int &ymin, int &ymax,
-                           int &zmin, int &zmax) {
-  xmin = 1;
-  xmax = block_width;
-  ymin = 1;
-  ymax = block_height;
-  zmin = 1;
-  zmax = block_depth;
+                           int &x_min, int &x_max,
+                           int &y_min, int &y_max,
+                           int &z_min, int &z_max) {
+  x_min = 1;
+  x_max = block_width;
+  y_min = 1;
+  y_max = block_height;
+  z_min = 1;
+  z_max = block_depth;
   if (octant & X_MASK)
-    xmin = block_width/2+1;
+    x_min = block_width/2+1;
   else
-    xmax = block_width/2;
+    x_max = block_width/2;
 
   if (octant & Y_MASK)
-    ymin = block_height/2+1;
+    y_min = block_height/2+1;
   else
-    ymax = block_height/2;
+    y_max = block_height/2;
 
   if (octant & Z_MASK)
-    zmin = block_depth/2+1;
+    z_min = block_depth/2+1;
   else
-    zmax = block_depth/2;
+    z_max = block_depth/2;
 }
 
 AdvectionGroup::AdvectionGroup()
@@ -388,9 +388,9 @@ void Advection::applyInitialCondition(){
   for(int i=0; i<block_width+2; i++)
     for(int j=0; j<block_height+2; j++)
       for(int k=0; k<block_depth+2; k++){
-        rcub = (x[i] - xctr)*(x[i]-xctr) +
-               (y[j] - yctr)*(y[j]-yctr) +
-               (z[k] - zctr)*(z[k]-zctr);
+        rcub = (x[i] - x_ctr)*(x[i]-x_ctr) +
+               (y[j] - y_ctr)*(y[j]-y_ctr) +
+               (z[k] - z_ctr)*(z[k]-z_ctr);
         u[index(i, j, k)] = (rcub<=radius*radius) ? 2:1;
         //VB(logfile << x[i] << " " << y[j] << " " << z[k] << ": " << rcub << " " << radius*radius << " " << u[index(i, j, k)] << std::endl;);
       }
@@ -463,13 +463,13 @@ void Advection::mem_deallocate_all(){
 }
 
 // Constructor used to create initial chares
-Advection::Advection(float xmin, float xmax, float ymin, float ymax,
-                     float zmin, float zmax)
+Advection::Advection(float x_min, float x_max, float y_min, float y_max,
+                     float z_min, float z_max)
 {
   thisIndex.getCoordinates(xc, yc, zc);
-  dx = (xmax - xmin)/float(array_width);
-  dy = (ymax - ymin)/float(array_height);
-  dz = (zmax - zmin)/float(array_depth);
+  dx = (x_max - x_min)/float(array_width);
+  dy = (y_max - y_min)/float(array_height);
+  dz = (z_max - z_min)/float(array_depth);
 
   nx = array_width/(num_chare_cols);
   ny = array_height/(num_chare_rows);
@@ -478,9 +478,9 @@ Advection::Advection(float xmin, float xmax, float ymin, float ymax,
   myt = t;
   mydt = dt;
 
-  this->xmin = xc*nx*dx;
-  this->ymin = yc*ny*dy;
-  this->zmin = zc*nz*dz;
+  this->x_min = xc*nx*dx;
+  this->y_min = yc*ny*dy;
+  this->z_min = zc*nz*dz;
 
   iterations=0;
   meshGenIterations=0;
@@ -498,14 +498,14 @@ void Advection::initializeRestofTheData(){
   VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str()););
   if(inInitialMeshGenerationPhase){
     for(int i=0; i<block_width+2; i++)
-      x[i] = xmin + float(i)*dx - 0.5*dx;
+      x[i] = x_min + float(i)*dx - 0.5*dx;
 
 
     for(int i=0; i<block_height+2; i++)
-      y[i] = ymin + float(i)*dy - 0.5*dy;
+      y[i] = y_min + float(i)*dy - 0.5*dy;
 
     for(int i=0; i<block_depth+2; i++)
-      z[i] = zmin + float(i)*dz - 0.5*dz;
+      z[i] = z_min + float(i)*dz - 0.5*dz;
 
     applyInitialCondition();
   }
@@ -575,9 +575,9 @@ void Advection::pup(PUP::er &p){
 
   p|dx; p|dy; p|dz;
   p|nx; p|ny; p|nz;
-  p|xmin; p|xmax;
-  p|ymin; p|ymax;
-  p|zmin; p|zmax;
+  p|x_min; p|x_max;
+  p|y_min; p|y_max;
+  p|z_min; p|z_max;
 
   p|itBeginTime;
   p|remeshStartTime;
@@ -716,27 +716,27 @@ void Advection::sendGhost(int dir){
     boundary = getGhostBuffer(dir);
     count /= 4;
 
-    int xmin, xmax, ymin, ymax, zmin, zmax;
-    populateRanges(dir, -1, xmin, xmax, ymin, ymax, zmin, zmax);
+    int x_min, x_max, y_min, y_max, z_min, z_max;
+    populateRanges(dir, -1, x_min, x_max, y_min, y_max, z_min, z_max);
 
-    int dx = (xmin == xmax) ? 0 : 2;
-    int dy = (ymin == ymax) ? 0 : 2;
-    int dz = (zmin == zmax) ? 0 : 2;
-    if(xmin!=xmax)xmin++;
-    else if(xmin==0) xmin = xmax = 1;
-    else if(xmin==block_width+1) xmin = xmax = block_width-1;
+    int dx = (x_min == x_max) ? 0 : 2;
+    int dy = (y_min == y_max) ? 0 : 2;
+    int dz = (z_min == z_max) ? 0 : 2;
+    if(x_min!=x_max)x_min++;
+    else if(x_min==0) x_min = x_max = 1;
+    else if(x_min==block_width+1) x_min = x_max = block_width-1;
 
-    if(ymin!=ymax)ymin++;
-    else if(ymin==0) ymin = ymax = 1;
-    else if(ymin==block_width+1) ymin = ymax = block_height-1;
+    if(y_min!=y_max)y_min++;
+    else if(y_min==0) y_min = y_max = 1;
+    else if(y_min==block_width+1) y_min = y_max = block_height-1;
 
-    if(zmin!=zmax)zmin++;
-    else if(zmin==0) zmin = zmax = 1;
-    else if(zmin==block_width+1) zmin = zmax = block_depth-1;
+    if(z_min!=z_max)z_min++;
+    else if(z_min==0) z_min = z_max = 1;
+    else if(z_min==block_width+1) z_min = z_max = block_depth-1;
 
-    surface_iterator iter(u, xmin, xmax, dx,
-                             ymin, ymax, dy,
-                             zmin, zmax, dz);
+    surface_iterator iter(u, x_min, x_max, dx,
+                             y_min, y_max, dy,
+                             z_min, z_max, dz);
     int k;
     for (k = 0; !iter.isDone(); ++iter, ++k)
       boundary[k] = downSample(u, iter.getX(), iter.getY(), iter.getZ());
@@ -762,30 +762,30 @@ void Advection::process(int iteration, int dir, int quadrant, int size, float gh
 
   imsg += (fromNephew) ? 0.25:1;
 
-  int xmin, xmax, ymin, ymax, zmin, zmax;
-  populateRanges(dir, quadrant, xmin, xmax, ymin, ymax, zmin, zmax);
+  int x_min, x_max, y_min, y_max, z_min, z_max;
+  populateRanges(dir, quadrant, x_min, x_max, y_min, y_max, z_min, z_max);
   VB(logfile << "after populate ranges " << " (iteration : " << iteration << ") " << dir << " " << quadrant << " " \
-             << xmin << " " << xmax << " " << ymin << " " << ymax << " " \
-             << zmin << " " << zmax << std::endl;);
-  int dx = (xmin == xmax) ? 0 : 1;
-  int dy = (ymin == ymax) ? 0 : 1;
-  int dz = (zmin == zmax) ? 0 : 1;
-  if (xmax != xmin) {
-    xmin++;
-    xmax++;
+             << x_min << " " << x_max << " " << y_min << " " << y_max << " " \
+             << z_min << " " << z_max << std::endl;);
+  int dx = (x_min == x_max) ? 0 : 1;
+  int dy = (y_min == y_max) ? 0 : 1;
+  int dz = (z_min == z_max) ? 0 : 1;
+  if (x_max != x_min) {
+    x_min++;
+    x_max++;
   }
-  if (ymax != ymin) {
-    ymin++;
-    ymax++;
+  if (y_max != y_min) {
+    y_min++;
+    y_max++;
   }
-  if (zmax != zmin) {
-    zmin++;
-    zmax++;
+  if (z_max != z_min) {
+    z_min++;
+    z_max++;
   }
 
-  surface_iterator iter(u, xmin, xmax, dx,
-                           ymin, ymax, dy,
-                           zmin, zmax, dz);
+  surface_iterator iter(u, x_min, x_max, dx,
+                           y_min, y_max, dy,
+                           z_min, z_max, dz);
 
   for(int i=0; i<size; ++i, ++iter){
       VB(
@@ -872,62 +872,62 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
 
   int octant = QI.getOctant();
 
-  int xmin, xmax, ymin, ymax, zmin, zmax;
+  int x_min, x_max, y_min, y_max, z_min, z_max;
   populateRanges(getSourceDirection(uncledir), octant,
-                 xmin, xmax,
-                 ymin, ymax,
-                 zmin, zmax);
+                 x_min, x_max,
+                 y_min, y_max,
+                 z_min, z_max);
 
   int dx = 1, dy = 1, dz = 1;
   unsigned columncount;
   float **a, **b, *c;
-  if (xmin == xmax) {
+  if (x_min == x_max) {
     a = sy;
     b = sz;
-    c = (xmax == 0) ? &sx_l : &sx_r;
+    c = (x_max == 0) ? &sx_l : &sx_r;
     columncount = block_height;
     dx = 0;
-    ymin++; ymax++;
-    zmin++; zmax++;
-    if(xmin==0){
-        xmin = xmax = 1;
+    y_min++; y_max++;
+    z_min++; z_max++;
+    if(x_min==0){
+        x_min = x_max = 1;
     }else{
-        xmin = xmax = block_width;
+        x_min = x_max = block_width;
     }
 
   }
-  if (ymin == ymax) {
+  if (y_min == y_max) {
     a = sx;
     b = sz;
-    c = (ymax == 0) ? &sy_d : &sy_u;
+    c = (y_max == 0) ? &sy_d : &sy_u;
     columncount = block_width;
     dy = 0;
-    xmin++; xmax++;
-    zmin++; zmax++;
-    if(ymin==0){
-        ymin = ymax = 1;
+    x_min++; x_max++;
+    z_min++; z_max++;
+    if(y_min==0){
+        y_min = y_max = 1;
     }else{
-        ymin = ymax = block_height;
+        y_min = y_max = block_height;
     }
   }
-  if (zmin == zmax) {
+  if (z_min == z_max) {
     a = sx;
     b = sy;
-    c = (zmax == 0) ? &sz_b : &sz_f;
+    c = (z_max == 0) ? &sz_b : &sz_f;
     columncount = block_width;
     dz = 0;
-    xmin++; xmax++;
-    ymin++; ymax++;
-    if(zmin==0){
-        zmin = zmax = 1;
+    x_min++; x_max++;
+    y_min++; y_max++;
+    if(z_min==0){
+        z_min = z_max = 1;
     }else{
-        zmin = zmax = block_depth;
+        z_min = z_max = block_depth;
     }
   }
 
-  surface_iterator in(u, xmin, xmax, dx,
-                         ymin, ymax, dy,
-                         zmin, zmax, dz);
+  surface_iterator in(u, x_min, x_max, dx,
+                         y_min, y_max, dy,
+                         z_min, z_max, dz);
 
   boundary = getGhostBuffer(getSourceDirection(uncledir));
 
@@ -995,9 +995,9 @@ void Advection::compute(){
     float *xn = new float[block_width+1];
     float *yn = new float[block_height+1];
     float *zn = new float[block_depth+1];
-    for(int i=0; i<block_width+1; i++) {xn[i]=xmin+dx*i;}
-    for(int i=0; i<block_height+1; i++){yn[i]=ymin+dy*i;}
-    for(int i=0; i<block_depth+1; i++) {zn[i]=zmin+dz*i;}
+    for(int i=0; i<block_width+1; i++) {xn[i]=x_min+dx*i;}
+    for(int i=0; i<block_height+1; i++){yn[i]=y_min+dy*i;}
+    for(int i=0; i<block_depth+1; i++) {zn[i]=z_min+dz*i;}
     //float *vars[] = {u};
     write_rectilinear_mesh(logfilename, 0, dims, xn, yn, zn, 1, vardims, centering, varnames, vars);
     delete [] vars[0]; delete [] xn; delete [] yn; delete [] zn;
@@ -1620,7 +1620,7 @@ void Advection::interpolate(float *u, vector<float>& refined_u, int xstart, int 
   }
 }
 
-void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float xmin, float ymin, float zmin) {
+void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float x_min, float y_min, float z_min) {
   OctIndex child = thisIndex.getChild(sChild);
 
   vector<float> refined_u;
@@ -1630,24 +1630,24 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   }
   VB(logfile << thisIndex.getIndexString().c_str() << " isRefined = " << isRefined << std::endl; 
   logfile << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
-  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, xmin, ymin, zmin, meshGenIterations, iterations, refined_u, neighbors);
+  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iterations, refined_u, neighbors);
 }
 
 void Advection::refine(){
 
   for (unsigned c = 0; c < NUM_CHILDREN; ++c) {
-    int cxmin, cxmax, cymin, cymax, czmin, czmax;
-    getOctantRange(c, cxmin, cxmax, cymin, cymax, czmin, czmax);
+    int cx_min, cx_max, cy_min, cy_max, cz_min, cz_max;
+    getOctantRange(c, cx_min, cx_max, cy_min, cy_max, cz_min, cz_max);
 
-    float cxx = xmin, cyy = ymin, czz = zmin;
-    if (cxmax == block_width)
+    float cxx = x_min, cyy = y_min, czz = z_min;
+    if (cx_max == block_width)
       cxx += (nx*dx)/2;
-    if (cymax == block_height)
+    if (cy_max == block_height)
       cyy += (ny*dy)/2;
-    if (czmax == block_depth)
+    if (cz_max == block_depth)
       czz += (nz*dz)/2;
 
-    refineChild(c, cxmin, cxmax, cymin, cymax, czmin, czmax, cxx, cyy, czz);
+    refineChild(c, cx_min, cx_max, cy_min, cy_max, cz_min, cz_max, cxx, cyy, czz);
     //thisProxy.doneInserting();
   }
   mem_deallocate_all();
@@ -1661,7 +1661,7 @@ bool Advection::isGrandParent() {
 
 // Constructor used to create children chares on refinement
 Advection::Advection(float dx, float dy, float dz,
-                     float myt, float mydt, float xmin, float ymin, float zmin,
+                     float myt, float mydt, float x_min, float y_min, float z_min,
                      int meshGenIterations, int iterations, vector<float> refined_u, map<OctIndex, Neighbor> parentNeighbors)
 {
   this->dx = dx;
@@ -1671,9 +1671,9 @@ Advection::Advection(float dx, float dy, float dz,
   this->myt = myt;
   this->mydt = mydt;
 
-  this->xmin = xmin;
-  this->ymin = ymin;
-  this->zmin = zmin;
+  this->x_min = x_min;
+  this->y_min = y_min;
+  this->z_min = z_min;
 
   nx = array_width/(num_chare_cols);
   ny = array_height/(num_chare_rows);

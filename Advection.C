@@ -10,47 +10,45 @@ using std::map;
 extern CProxy_Main mainProxy;
 extern CProxy_Advection qtree;
 
-extern int array_height;
-extern int array_width;
-extern int array_depth;
-
-extern int num_chare_rows;
-extern int num_chare_cols;
-extern int num_chare_Zs;
-
+extern int array_height, array_width, array_depth;
 extern int block_width, block_height, block_depth;
-
+extern int num_chare_rows, num_chare_cols, num_chare_Zs;
 extern int min_depth, max_depth;
 
-extern int nframe;
-extern float x_ctr, y_ctr, z_ctr, radius;
+extern int max_iters, refine_freq, lb_freq;
+
+extern bool verbose;
+
 extern float vx, vy, vz;
 extern float apx, anx, apy, any, apz, anz;
+extern float x_ctr, y_ctr, z_ctr, radius;
 extern float tmax, t, dt, cfl;
-extern int max_iters, refine_freq, lb_freq;
 
 #define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
 
 float refine_filter = 0.01;
-float refine_cutoff=0.2, derefine_cutoff=0.05;
-
-#ifdef USE_GPU
-extern void mem_allocate_host(void** ptr, size_t size);
-extern void mem_deallocate_host(void* ptr);
-extern void mem_allocate_device(void** ptr, size_t size);
-extern void mem_deallocate_device(void* ptr);
-extern void stream_create(cudaStream_t* stream_ptr);
-extern void stream_destroy(cudaStream_t stream);
-
-extern float invokeDecisionKernel(cudaStream_t, float*, float*, float*, float*, float*, float*, float, float, float, float, int, void*);
-extern void invokeComputeKernel(cudaStream_t, float*, float*, float*, float*, float, float, float, float, float, float, float, float, float, float, int, void*);
-#endif
+float refine_cutoff= 0.2, derefine_cutoff = 0.05;
 
 CProxy_AdvectionGroup ppc;
 
+#ifdef USE_GPU
+extern void memHostAlloc(void** ptr, size_t size);
+extern void memHostFree(void* ptr);
+extern void memDeviceAlloc(void** ptr, size_t size);
+extern void memDeviceFree(void* ptr);
+extern void createStream(cudaStream_t* stream_ptr);
+extern void destroyStream(cudaStream_t stream);
+
+extern float invokeDecisionKernel(cudaStream_t, float*, float*, float*, float*,
+    float*, float*, float, float, float, float, int, void*);
+extern void invokeComputeKernel(cudaStream_t, float*, float*, float*, float*,
+    float, float, float, float, float, float, float, float, float, float, int, void*);
+#endif
+
 enum BitsToUse { LOW, HIGH, BOTH };
-void populateIndices(BitsToUse X, BitsToUse Y, BitsToUse Z, std::vector<int>&IDs) {
-  BitsToUse Dims[3] = {Z, Y, X};
+static void populateIndices(BitsToUse x, BitsToUse y, BitsToUse z, std::vector<int>& ids)
+{
+  BitsToUse dims[3] = {z, y, x};
 
   for (unsigned i = 0; i < NUM_CHILDREN; ++i) {
     bool keep = true;
@@ -58,55 +56,46 @@ void populateIndices(BitsToUse X, BitsToUse Y, BitsToUse Z, std::vector<int>&IDs
       unsigned bit = 1 << j;
       bool set = (i & bit) != 0;
 
-      if (Dims[j] == BOTH) continue;
+      if (dims[j] == BOTH) continue;
 
-      if (set == (Dims[j] == LOW)) {
+      if (set == (dims[j] == LOW)) {
         keep = false;
         break;
       }
     }
     if (keep)
-      IDs.push_back(i);
+      ids.push_back(i);
   }
 }
-inline void getChildrenInDir(OctIndex myIndex, int dir, std::vector<OctIndex> &children) {
-  // Given an index "myIndex", return the children that share the surface
-  // specified by 'dir'.
-  std::vector<int> IDs;
+
+// Given an index, return the children that share the surface in the given direction
+inline static void getChildrenInDir(OctIndex myIndex, int dir, std::vector<OctIndex>& children)
+{
+  std::vector<int> ids;
   switch (dir) {
-  case LEFT:     populateIndices(LOW,  BOTH, BOTH, IDs); break;
-  case RIGHT:    populateIndices(HIGH, BOTH, BOTH, IDs); break;
-  case UP:       populateIndices(BOTH, HIGH, BOTH, IDs); break;
-  case DOWN:     populateIndices(BOTH, LOW,  BOTH, IDs); break;
-  case FORWARD:  populateIndices(BOTH, BOTH, HIGH, IDs); break;
-  case BACKWARD: populateIndices(BOTH, BOTH, LOW,  IDs); break;
+    case LEFT:     populateIndices(LOW,  BOTH, BOTH, ids); break;
+    case RIGHT:    populateIndices(HIGH, BOTH, BOTH, ids); break;
+    case UP:       populateIndices(BOTH, HIGH, BOTH, ids); break;
+    case DOWN:     populateIndices(BOTH, LOW,  BOTH, ids); break;
+    case FORWARD:  populateIndices(BOTH, BOTH, HIGH, ids); break;
+    case BACKWARD: populateIndices(BOTH, BOTH, LOW,  ids); break;
   }
 
-  for (std::vector<int>::iterator I = IDs.begin(), E = IDs.end(); I != E; ++I)
-    children.push_back(myIndex.getChild(*I));
+  for (std::vector<int>::iterator iter = ids.begin(), end = ids.end(); iter != end; ++iter)
+    children.push_back(myIndex.getChild(*iter));
   assert(children.size() == 4);
-  return;
 }
 
-inline void setFirstHalf(int &min, int &max) {
-  max /= 2;
-}
-inline void setSecondHalf(int &min, int &max) {
-  min = (max / 2) + 1;
-}
+inline static void setFirstHalf(int& min, int& max) { max /= 2; }
+inline static void setSecondHalf(int& min, int& max) { min = (max / 2) + 1; }
 
-inline void populateQuadrant(bool bit1, bool bit2,
-                             int &min1, int &max1,
-                             int &min2, int &max2) {
-  if (bit1)
-    setSecondHalf(min1, max1);
-  else
-    setFirstHalf(min1, max1);
+inline static void populateQuadrant(bool bit1, bool bit2, int& min1, int& max1, int& min2, int& max2)
+{
+  if (bit1)  setSecondHalf(min1, max1);
+  else       setFirstHalf(min1, max1);
 
-  if (bit2)
-    setSecondHalf(min2, max2);
-  else
-    setFirstHalf(min2, max2);
+  if (bit2)  setSecondHalf(min2, max2);
+  else       setFirstHalf(min2, max2);
 }
 
 enum {
@@ -114,126 +103,85 @@ enum {
   Y_MASK = 1 << 1,
   Z_MASK = 1 << 0
 };
-inline void populateRanges(int dir, int octant,
-                           int &x_min, int &x_max,
-                           int &y_min, int &y_max,
-                           int &z_min, int &z_max) {
+
+inline static void populateRanges(int dir, int octant, int &x_min, int &x_max,
+                           int& y_min, int& y_max, int& z_min, int& z_max)
+{
   x_min = 0; x_max = block_width-1;
   y_min = 0; y_max = block_height-1;
   z_min = 0; z_max = block_depth-1;
+
   switch (dir) {
-  case UP:
-    y_min = y_max = block_height+1;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & X_MASK,
-        octant & Z_MASK,
-        x_min, x_max,
-        z_min, z_max);
-    }
-    break;
-  case DOWN:
-    y_max = 0;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & X_MASK,
-        octant & Z_MASK,
-        x_min, x_max,
-        z_min, z_max);
-    }
-    break;
-  case LEFT:
-    x_max = 0;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & Y_MASK,
-        octant & Z_MASK,
-        y_min, y_max,
-        z_min, z_max);
-    }
-    break;
-  case RIGHT:
-    x_min = x_max = block_width+1;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & Y_MASK,
-        octant & Z_MASK,
-        y_min, y_max,
-        z_min, z_max);
-    }
-    break;
-  case FORWARD:
-    z_min = z_max = block_depth+1;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & X_MASK,
-        octant & Y_MASK,
-        x_min, x_max,
-        y_min, y_max);
-    }
-    break;
-  case BACKWARD:
-    z_max = 0;
-    if (octant >= 0) {
-      populateQuadrant(
-        octant & X_MASK,
-        octant & Y_MASK,
-        x_min, x_max,
-        y_min, y_max);
-    }
-    break;
+    case UP:
+      y_min = y_max = block_height+1;
+      if (octant >= 0) {
+        populateQuadrant(octant & X_MASK, octant & Z_MASK, x_min, x_max, z_min, z_max);
+      }
+      break;
+    case DOWN:
+      y_max = 0;
+      if (octant >= 0) {
+        populateQuadrant(octant & X_MASK, octant & Z_MASK, x_min, x_max, z_min, z_max);
+      }
+      break;
+    case LEFT:
+      x_max = 0;
+      if (octant >= 0) {
+        populateQuadrant(octant & Y_MASK, octant & Z_MASK, y_min, y_max, z_min, z_max);
+      }
+      break;
+    case RIGHT:
+      x_min = x_max = block_width+1;
+      if (octant >= 0) {
+        populateQuadrant(octant & Y_MASK, octant & Z_MASK, y_min, y_max, z_min, z_max);
+      }
+      break;
+    case FORWARD:
+      z_min = z_max = block_depth+1;
+      if (octant >= 0) {
+        populateQuadrant(octant & X_MASK, octant & Y_MASK, x_min, x_max, y_min, y_max);
+      }
+      break;
+    case BACKWARD:
+      z_max = 0;
+      if (octant >= 0) {
+        populateQuadrant(octant & X_MASK, octant & Y_MASK, x_min, x_max, y_min, y_max);
+      }
+      break;
   }
 }
 
-inline bool getOctantRange(int octant,
-                           int &x_min, int &x_max,
-                           int &y_min, int &y_max,
-                           int &z_min, int &z_max) {
-  x_min = 1;
-  x_max = block_width;
-  y_min = 1;
-  y_max = block_height;
-  z_min = 1;
-  z_max = block_depth;
-  if (octant & X_MASK)
-    x_min = block_width/2+1;
-  else
-    x_max = block_width/2;
-
-  if (octant & Y_MASK)
-    y_min = block_height/2+1;
-  else
-    y_max = block_height/2;
-
-  if (octant & Z_MASK)
-    z_min = block_depth/2+1;
-  else
-    z_max = block_depth/2;
-}
-
-AdvectionGroup::AdvectionGroup()
-  :workUnitCount(0)
+inline static bool getOctantRange(int octant, int& x_min, int& x_max, int& y_min, int& y_max,
+                           int& z_min, int& z_max)
 {
-#ifdef TIMER
-  compute_time_sum = 0.0;
-  compute_time_cnt = 0;
-  decision_time_sum = 0.0;
-  decision_time_cnt = 0;
-#endif
+  x_min = 1; x_max = block_width;
+  y_min = 1; y_max = block_height;
+  z_min = 1; z_max = block_depth;
 
+  if (octant & X_MASK)  x_min = block_width/2+1;
+  else                  x_max = block_width/2;
+  if (octant & Y_MASK)  y_min = block_height/2+1;
+  else                  y_max = block_height/2;
+  if (octant & Z_MASK)  z_min = block_depth/2+1;
+  else                  z_max = block_depth/2;
+}
+
+AdvectionGroup::AdvectionGroup() : workUnitCount(0), compute_time_sum(0.0),
+  compute_time_cnt(0), decision_time_sum(0.0), decision_time_cnt(0)
+{
+  // delu and delua are 4D arrays
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
-  mem_allocate_device((void**)&d_delu, delu_size);
-  mem_allocate_device((void**)&d_delua, delu_size);
+  memDeviceAlloc((void**)&d_delu, delu_size);
+  memDeviceAlloc((void**)&d_delua, delu_size);
 #endif
-
   delu = new float***[numDims];
   delua = new float***[numDims];
 
   for (int d = 0; d < numDims; ++d) {
     delu[d] = new float**[block_width+2];
     delua[d] = new float**[block_width+2];
-    for(int i=0; i<block_width+2; i++) {
+    for (int i = 0; i < block_width+2; ++i) {
       delu[d][i] = new float*[block_height+2];
       delua[d][i] = new float*[block_height+2];
       for (int j = 0; j < block_height+2; ++j) {
@@ -244,20 +192,20 @@ AdvectionGroup::AdvectionGroup()
   }
 }
 
-AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
+AdvectionGroup::AdvectionGroup(CkMigrateMessage* m) : CBase_AdvectionGroup(m)
+{
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
-  mem_allocate_device((void**)&d_delu, delu_size);
-  mem_allocate_device((void**)&d_delua, delu_size);
+  memDeviceAlloc((void**)&d_delu, delu_size);
+  memDeviceAlloc((void**)&d_delua, delu_size);
 #endif
-
   delu = new float***[numDims];
   delua = new float***[numDims];
 
   for (int d = 0; d < numDims; ++d) {
     delu[d] = new float**[block_width+2];
     delua[d] = new float**[block_width+2];
-    for(int i=0; i<block_width+2; i++) {
+    for (int i = 0; i < block_width+2; ++i) {
       delu[d][i] = new float*[block_height+2];
       delua[d][i] = new float*[block_height+2];
       for (int j = 0; j < block_height+2; ++j) {
@@ -268,46 +216,59 @@ AdvectionGroup::AdvectionGroup(CkMigrateMessage* m): CBase_AdvectionGroup(m){
   }
 }
 
-AdvectionGroup::~AdvectionGroup() {
+AdvectionGroup::~AdvectionGroup()
+{
 #ifdef USE_GPU
-  mem_deallocate_device(d_delu);
-  mem_deallocate_device(d_delua);
+  memDeviceFree(d_delu);
+  memDeviceFree(d_delua);
 #endif
 }
 
-void AdvectionGroup::incrementWorkUnitCount(int iterations) {
+void AdvectionGroup::incrementWorkUnitCount(int iterations)
+{
   workUnitCount++;
   workUnits[iterations]++;
-  if(iterations % lb_freq == 0 || iterations % lb_freq == lb_freq-1){//this is the load balancing iteration
+
+  if (iterations % lb_freq == 0 || iterations % lb_freq == lb_freq-1) {
+    // This is either a load balancing iteration or the one right before it
     minLoad[iterations] += 1;
     maxLoad[iterations] += 1;
     avgLoad[iterations] += 1;
   }
 }
 
-void AdvectionGroup::reduceWorkUnits() {
+void AdvectionGroup::reduceWorkUnits()
+{
   CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-void AdvectionGroup::processQdTimes(map<int, pair<float, float> > peQdtimes, map<int, pair<float, float> > peRemeshtimes, map<int, int> peWorkunits,
-                                    map<int, int> peminLoad, map<int, int> pemaxLoad, map<int, float> peavgLoad){
-  for(map<int, std::pair<float, float> >::iterator it = peQdtimes.begin(); it!=peQdtimes.end(); it++){
-    if(qdtimes.find(it->first) == qdtimes.end())
-      qdtimes[it->first] = std::pair<float, float>(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+void AdvectionGroup::processQdTimes(map<int, pair<float, float>> peQdtimes,
+                                    map<int, pair<float, float>> peRemeshtimes,
+                                    map<int, int> peWorkunits, map<int, int> peminLoad,
+                                    map<int, int> pemaxLoad, map<int, float> peavgLoad)
+{
+  for (auto it = peQdtimes.begin(); it != peQdtimes.end(); it++) {
+    if (qdtimes.find(it->first) == qdtimes.end()) {
+      qdtimes[it->first] = std::pair<float, float>(std::numeric_limits<float>::min(),
+                                                   std::numeric_limits<float>::max());
+    }
     qdtimes[it->first].first = max(qdtimes[it->first].first, it->second.first);
     qdtimes[it->first].second = min(qdtimes[it->first].second, it->second.second);
   }
-  for(map<int, std::pair<float, float> >::iterator it = peRemeshtimes.begin(); it!=peRemeshtimes.end(); it++){
-    if(remeshtimes.find(it->first) == remeshtimes.end())
+
+  for (auto it = peRemeshtimes.begin(); it != peRemeshtimes.end(); it++) {
+    if (remeshtimes.find(it->first) == remeshtimes.end()) {
       remeshtimes[it->first] = std::pair<float, float>(0, std::numeric_limits<float>::max());
+    }
     remeshtimes[it->first].first = max(remeshtimes[it->first].first, it->second.first);
     remeshtimes[it->first].second = min(remeshtimes[it->first].second, it->second.second);
   }
-  
-  for(map<int, int>::iterator it=peWorkunits.begin(); it!=peWorkunits.end(); it++){
+
+  for (auto it = peWorkunits.begin(); it != peWorkunits.end(); it++) {
     workUnits[it->first] += it->second;
-    if(it->first % lb_freq == 0 || it->first % lb_freq == lb_freq-1){//this is the load balancing iteration
+    if (it->first % lb_freq == 0 || it->first % lb_freq == lb_freq-1) {
+      // This is either a load balancing iteration or the one right before it
       minLoad[it->first] = std::min(minLoad[it->first], peminLoad[it->first]);
       maxLoad[it->first] = std::max(maxLoad[it->first], pemaxLoad[it->first]);
       avgLoad[it->first] += peavgLoad[it->first];
@@ -315,39 +276,44 @@ void AdvectionGroup::processQdTimes(map<int, pair<float, float> > peQdtimes, map
   }
 }
 
-void AdvectionGroup::printLogs(){
-    ckout << "qd times: ";
-    for(map<int, pair<float, float> >::iterator it = qdtimes.begin(); it!=qdtimes.end(); it++)
-      ckout << it->first << "," << it->second.second - it->second.first << " ";
-    ckout << endl;
+void AdvectionGroup::printLogs()
+{
+  ckout << "Compute function average time: " << compute_time_sum/compute_time_cnt << endl;
+  ckout << "Refinement decision average time: " << decision_time_sum/decision_time_cnt << endl;
+  ckout << endl;
 
-    ckout << "remesh times: ";
-    for(map<int, pair<float, float> >::iterator it = remeshtimes.begin(); it!=remeshtimes.end(); it++)
-      ckout << it->first << "," << it->second.second - it->second.first << " ";
-    ckout << endl;
-
-    ckout << "per iteration work units: ";
-    for(map<int, int>::iterator it = workUnits.begin(); it!=workUnits.end(); it++)
-      ckout << it->first << "," << it->second << " ";
-    ckout << endl;
-    
-    ckout << "load balancing stats: ";
-    for(map<int, int>::iterator it = minLoad.begin(); it!=minLoad.end(); it++){
-      avgLoad[it->first]/=CkNumPes();
-      ckout << it->first << "," << int(avgLoad[it->first]*100)/100. << "," << minLoad[it->first] << "," << maxLoad[it->first] << " ";
+  if (verbose) {
+    ckout << "QD times (iteration, duration):" << endl;
+    for (auto it = qdtimes.begin(); it != qdtimes.end(); it++) {
+      ckout << "(" << it->first << ", " << it->second.second - it->second.first << ")\n";
     }
     ckout << endl;
 
-#ifdef TIMER
-    ckout << "Compute function average time: " << compute_time_sum/compute_time_cnt << endl;
-    ckout << "Refinement decision average time: " << decision_time_sum/decision_time_cnt << endl;
-#endif
+    ckout << "Remeshing times (iteration, duration):" << endl;
+    for (auto it = remeshtimes.begin(); it != remeshtimes.end(); it++) {
+      ckout << "(" << it->first << ", " << it->second.second - it->second.first << ")\n";
+    }
+    ckout << endl;
 
-    CkExit();
+    ckout << "Work units per iteration (iteration, count):" << endl;
+    for (auto it = workUnits.begin(); it != workUnits.end(); it++) {
+      ckout << "(" << it->first << ", " << it->second << ")\n";
+    }
+    ckout << endl;
+
+    ckout << "Load balancing stats (iteration, average load, min load, max load):" << endl;
+    for (auto it = minLoad.begin(); it != minLoad.end(); it++) {
+      avgLoad[it->first] /= CkNumPes();
+      ckout << "(" << it->first << ", " << int(avgLoad[it->first]*100)/100.
+        << ", " << minLoad[it->first] << ", " << maxLoad[it->first] << ")\n";
+    }
+    ckout << endl;
+  }
+
+  CkExit();
 }
 
-void AdvectionGroup::meshGenerationPhaseIsOver(){
-}
+void AdvectionGroup::meshGenerationPhaseIsOver() {}
 
 void Advection::prepareData4Exchange(){
   imsg=0;
@@ -402,17 +368,17 @@ void Advection::mem_allocate(float* &p, int size){
 
 void Advection::mem_allocate_all(){
 #ifdef USE_GPU
-  mem_allocate_host((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
-  mem_allocate_host((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
-  mem_allocate_host((void**)&u3, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
-  mem_allocate_host((void**)&h_error, sizeof(float));
-  mem_allocate_device((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  mem_allocate_device((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  mem_allocate_device((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  mem_allocate_device((void**)&d_error, sizeof(float));
+  memHostAlloc((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  memHostAlloc((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  memHostAlloc((void**)&u3, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  memHostAlloc((void**)&h_error, sizeof(float));
+  memDeviceAlloc((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  memDeviceAlloc((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  memDeviceAlloc((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  memDeviceAlloc((void**)&d_error, sizeof(float));
 
-  stream_create(&computeStream);
-  stream_create(&decisionStream);
+  createStream(&computeStream);
+  createStream(&decisionStream);
 #else
   mem_allocate(u, (block_width+2)*(block_height+2)*(block_depth+2));
   mem_allocate(u2, (block_width+2)*(block_height+2)*(block_depth+2));
@@ -433,17 +399,17 @@ void Advection::mem_allocate_all(){
 
 void Advection::mem_deallocate_all(){
 #ifdef USE_GPU
-  mem_deallocate_host(u);
-  mem_deallocate_host(u2);
-  mem_deallocate_host(u3);
-  mem_deallocate_host(h_error);
-  mem_deallocate_device(d_u);
-  mem_deallocate_device(d_u2);
-  mem_deallocate_device(d_u3);
-  mem_deallocate_device(d_error);
+  memHostFree(u);
+  memHostFree(u2);
+  memHostFree(u3);
+  memHostFree(h_error);
+  memDeviceFree(d_u);
+  memDeviceFree(d_u2);
+  memDeviceFree(d_u3);
+  memDeviceFree(d_error);
 
-  stream_destroy(computeStream);
-  stream_destroy(decisionStream);
+  destroyStream(computeStream);
+  destroyStream(decisionStream);
 #else
   delete [] u;
   delete [] u2;
@@ -956,11 +922,9 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
 
 void Advection::computeDone() {
 #if defined(USE_GPU) && defined(USE_HAPI)
-#ifdef TIMER
   double time_dur = CkWallTimer() - compute_start_time;
   AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
   ppcGrp->addComputeTime(time_dur);
-#endif // TIMER
 
   iterate();
 #endif
@@ -1013,9 +977,7 @@ void Advection::compute(){
 #endif
   //}
 
-#ifdef TIMER
   compute_start_time = CkWallTimer();
-#endif
 
 #ifndef USE_GPU
   /********** CPU CODE **********/
@@ -1057,7 +1019,7 @@ void Advection::compute(){
 #endif // USE_HAPI
 #endif // USE_GPU
 
-#if defined(TIMER) && !defined(USE_HAPI)
+#ifndef USE_HAPI
   double compute_time = CkWallTimer() - compute_start_time;
   AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
   ppcGrp->addComputeTime(compute_time);
@@ -1097,11 +1059,9 @@ void Advection::gotErrorFromGPU() {
     newDecision = STAY;
   }
 
-#ifdef TIMER
   double decision_time = CkWallTimer() - decision_start_time;
   AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
   ppcGrp->addDecisionTime(decision_time);
-#endif
 
   newDecision = (decision != REFINE) ? max(decision, newDecision) : decision;
   VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
@@ -1117,9 +1077,7 @@ Decision Advection::getGranularityDecision(){
 
   AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
 
-#ifdef TIMER
   decision_start_time = CkWallTimer();
-#endif
 
 #ifndef USE_GPU
   /********** CPU CODE **********/
@@ -1179,10 +1137,8 @@ Decision Advection::getGranularityDecision(){
     }
   }
 
-#ifdef TIMER
   double decision_time = CkWallTimer() - decision_start_time;
   ppcGrp->addDecisionTime(decision_time);
-#endif
 
   error = sqrt(error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
@@ -1195,10 +1151,8 @@ Decision Advection::getGranularityDecision(){
   float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
   error = sqrt(error_gpu);
 
-#ifdef TIMER
   double decision_time = CkWallTimer() - decision_start_time;
   ppcGrp->addDecisionTime(decision_time);
-#endif
 
   error = sqrt(error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;

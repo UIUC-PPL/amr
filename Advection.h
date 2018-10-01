@@ -9,7 +9,6 @@
 #endif
 
 class Neighbor {
-
   bool refined;
   bool dataSent;
   Decision decision;
@@ -152,10 +151,8 @@ class Advection: public CBase_Advection/*, public AdvTerm */{
   int nChildDataRecvd;
   bool phase1Over;
 
-#ifdef TIMER
   double compute_start_time;
   double decision_start_time;
-#endif
 
   ~Advection();
 
@@ -236,12 +233,11 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   std::map<int, int> minLoad;
   std::map<int, int> maxLoad;
   std::map<int, float> avgLoad;
-#ifdef TIMER
+
   double compute_time_sum;
   int compute_time_cnt;
   double decision_time_sum;
   int decision_time_cnt;
-#endif
 
  public:
   float ****delu, ****delua;
@@ -278,7 +274,6 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   void reduceWorkUnits();
   void meshGenerationPhaseIsOver();
 
-#ifdef TIMER
   void addComputeTime(double time) {
     compute_time_sum += time;
     compute_time_cnt++;
@@ -287,7 +282,6 @@ class AdvectionGroup : public CBase_AdvectionGroup {
     decision_time_sum += time;
     decision_time_cnt++;
   }
-#endif
 };
 
 extern CProxy_AdvectionGroup ppc;

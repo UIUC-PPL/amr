@@ -8,46 +8,29 @@
 #include "hapi.h"
 #endif
 
-#define USE_CUB 0
-#define USE_SHARED_MEM 1
-#define SUB_BLOCK_SIZE 8
-#define NUM_DIMS 3
+#define USE_CUB             0
+#define USE_SHARED_MEM      1
+#define SUB_BLOCK_SIZE      8
+#define NUM_DIMS            3
 
-#define FLAT_IDX(i,j,k) (((k) * (block_size+2) + (j)) * (block_size+2) + (i))
-#define FLAT_IDX4(d,i,j,k) ((((d) * (block_size+2) + (k)) * (block_size+2) + (j)) * (block_size+2) + (i))
-#define ERROR_IDX(i,j,k) ((((k)-2) * (block_size-2) + ((j)-2)) * (block_size-2) + ((i)-2))
+#define FLAT_IDX(i,j,k)     (((k) * (block_size+2) + (j)) * (block_size+2) + (i))
+#define FLAT_IDX4(d,i,j,k)  ((((d) * (block_size+2) + (k)) * (block_size+2) + (j)) * (block_size+2) + (i))
+#define ERROR_IDX(i,j,k)    ((((k)-2) * (block_size-2) + ((j)-2)) * (block_size-2) + ((i)-2))
 
-#define gpuSafe(retval) gpuPrintError((retval), __FILE__, __LINE__)
-#define gpuCheck() gpuPrintError(cudaGetLastError(), __FILE__, __LINE__)
+#define gpuSafe(retval)     gpuPrintError((retval), __FILE__, __LINE__)
+#define gpuCheck()          gpuPrintError(cudaGetLastError(), __FILE__, __LINE__)
 
 inline void gpuPrintError(cudaError_t err, const char *file, int line) {
   if (err != cudaSuccess)
     fprintf(stderr,"CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), file, line);
 }
 
-void mem_allocate_host(void** ptr, size_t size) {
-  gpuSafe(cudaMallocHost(ptr, size));
-}
-
-void mem_deallocate_host(void* ptr) {
-  gpuSafe(cudaFreeHost(ptr));
-}
-
-void mem_allocate_device(void** ptr, size_t size) {
-  gpuSafe(cudaMalloc(ptr, size));
-}
-
-void mem_deallocate_device(void* ptr) {
-  gpuSafe(cudaFree(ptr));
-}
-
-void stream_create(cudaStream_t* stream_ptr) {
-  gpuSafe(cudaStreamCreate(stream_ptr));
-}
-
-void stream_destroy(cudaStream_t stream) {
-  gpuSafe(cudaStreamDestroy(stream));
-}
+void memHostAlloc(void** ptr, size_t size) { gpuSafe(cudaMallocHost(ptr, size)); }
+void memHostFree(void* ptr) { gpuSafe(cudaFreeHost(ptr)); }
+void memDeviceAlloc(void** ptr, size_t size) { gpuSafe(cudaMalloc(ptr, size)); }
+void memDeviceFree(void* ptr) { gpuSafe(cudaFree(ptr)); }
+void createStream(cudaStream_t* stream_ptr) { gpuSafe(cudaStreamCreate(stream_ptr)); }
+void destroyStream(cudaStream_t stream) { gpuSafe(cudaStreamDestroy(stream)); }
 
 __device__ static float atomicMax(float* address, float val)
 {

@@ -4,8 +4,7 @@ CHARMC ?= $(CHARM_DIR)/bin/charmc -I. $(CHARMC_INC)
 CHARMC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/include
 CXX = $(CHARMC)
 OPTS ?= --std=c++11 -O3
-DEFINE = -DTIMER
-CXXFLAGS += $(DEFINE) -DAMR_REVISION=$(REVNUM) $(OPTS)
+CXXFLAGS += $(OPTS)
 
 # CUDA settings
 CUDATOOLKIT_HOME ?= /usr/local/cuda

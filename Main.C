@@ -7,22 +7,14 @@ using std::min;
 /* readonly */ CProxy_Main mainProxy;
 /* readonly */ CProxy_Advection qtree;
 
-/* readonly */ int array_height;
-/* readonly */ int array_width;
-/* readonly */ int array_depth;
-
-/* readonly */ int block_height;
-/* readonly */ int block_width;
-/* readonly */ int block_depth;
-
-/* readonly */ int num_chare_rows;
-/* readonly */ int num_chare_cols;
-/* readonly */ int num_chare_Zs;
-
+/* readonly */ int array_height, array_width, array_depth;
+/* readonly */ int block_height, block_width, block_depth;
+/* readonly */ int num_chare_rows, num_chare_cols, num_chare_Zs;
 /* readonly */ int min_depth, max_depth;
-/* readonly */ int max_iters;
-/* readonly */ int refine_freq;
-/* readonly */ int lb_freq; // load balancing frequency
+
+/* readonly */ int max_iters, refine_freq, lb_freq;
+
+/* readonly */ bool verbose;
 
 /* readonly */ float x_min, x_max, y_min, y_max, z_min, z_max;
 /* readonly */ float dx, dy, dz, vx, vy, vz;
@@ -42,10 +34,11 @@ Main::Main(CkArgMsg* m) {
   max_iters = 30;
   refine_freq = 3;
   lb_freq = 9;
+  verbose = false;
 
   // Process command line arguments
   int c;
-  while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:h")) != -1) {
+  while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:vh")) != -1) {
     switch (c) {
       case 'a':
         array_height = array_width = array_depth = atoi(optarg);
@@ -68,6 +61,9 @@ Main::Main(CkArgMsg* m) {
         break;
       case 'r':
         refine_freq = atoi(optarg);
+        break;
+      case 'v':
+        verbose = true;
         break;
       case 'h':
         ckout << "\n[AMR Advection Mini-App Options]\n\n"
@@ -146,7 +142,7 @@ Main::Main(CkArgMsg* m) {
     dt = tmax - t;
   t = t + dt;
 
-  CkPrintf("[AMR Advection Mini-App]\n"
+  CkPrintf("\n===== Welcome to the Charm++ AMR Mini-App =====\n"
            "* Array dimension: %d x %d x %d\n"
            "* Block dimension: %d x %d x %d\n"
            "* Chares: %d x %d x %d\n"
@@ -154,7 +150,7 @@ Main::Main(CkArgMsg* m) {
            "* Maximum depth: %d\n"
            "* Number of iterations: %d\n"
            "* Refinement frequency: %d\n"
-           "* Load balancing frequency: %d\n",
+           "* Load balancing frequency: %d\n\n",
            array_width, array_height, array_depth,
            block_width, block_height, block_depth,
            num_chare_rows, num_chare_cols, num_chare_Zs,
@@ -185,12 +181,12 @@ void Main::startMeshGeneration() {
 }
 
 void Main::terminate() {
-  ckout << "Simulation time: " << CkWallTimer() - start_time << " s" << endl;
+  ckout << "\nSimulation time: " << CkWallTimer() - start_time << " s" << endl;
   ppc.reduceWorkUnits();
 }
 
 void Main::totalWorkUnits(int total) {
-  CkPrintf("Total work units = %d\n", total);
+  CkPrintf("Total work units: %d\n", total);
   ppc.reduceQdTimes();
 }
 

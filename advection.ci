@@ -40,6 +40,8 @@ mainmodule Main {
   readonly int refine_freq;
   readonly int lb_freq;
 
+  readonly bool verbose;
+
   readonly CProxy_AdvectionGroup ppc;
 
   mainchare [migratable] Main {

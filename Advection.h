@@ -16,12 +16,8 @@ class Neighbor {
   int dir;
 
 public:
-
-  Neighbor() : refined(false), dataSent(false), decision(INV),
-               dir(-1) {}
-
-  Neighbor(int dir) : refined(false), dataSent(false), decision(INV),
-                      dir(dir) {}
+  Neighbor() : refined(false), dataSent(false), decision(INV), dir(-1) {}
+  Neighbor(int dir) : refined(false), dataSent(false), decision(INV), dir(dir) {}
 
   int getDir() { return dir; }
 
@@ -68,24 +64,18 @@ public:
   }
 };
 
-//class ChildDataMsg;
-
-/*typedef TerminationChare<CProxy_Advection, OctIndex> AdvTerm;*/
-
-class Advection: public CBase_Advection/*, public AdvTerm */{
+class Advection : public CBase_Advection {
   Advection_SDAG_CODE
-    public:
-        
-  //tree information
+public:
+  // Tree information
   bool isRefined;
   int depth;
-
   bool child_isRefined[NUM_CHILDREN];
   bool isGrandParent();
 
   std::set<OctIndex> ghostReceived;
 
-  /*Phase1 DataStructures*/
+  // Phase 1 data structures
   Decision decision;
   Decision child_decision[NUM_CHILDREN];
 

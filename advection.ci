@@ -233,8 +233,6 @@ module Advection {
                  logfile << "Decision: " << decision << std::endl;);
               doPhase2();
               phase1Over = true;
-              //iterate();
-              //if (isRoot()) CkStartQD(CkCallback(CkIndex_Advection::iterate(), thisProxy));
             }
           }
         }
@@ -246,7 +244,6 @@ module Advection {
 
     entry void doComputationStep() {
       serial {
-        //ckout << thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
         if (isLeaf) {
           ppc.ckLocalBranch()->incrementWorkUnitCount(iterations);
         }
@@ -378,7 +375,7 @@ module Advection {
         }
       }
 
-      serial{
+      serial {
         iterate();
       }
     };

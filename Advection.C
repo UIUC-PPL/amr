@@ -1419,7 +1419,7 @@ void Advection::updateMeshState(){
           << isRefined << " " << isGrandParent() << " " << parentHasAlreadyMadeDecision << std::endl;);
     isRefined = false;
     //set up the sdag for receving child data
-    wait4ChildData();
+    thisProxy[thisIndex].wait4ChildData();
     return;
   }
 

@@ -145,7 +145,7 @@ Main::Main(CkArgMsg* m) {
   CkPrintf("\n===== Welcome to the Charm++ AMR Mini-App =====\n"
            "* Array dimension: %d x %d x %d\n"
            "* Block dimension: %d x %d x %d\n"
-           "* Chares: %d x %d x %d\n"
+           "* Initial chares: %d x %d x %d\n"
            "* Minimum depth: %d\n"
            "* Maximum depth: %d\n"
            "* Number of iterations: %d\n"

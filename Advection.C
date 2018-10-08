@@ -1584,6 +1584,8 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   }
   VB(logfile << thisIndex.getIndexString().c_str() << " isRefined = " << isRefined << std::endl; 
   logfile << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
+
+  // Creation of new chares due to refinement
   thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iterations, refined_u, neighbors);
 }
 
@@ -1698,8 +1700,6 @@ Advection::Advection(float dx, float dy, float dz,
 }
 
 void Advection::startLdb(){
-#ifndef USE_HAPI
-  // Turn load balancing off with HAPI, needs more testing
   UserSetLBLoad();
   /*if(isRoot()){ 
     ckout << "at sync" << endl;
@@ -1715,7 +1715,6 @@ void Advection::startLdb(){
     //LBDatabaseObj()->StartLB();
     ckout << "ldb start time: " << CmiWallTimer() << endl;
   }
-#endif
 }
 
 void Advection::ResumeFromSync() {

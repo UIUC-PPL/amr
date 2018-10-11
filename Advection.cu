@@ -125,7 +125,7 @@ void invokeComputeKernel(cudaStream_t computeStream, float* u, float* d_u, float
 
 #ifdef USE_HAPI
   // Use HAPI callback to get notified once the results are computed on the GPU
-  hapiAddCallback(computeStream, cb, NULL);
+  hapiAddCallback(computeStream, cb);
 #else
   // Wait until completion
   gpuSafe(cudaStreamSynchronize(computeStream));
@@ -346,21 +346,8 @@ float invokeDecisionKernel(cudaStream_t decisionStream, float* u, float* h_error
   dimGrid = dim3(sub_block_cnt, sub_block_cnt, sub_block_cnt);
 #if USE_CUB
   decisionKernel2<<<dimGrid, dimBlock, 0, decisionStream>>>(d_delu, d_delua, d_errors, refine_filter, dx, dy, dz, block_size);
-#else
-  decisionKernel2<<<dimGrid, dimBlock, 0, decisionStream>>>(d_delu, d_delua, d_error, refine_filter, dx, dy, dz, block_size);
-#endif
-  gpuSafe(cudaMemcpyAsync(h_error, d_error, sizeof(float), cudaMemcpyDeviceToHost, decisionStream));
   gpuCheck();
 
-#ifdef USE_HAPI
-  // Use HAPI callback to get notified once the results are computed on the GPU
-  hapiAddCallback(decisionStream, cb, NULL);
-#else
-  // Wait until completion
-  gpuSafe(cudaStreamSynchronize(decisionStream));
-#endif
-
-#if USE_CUB
   // Max reduction using cub (TODO: can multiple instances of this run concurrently?)
   void *d_temp_storage = NULL;
   size_t temp_storage_bytes = 0;
@@ -375,7 +362,20 @@ float invokeDecisionKernel(cudaStream_t decisionStream, float* u, float* h_error
   // Deallocate memory
   gpuSafe(cudaFree(d_errors));
   gpuSafe(cudaFree(d_temp_storage));
+#else
+  decisionKernel2<<<dimGrid, dimBlock, 0, decisionStream>>>(d_delu, d_delua, d_error, refine_filter, dx, dy, dz, block_size);
+  gpuCheck();
+
+  gpuSafe(cudaMemcpyAsync(h_error, d_error, sizeof(float), cudaMemcpyDeviceToHost, decisionStream));
+
+#ifdef USE_HAPI
+  // Use HAPI callback to get notified once the results are computed on the GPU
+  hapiAddCallback(decisionStream, cb);
+#else
+  // Wait until completion
+  gpuSafe(cudaStreamSynchronize(decisionStream));
 #endif
+#endif // USE_CUB
 
 #ifdef USE_HAPI
   // Just return a dummy value, we will be notified once the actual result is computed

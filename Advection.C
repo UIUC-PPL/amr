@@ -1045,6 +1045,10 @@ void Advection::compute(){
 
 void Advection::gotErrorFromGPU() {
 #if defined(USE_GPU) && defined(USE_HAPI)
+  double decision_time = CkWallTimer() - decision_start_time;
+  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
+  ppcGrp->addDecisionTime(decision_time);
+
   float error = sqrt(*h_error);
   //CkPrintf("error_gpu: %f\n", error);
 
@@ -1052,16 +1056,12 @@ void Advection::gotErrorFromGPU() {
   if (error < derefine_cutoff && thisIndex.getDepth() > min_depth) {
     newDecision = COARSEN;
   }
-  else if (error < refine_cutoff && thisIndex.getDepth() < max_depth) {
+  else if (error > refine_cutoff && thisIndex.getDepth() < max_depth) {
     newDecision = REFINE;
   }
   else {
     newDecision = STAY;
   }
-
-  double decision_time = CkWallTimer() - decision_start_time;
-  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
-  ppcGrp->addDecisionTime(decision_time);
 
   newDecision = (decision != REFINE) ? max(decision, newDecision) : decision;
   VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
@@ -1142,7 +1142,7 @@ Decision Advection::getGranularityDecision(){
 
   error = sqrt(error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
-  else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;  
+  else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
 #else
   /********** GPU CODE **********/
@@ -1167,7 +1167,6 @@ Decision Advection::getGranularityDecision(){
   invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, cb);
 
   return STAY; // return dummy value
-
 #endif // USE_HAPI
 #endif // USE_GPU
 }

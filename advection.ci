@@ -146,7 +146,6 @@ module Advection {
         thisProxy.startPhase2(meshGenIterations);
       }
     };
-    entry void makeGranularityDecisionAndCommunicate();
 
     // Specifies control flow of the remeshing phase
     entry void doRemeshing() {
@@ -174,7 +173,7 @@ module Advection {
       when signalExchangeGhostsCompletion() {
         serial {
           VB(logfile << "Registering QD, isLeaf: " << isLeaf << std::endl;);
-          thisProxy[thisIndex].makeGranularityDecisionAndCommunicate();
+          makeGranularityDecisionAndCommunicate();
           if (isRoot()) {
             if (iterations % lb_freq == 0 && iterations >= 1) {
               CkStartQD(CkCallback(CkIndex_Advection::startLdb(), thisProxy));

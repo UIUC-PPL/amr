@@ -1050,7 +1050,6 @@ void Advection::gotErrorFromGPU() {
   ppcGrp->addDecisionTime(decision_time);
 
   float error = sqrt(*h_error);
-  //CkPrintf("error_gpu: %f\n", error);
 
   Decision newDecision;
   if (error < derefine_cutoff && thisIndex.getDepth() > min_depth) {
@@ -1146,15 +1145,15 @@ Decision Advection::getGranularityDecision(){
   else return STAY;
 #else
   /********** GPU CODE **********/
-#ifndef USE_HAPI
+//#ifndef USE_HAPI
+#if 1 // TODO Don't use HAPI version because it sometimes results in different refinement decisions
   // execute GPU kernel
   float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
-  error = sqrt(error_gpu);
 
   double decision_time = CkWallTimer() - decision_start_time;
   ppcGrp->addDecisionTime(decision_time);
 
-  error = sqrt(error);
+  error = sqrt(error_gpu);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
@@ -1189,7 +1188,8 @@ void Advection::resetMeshRestructureData(){
 
 void Advection::makeGranularityDecisionAndCommunicate(){
   if(isLeaf) {//run this on leaf nodes
-#ifndef USE_HAPI
+//#ifndef USE_HAPI
+#if 1 // TODO Don't use HAPI version because it sometimes results in different refinement decisions
     Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
     VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
     updateDecisionState(1, newDecision);

@@ -368,7 +368,10 @@ float invokeDecisionKernel(cudaStream_t decisionStream, float* u, float* h_error
 
   gpuSafe(cudaMemcpyAsync(h_error, d_error, sizeof(float), cudaMemcpyDeviceToHost, decisionStream));
 
-#ifdef USE_HAPI
+
+// TODO Don't use HAPI version because it sometimes results in different refinement decisions
+//#ifdef USE_HAPI
+#if 0
   // Use HAPI callback to get notified once the results are computed on the GPU
   hapiAddCallback(decisionStream, cb);
 #else
@@ -377,7 +380,8 @@ float invokeDecisionKernel(cudaStream_t decisionStream, float* u, float* h_error
 #endif
 #endif // USE_CUB
 
-#ifdef USE_HAPI
+//#ifdef USE_HAPI
+#if 0
   // Just return a dummy value, we will be notified once the actual result is computed
   return 0;
 #else

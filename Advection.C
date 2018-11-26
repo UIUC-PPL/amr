@@ -1025,19 +1025,6 @@ void Advection::compute(){
   ppcGrp->addComputeTime(compute_time);
 #endif
 
-#if 0
-    logfile << "after compute" << std::endl;
-    for(int k=1; k<=block_depth; k++){
-        for(int j=1; j<=block_height; j++){
-            for(int i=1; i<=block_width; i++){
-                if(y[j]==0.484375)
-                    logfile << std::setw(10) << u[index(i,j,k)] << " ";
-            }
-        }
-        logfile << std::endl;
-    }
-  #endif
-
 #ifndef USE_HAPI
   iterate();
 #endif
@@ -1078,7 +1065,8 @@ Decision Advection::getGranularityDecision(){
 
   decision_start_time = CkWallTimer();
 
-#ifndef USE_GPU
+//#ifndef USE_GPU
+#if 1 // FIXME Do not use the GPU kernels for now, the error values are slightly different
   /********** CPU CODE **********/
   for(int i=1; i <= block_width; i++){
     for(int j=1; j<=block_height; j++){
@@ -1140,13 +1128,14 @@ Decision Advection::getGranularityDecision(){
   ppcGrp->addDecisionTime(decision_time);
 
   error = sqrt(error);
+  CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
 #else
   /********** GPU CODE **********/
 //#ifndef USE_HAPI
-#if 1 // TODO Don't use HAPI version because it sometimes results in different refinement decisions
+#if 1 // FIXME Don't use HAPI version because it sometimes results in different refinement decisions
   // execute GPU kernel
   float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
 
@@ -1154,6 +1143,7 @@ Decision Advection::getGranularityDecision(){
   ppcGrp->addDecisionTime(decision_time);
 
   error = sqrt(error_gpu);
+  CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;

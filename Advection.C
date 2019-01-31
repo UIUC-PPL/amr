@@ -985,7 +985,7 @@ void Advection::compute(){
   memcpy(u3, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
   FOR_EACH_ZONE
       up_x = (u[index(i+1,j,k)] - u[index(i,j,k)])/dx;
-      un_x = (u[index(i,j,k)]-u[index(i-1,j,k)])/dx;
+      un_x = (u[index(i,j,k)] - u[index(i-1,j,k)])/dx;
       up_y = (u[index(i,j+1,k)] - u[index(i,j,k)])/dy;
       un_y = (u[index(i,j,k)] - u[index(i,j-1,k)])/dy;
       up_z = (u[index(i,j,k+1)] - u[index(i,j,k)])/dz;
@@ -1128,7 +1128,7 @@ Decision Advection::getGranularityDecision(){
   ppcGrp->addDecisionTime(decision_time);
 
   error = sqrt(error);
-  CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
+  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
@@ -1143,7 +1143,7 @@ Decision Advection::getGranularityDecision(){
   ppcGrp->addDecisionTime(decision_time);
 
   error = sqrt(error_gpu);
-  CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
+  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
@@ -1332,6 +1332,7 @@ void Advection::doPhase2(){
           for(int k=1; k<=block_depth; k+=2)
             child_u[index_c(i/2, j/2, k/2)] = downSample(u, i, j, k);
     }
+    //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] coarsening\n", iterations, thisIndex.getDepth(), xc, yc, zc);
     VB(logfile << "coarsening .. sending data to parent " << meshGenIterations << std::endl;);
     thisProxy(parent).recvChildData(meshGenIterations, thisIndex.getOctant(), myt, mydt, meshGenIterations, iterations, child_u, neighbors, uncleDecisions);
     thisProxy[thisIndex].ckDestroy();
@@ -1575,6 +1576,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   logfile << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
 
   // Creation of new chares due to refinement
+  //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] refining\n", iterations, thisIndex.getDepth(), xc, yc, zc);
   thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iterations, refined_u, neighbors);
 }
 

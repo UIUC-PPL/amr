@@ -1,31 +1,24 @@
 mainmodule Main {
-  readonly CProxy_Main mainProxy;
+  readonly CProxy_Main main_proxy;
   readonly CProxy_MeshBlock mesh;
-
+  readonly int grid_height;
+  readonly int grid_width;
+  readonly int grid_depth;
   readonly int block_height;
   readonly int block_width;
   readonly int block_depth;
-
-  readonly int array_height;
-  readonly int array_width;
-  readonly int array_depth;
-
-  readonly int num_chare_rows;
-  readonly int num_chare_cols;
-  readonly int num_chare_Zs;
-
+  readonly int n_chares_x;
+  readonly int n_chares_y;
+  readonly int n_chares_z;
   readonly int min_depth;
   readonly int max_depth;
-
   readonly float x_ctr;
   readonly float y_ctr;
   readonly float z_ctr;
   readonly float radius;
-
   readonly float vx;
   readonly float vy;
   readonly float vz;
-
   readonly float apx;
   readonly float anx;
   readonly float apy;
@@ -35,11 +28,9 @@ mainmodule Main {
   readonly float tmax;
   readonly float dt;
   readonly float cfl;
-
   readonly int max_iters;
   readonly int refine_freq;
   readonly int lb_freq;
-
   readonly bool verbose;
 
   readonly CProxy_MeshManager mesh_manager;
@@ -293,7 +284,7 @@ module Advection {
           myt = myt + mydt;
           if (iterations > max_iters || myt >= tmax) {
             if (isRoot()) {
-              CkStartQD(CkCallback(CkIndex_Main::terminate(), mainProxy));
+              CkStartQD(CkCallback(CkIndex_Main::terminate(), main_proxy));
             }
             return;
           }

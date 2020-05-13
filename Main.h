@@ -2,7 +2,10 @@
 #define MAIN_H_
 
 #include "Main.decl.h"
+
 class Main : public CBase_Main {
+  double start_time, end_time;
+
 public:
   Main(CkArgMsg* m);
   Main(CkMigrateMessage* m) : CBase_Main(m) {}

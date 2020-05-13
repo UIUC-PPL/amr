@@ -1,25 +1,20 @@
 #include "Headers.h"
 #include <assert.h>
 
-extern CProxy_Main mainProxy;
+#define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
+
+extern CProxy_Main main_proxy;
 extern CProxy_MeshBlock mesh;
-
-extern int array_height, array_width, array_depth;
+extern int grid_height, grid_width, grid_depth;
 extern int block_width, block_height, block_depth;
-extern int num_chare_rows, num_chare_cols, num_chare_Zs;
+extern int n_chares_x, n_chares_y, n_chares_z;
 extern int min_depth, max_depth;
-
 extern int max_iters, refine_freq, lb_freq;
-
 extern bool verbose;
-
 extern float vx, vy, vz;
 extern float apx, anx, apy, any, apz, anz;
 extern float x_ctr, y_ctr, z_ctr, radius;
 extern float tmax, t, dt, cfl;
-
-#define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
-
 float refine_filter = 0.01;
 float refine_cutoff= 0.2, derefine_cutoff = 0.05;
 
@@ -233,7 +228,7 @@ void MeshManager::incrementWorkUnitCount(int iterations)
 
 void MeshManager::reduceWorkUnits()
 {
-  CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
+  CkCallback cb(CkReductionTarget(Main,totalWorkUnits), main_proxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
@@ -429,13 +424,13 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
   thisIndex.getCoordinates(xc, yc, zc);
-  dx = (x_max - x_min)/float(array_width);
-  dy = (y_max - y_min)/float(array_height);
-  dz = (z_max - z_min)/float(array_depth);
+  dx = (x_max - x_min) / float(grid_width);
+  dy = (y_max - y_min) / float(grid_height);
+  dz = (z_max - z_min) / float(grid_depth);
 
-  nx = array_width/(num_chare_cols);
-  ny = array_height/(num_chare_rows);
-  nz = array_depth/(num_chare_Zs);
+  nx = grid_width / n_chares_x;
+  ny = grid_height / n_chares_y;
+  nz = grid_depth / n_chares_z;
 
   myt = t;
   mydt = dt;
@@ -1615,9 +1610,9 @@ MeshBlock::MeshBlock(float dx, float dy, float dz,
   this->y_min = y_min;
   this->z_min = z_min;
 
-  nx = array_width/(num_chare_cols);
-  ny = array_height/(num_chare_rows);
-  nz = array_depth/(num_chare_Zs);
+  nx = grid_width / n_chares_x;
+  ny = grid_height / n_chares_y;
+  nz = grid_depth / n_chares_z;
 
   thisIndex.getCoordinates(xc, yc, zc);
   this->meshGenIterations = meshGenIterations;

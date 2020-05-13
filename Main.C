@@ -1,31 +1,25 @@
 #include "Headers.h"
 #include <assert.h>
 
-/* readonly */ CProxy_Main mainProxy;
+/* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_MeshBlock mesh;
-
-/* readonly */ int array_height, array_width, array_depth;
+/* readonly */ int grid_height, grid_width, grid_depth;
 /* readonly */ int block_height, block_width, block_depth;
-/* readonly */ int num_chare_rows, num_chare_cols, num_chare_Zs;
+/* readonly */ int n_chares_x, n_chares_y, n_chares_z;
 /* readonly */ int min_depth, max_depth;
-
 /* readonly */ int max_iters, refine_freq, lb_freq;
-
 /* readonly */ bool verbose;
-
 /* readonly */ float x_min, x_max, y_min, y_max, z_min, z_max;
 /* readonly */ float dx, dy, dz, vx, vy, vz;
 /* readonly */ float apx, anx, apy, any, apz, anz;
 /* readonly */ float x_ctr, y_ctr, z_ctr, radius;
 /* readonly */ float tmax, t, dt, cfl;
 
-/* readonly */ float start_time, end_time;
-
 Main::Main(CkArgMsg* m) {
-  mainProxy = thisProxy;
+  main_proxy = thisProxy;
 
   // Set default parameters
-  array_height = array_width = array_depth = 128;
+  grid_height = grid_width = grid_depth = 128;
   block_height = block_width = block_depth = 32;
   max_depth = 3;
   max_iters = 30;
@@ -38,7 +32,7 @@ Main::Main(CkArgMsg* m) {
   while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:vh")) != -1) {
     switch (c) {
       case 'a':
-        array_height = array_width = array_depth = atoi(optarg);
+        grid_height = grid_width = grid_depth = atoi(optarg);
         break;
       case 'b':
         block_height = block_width = block_depth = atoi(optarg);
@@ -46,8 +40,7 @@ Main::Main(CkArgMsg* m) {
       case 'd':
         max_depth = atoi(optarg);
         if (max_depth >= 11) {
-          ckerr << "Depth is too large for bitvector index" << endl;
-          CkExit();
+          CkAbort("Depth is too large for bitvector index");
         }
         break;
       case 'i':
@@ -81,8 +74,8 @@ Main::Main(CkArgMsg* m) {
     printf("Non-option argument %s\n", m->argv[i]);
 
   // Check if array size is divisible by block size
-  if (array_width < block_width || array_width % block_width != 0) {
-    ckout << "Array size (" << array_width << ") should be divisible by block size ("
+  if (grid_width < block_width || grid_width % block_width != 0) {
+    ckout << "Array size (" << grid_width << ") should be divisible by block size ("
           << block_width << ")" << endl;
     CkExit();
   }
@@ -95,11 +88,11 @@ Main::Main(CkArgMsg* m) {
   }
 
   // Set number of chares per dimension
-  num_chare_rows = num_chare_cols = num_chare_Zs = array_width / block_width;
-  int num_chares = num_chare_rows * num_chare_cols * num_chare_Zs;
+  n_chares_x = n_chares_y = n_chares_z = grid_width / block_width;
+  int n_chares = n_chares_x * n_chares_y * n_chares_z;
 
   // Set minimum depth
-  float fdepth = log(num_chares) / log(NUM_CHILDREN);
+  float fdepth = log(n_chares) / log(NUM_CHILDREN);
   min_depth = (fabs(fdepth - ceil(fdepth)) < 0.000001) ? ceil(fdepth) : floor(fdepth);
   if (min_depth > max_depth) {
     ckerr << "Minimum depth > maximum depth: try increasing maximum depth" << endl;
@@ -115,9 +108,9 @@ Main::Main(CkArgMsg* m) {
   y_min = 0; y_max = 1;
   z_min = 0; z_max = 1;
 
-  dx = (x_max - x_min) / float(array_width);
-  dy = (y_max - y_min) / float(array_height);
-  dz = (z_max - z_min) / float(array_depth);
+  dx = (x_max - x_min) / float(grid_width);
+  dy = (y_max - y_min) / float(grid_height);
+  dz = (z_max - z_min) / float(grid_depth);
 
   vx = 0.0; vy = 0.0; vz = 0.1;
 
@@ -140,17 +133,17 @@ Main::Main(CkArgMsg* m) {
   t = t + dt;
 
   CkPrintf("\n===== Welcome to the Charm++ AMR Mini-App =====\n"
-           "* Array dimension: %d x %d x %d\n"
-           "* Block dimension: %d x %d x %d\n"
+           "* Grid dimensions: %d x %d x %d\n"
+           "* Block dimensions: %d x %d x %d\n"
            "* Initial chares: %d x %d x %d\n"
            "* Minimum depth: %d\n"
            "* Maximum depth: %d\n"
            "* Number of iterations: %d\n"
            "* Refinement frequency: %d\n"
            "* Load balancing frequency: %d\n\n",
-           array_width, array_height, array_depth,
+           grid_width, grid_height, grid_depth,
            block_width, block_height, block_depth,
-           num_chare_rows, num_chare_cols, num_chare_Zs,
+           n_chares_x, n_chares_y, n_chares_z,
            min_depth, max_depth, max_iters, refine_freq, lb_freq);
 
   // Create tree of chares
@@ -158,9 +151,9 @@ Main::Main(CkArgMsg* m) {
   CkArrayOptions opts;
   opts.setMap(map);
   mesh = CProxy_MeshBlock::ckNew(opts);
-  for (int i = 0; i < num_chare_rows; ++i) {
-    for (int j = 0; j < num_chare_cols; ++j) {
-      for (int k = 0; k < num_chare_Zs; ++k) {
+  for (int i = 0; i < n_chares_x; ++i) {
+    for (int j = 0; j < n_chares_y; ++j) {
+      for (int k = 0; k < n_chares_z; ++k) {
         mesh[OctIndex(i, j, k, min_depth)].insert(x_min, x_max, y_min, y_max, z_min, z_max);
       }
     }

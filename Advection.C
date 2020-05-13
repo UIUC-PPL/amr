@@ -1,9 +1,6 @@
 #include "Headers.h"
 #include <assert.h>
 
-using std::ofstream;
-using std::map;
-
 extern CProxy_Main mainProxy;
 extern CProxy_Advection qtree;
 
@@ -240,10 +237,10 @@ void AdvectionGroup::reduceWorkUnits()
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-void AdvectionGroup::processQdTimes(map<int, pair<float, float>> peQdtimes,
-                                    map<int, pair<float, float>> peRemeshtimes,
-                                    map<int, int> peWorkunits, map<int, int> peminLoad,
-                                    map<int, int> pemaxLoad, map<int, float> peavgLoad)
+void AdvectionGroup::processQdTimes(std::map<int, pair<float, float>> peQdtimes,
+                                    std::map<int, pair<float, float>> peRemeshtimes,
+                                    std::map<int, int> peWorkunits, std::map<int, int> peminLoad,
+                                    std::map<int, int> pemaxLoad, std::map<int, float> peavgLoad)
 {
   for (auto it = peQdtimes.begin(); it != peQdtimes.end(); it++) {
     if (qdtimes.find(it->first) == qdtimes.end()) {
@@ -316,7 +313,7 @@ void Advection::prepareData4Exchange(){
   imsg=0;
   ghostReceived.clear();
 
-  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
        iend = neighbors.end(); it != iend; ++it) {
       it->second.setDataSent(false);
   }
@@ -668,7 +665,7 @@ void Advection::sendGhost(int dir){
   float* boundary;
 
   OctIndex QI = thisIndex.getNeighbor(dir);
-  map<OctIndex, Neighbor>::iterator I = neighbors.find(QI);
+  std::map<OctIndex, Neighbor>::iterator I = neighbors.find(QI);
 
   if (I == neighbors.end()) {
     VB(logfile << "neighbor is an uncle" << std::endl;);
@@ -767,7 +764,7 @@ void Advection::sendReadyData(){
   //If the neighbors are at the same level or do not exist at all 
   //data will be sent in begin_iteration function and need 
   //not be sent here
-  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
        iend = neighbors.end(); it != iend; ++it) {
     Neighbor &N = it->second;
     if(N.isRefined() && !N.isDataSent()) {
@@ -1164,7 +1161,7 @@ void Advection::resetMeshRestructureData(){
 
   uncleDecisions.clear();
 
-  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
        iend = neighbors.end(); it != iend; ++it) {
     it->second.resetDecision();
   }
@@ -1279,7 +1276,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
     VB(if(neighbors.count(QI)==0){
       logfile << thisIndex.getIndexString().c_str() << " didn't knew that " << QI.getIndexString().c_str() << " existed" << std::endl;
 
-      for(map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
+      for(std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
         logfile << it->first.getIndexString().c_str() << std::endl;
     });
     assert(neighbors.count(QI) && "Received message from neighbor we didn't know existed!");
@@ -1348,7 +1345,7 @@ void Advection::updateMeshState(){
   if(isLeaf && decision == STAY){
 
     std::vector<OctIndex> ToRemove;
-    for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+    for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
          iend = neighbors.end(); it != iend; ++it) {
       Neighbor &N = it->second;
       if (!N.isRefined()) {
@@ -1421,8 +1418,8 @@ void Advection::updateMeshState(){
 
 void Advection::recvChildData(int childNum, float myt, float mydt,
                               int meshGenIterations, int iterations, std::vector<float> child_u,
-                              map<OctIndex, Neighbor> childNeighbors,
-                              map<OctIndex, Decision> childUncleDecisions){
+                              std::map<OctIndex, Neighbor> childNeighbors,
+                              std::map<OctIndex, Decision> childUncleDecisions){
   VB(logfile << "recvd data from child: " << childNum << std::endl;);
   this->myt = myt;
   this->mydt = mydt;
@@ -1606,7 +1603,7 @@ bool Advection::isGrandParent() {
 // Constructor used to create children chares on refinement
 Advection::Advection(float dx, float dy, float dz,
                      float myt, float mydt, float x_min, float y_min, float z_min,
-                     int meshGenIterations, int iterations, std::vector<float> refined_u, map<OctIndex, Neighbor> parentNeighbors)
+                     int meshGenIterations, int iterations, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
 {
   this->dx = dx;
   this->dy = dy;
@@ -1633,13 +1630,13 @@ Advection::Advection(float dx, float dy, float dz,
   initializeRestofTheData();
 
   nChildDataRecvd=0;
-  map<OctIndex, Neighbor>::iterator it, iend;
+  std::map<OctIndex, Neighbor>::iterator it, iend;
   for (it = neighbors.begin(), iend = neighbors.end(); it != iend; ) {
     const OctIndex &neighborOctIndex = it->first;
     Neighbor &neighbor = it->second;
     bool shouldDelete = false;
     if (neighborOctIndex.getParent() != thisIndex.getParent()) {
-      map<OctIndex, Neighbor>::iterator parentIt = parentNeighbors.find(neighborOctIndex.getParent());
+      std::map<OctIndex, Neighbor>::iterator parentIt = parentNeighbors.find(neighborOctIndex.getParent());
       if (parentIt == parentNeighbors.end()) {
         shouldDelete = true;
       } else {
@@ -1670,7 +1667,7 @@ Advection::Advection(float dx, float dy, float dz,
 
   assert(neighbors.size() >= numDims);
   unsigned sameParent = 0;
-  for (map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
        iend = neighbors.end(); it != iend; ++it) {
     if (it->first.getParent() == thisIndex.getParent())
       ++sameParent;

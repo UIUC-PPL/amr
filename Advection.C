@@ -2,7 +2,7 @@
 #include <assert.h>
 
 extern CProxy_Main mainProxy;
-extern CProxy_Advection qtree;
+extern CProxy_MeshBlock mesh;
 
 extern int array_height, array_width, array_depth;
 extern int block_width, block_height, block_depth;
@@ -309,7 +309,7 @@ void MeshManager::printLogs()
 
 void MeshManager::meshGenerationPhaseIsOver() {}
 
-void Advection::prepareData4Exchange(){
+void MeshBlock::prepareData4Exchange(){
   imsg=0;
   ghostReceived.clear();
 
@@ -342,7 +342,7 @@ void Advection::prepareData4Exchange(){
     }
 }
 
-void Advection::applyInitialCondition(){
+void MeshBlock::applyInitialCondition(){
   VB(logfile << "applying initial condition" << std::endl;);
   float rcub;
   for(int i=0; i<block_width+2; i++)
@@ -356,11 +356,11 @@ void Advection::applyInitialCondition(){
       }
 }
 
-void Advection::mem_allocate(float* &p, int size){
+void MeshBlock::mem_allocate(float* &p, int size){
   p = new float[size];
 }
 
-void Advection::mem_allocate_all(){
+void MeshBlock::mem_allocate_all(){
 #ifdef USE_GPU
   memHostAlloc((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
   memHostAlloc((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
@@ -391,7 +391,7 @@ void Advection::mem_allocate_all(){
   mem_allocate(backward_surface, block_width*block_height);
 }
 
-void Advection::mem_deallocate_all(){
+void MeshBlock::mem_deallocate_all(){
 #ifdef USE_GPU
   memHostFree(u);
   memHostFree(u2);
@@ -423,7 +423,7 @@ void Advection::mem_deallocate_all(){
 }
 
 // Constructor used to create initial chares
-Advection::Advection(float x_min, float x_max, float y_min, float y_max,
+MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
                      float z_min, float z_max)
 {
   mesh_manager_local = mesh_manager.ckLocalBranch();
@@ -453,7 +453,7 @@ Advection::Advection(float x_min, float x_max, float y_min, float y_max,
   initializeRestofTheData();
 }
 
-void Advection::initializeRestofTheData(){
+void MeshBlock::initializeRestofTheData(){
   usesAutoMeasure = false;
   usesAtSync = true;
   remeshStartTime = 0;
@@ -489,7 +489,7 @@ void Advection::initializeRestofTheData(){
 }
 
 //added for array migration - see how 2D arrays can be packed
-void Advection::pup(PUP::er &p){
+void MeshBlock::pup(PUP::er &p){
   p|isRefined;
   p|depth;
 
@@ -554,7 +554,7 @@ void Advection::pup(PUP::er &p){
   p|ichild;
 }
 
-Advection::~Advection(){
+MeshBlock::~MeshBlock(){
   if (isLeaf) {
     mem_deallocate_all(); // FIXME: Shouldn't this be called for ALL chares?
   }
@@ -641,7 +641,7 @@ public:
   }
 };
 
-float* Advection::getGhostBuffer(int dir) {
+float* MeshBlock::getGhostBuffer(int dir) {
   switch (dir) {
     case UP:    return top_surface;
     case DOWN:  return bottom_surface;
@@ -652,7 +652,7 @@ float* Advection::getGhostBuffer(int dir) {
   }
 }
 
-int Advection::getGhostCount(int dir) {
+int MeshBlock::getGhostCount(int dir) {
   switch (dir) {
   case UP:    case DOWN: return block_width*block_depth;
   case RIGHT: case LEFT: return block_height*block_depth;
@@ -661,7 +661,7 @@ int Advection::getGhostCount(int dir) {
   }
 }
 
-void Advection::sendGhost(int dir){
+void MeshBlock::sendGhost(int dir){
   int count = getGhostCount(dir);
   VB(logfile << "ghost count in direction " << dir << " = " << count << std::endl;);
   float* boundary;
@@ -713,7 +713,7 @@ void Advection::sendGhost(int dir){
   }
 }
 
-void Advection::process(int iteration, int dir, int quadrant, int size, float gh[]){
+void MeshBlock::process(int iteration, int dir, int quadrant, int size, float gh[]){
   VB(logfile << "received ghost from direction " << dir << ", octant " << quadrant << std::endl;);
   bool fromNephew = (quadrant >= 0);
 
@@ -761,7 +761,7 @@ void Advection::process(int iteration, int dir, int quadrant, int size, float gh
   assert(iter.isDone());
 }
 
-void Advection::sendReadyData(){
+void MeshBlock::sendReadyData(){
   //check if data can be sent to any of the refined neighbors
   //If the neighbors are at the same level or do not exist at all 
   //data will be sent in begin_iteration function and need 
@@ -800,7 +800,7 @@ void Advection::sendReadyData(){
   }
 }
 
-int Advection::getSourceDirection(int NBR) {
+int MeshBlock::getSourceDirection(int NBR) {
   switch (NBR) {
   case UP:    return DOWN;
   case DOWN:  return UP;
@@ -811,7 +811,7 @@ int Advection::getSourceDirection(int NBR) {
   }
 }
     
-void Advection::interpolateAndSend(int dir) {
+void MeshBlock::interpolateAndSend(int dir) {
   int uncledir = getSourceDirection(dir);
   std::vector<OctIndex> children;
   getChildrenInDir(thisIndex.getNeighbor(dir), uncledir, children);
@@ -820,7 +820,7 @@ void Advection::interpolateAndSend(int dir) {
     interpolateAndSendToNephew(uncledir, *I);
 }
 
-void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
+void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
   float *boundary;
   int count = getGhostCount(uncledir);
 
@@ -916,7 +916,7 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
   thisProxy(QI).receiveGhosts(iterations, uncledir, -2, count, boundary);
 }
 
-void Advection::computeDone() {
+void MeshBlock::computeDone() {
 #if defined(USE_GPU) && defined(USE_HAPI)
   double time_dur = CkWallTimer() - compute_start_time;
   mesh_manager_local->addComputeTime(time_dur);
@@ -925,7 +925,7 @@ void Advection::computeDone() {
 #endif
 }
 
-void Advection::compute(){
+void MeshBlock::compute(){
   //if(iterations==1){
 #ifdef LOGGER
     char logfilename[100];
@@ -1008,7 +1008,7 @@ void Advection::compute(){
 #else
   // create callback
   CkArrayIndexOctIndex myIndex = CkArrayIndexOctIndex(thisIndex);
-  CkCallback *cb = new CkCallback(CkIndex_Advection::computeDone(), myIndex, thisProxy);
+  CkCallback *cb = new CkCallback(CkIndex_MeshBlock::computeDone(), myIndex, thisProxy);
 
   invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_width, cb);
 #endif // USE_HAPI
@@ -1024,7 +1024,7 @@ void Advection::compute(){
 #endif
 }
 
-void Advection::gotErrorFromGPU() {
+void MeshBlock::gotErrorFromGPU() {
 #if defined(USE_GPU) && defined(USE_HAPI)
   double decision_time = CkWallTimer() - decision_start_time;
   mesh_manager_local->addDecisionTime(decision_time);
@@ -1048,7 +1048,7 @@ void Advection::gotErrorFromGPU() {
 #endif
 }
 
-Decision Advection::getGranularityDecision(){
+Decision MeshBlock::getGranularityDecision(){
   float delx = 0.5/dx;
   float dely = 0.5/dy;
   float delz = 0.5/dz;
@@ -1141,7 +1141,7 @@ Decision Advection::getGranularityDecision(){
 #else // USE_HAPI
   // create callback
   CkArrayIndexOctIndex myIndex = CkArrayIndexOctIndex(thisIndex);
-  CkCallback *cb = new CkCallback(CkIndex_Advection::gotErrorFromGPU(), myIndex, thisProxy);
+  CkCallback *cb = new CkCallback(CkIndex_MeshBlock::gotErrorFromGPU(), myIndex, thisProxy);
 
   // offload
   invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_width, cb);
@@ -1151,7 +1151,7 @@ Decision Advection::getGranularityDecision(){
 #endif // USE_GPU
 }
 
-void Advection::resetMeshRestructureData(){
+void MeshBlock::resetMeshRestructureData(){
   decision = INV;
   parentHasAlreadyMadeDecision=false;
   hasReceivedParentDecision=false;
@@ -1167,7 +1167,7 @@ void Advection::resetMeshRestructureData(){
     child_decision[i] = INV;
 }
 
-void Advection::makeGranularityDecisionAndCommunicate(){
+void MeshBlock::makeGranularityDecisionAndCommunicate(){
   if(isLeaf) {//run this on leaf nodes
 //#ifndef USE_HAPI
 #if 1 // TODO Don't use HAPI version because it sometimes results in different refinement decisions
@@ -1183,7 +1183,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
 }
 
 /***** PHASE1 FUNCTIONS****/
-void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
+void MeshBlock::updateDecisionState(int cascade_length, Decision newDecision) {
   cascade_length++;
 
   assert(isLeaf);
@@ -1232,7 +1232,7 @@ void Advection::updateDecisionState(int cascade_length, Decision newDecision) {
 // Will be called from two contexts:
 //  a) If the parent is a grandparent and also have children that are leaves
 //  b) when a child sends REFINE/STAY message to the parent
-void Advection::processChildDecision(int childNum, Decision dec, int cascade_length) {
+void MeshBlock::processChildDecision(int childNum, Decision dec, int cascade_length) {
   VB(logfile << "recvd informParent, childNum " << childNum << std::endl;);
   if(childNum >= 0) child_decision[childNum]=dec;
 
@@ -1251,13 +1251,13 @@ void Advection::processChildDecision(int childNum, Decision dec, int cascade_len
   }
 }
 
-void Advection::processParentDecision(int cascade_length) {
+void MeshBlock::processParentDecision(int cascade_length) {
   hasReceivedParentDecision = true;
   Decision newDecision = std::max(STAY, decision);
   if(isLeaf) updateDecisionState(cascade_length, newDecision);
 }
 
-void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision, int cascade_length) {
+void MeshBlock::processPhase1Msg(int dir, int quadrant, Decision remoteDecision, int cascade_length) {
   VB(logfile << "isLeaf: " << isLeaf << std::endl;);
   Decision newDecision = decision;
   OctIndex QI = thisIndex.getNeighbor(dir);
@@ -1312,7 +1312,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
 }
 
 /**** PHASE2 FUNCTIONS ****/
-void Advection::doPhase2(){
+void MeshBlock::doPhase2(){
   VB(logfile << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
   if(decision == COARSEN){//send data to the parent
     std::vector<float> child_u;
@@ -1337,7 +1337,7 @@ void Advection::doPhase2(){
   //iterate();
 }
 
-void Advection::updateMeshState(){
+void MeshBlock::updateMeshState(){
   //Update the Status of Your Neighbors, need to be done only if you are going to stay in that position
   if(isLeaf && decision == STAY){
 
@@ -1413,7 +1413,7 @@ void Advection::updateMeshState(){
   iterate();
 }
 
-void Advection::recvChildData(int childNum, float myt, float mydt,
+void MeshBlock::recvChildData(int childNum, float myt, float mydt,
                               int meshGenIterations, int iterations, std::vector<float> child_u,
                               std::map<OctIndex, Neighbor> childNeighbors,
                               std::map<OctIndex, Decision> childUncleDecisions){
@@ -1469,7 +1469,7 @@ void Advection::recvChildData(int childNum, float myt, float mydt,
   //}
 }
 
-inline void Advection::setNbrStateUponCoarsening(int dir, int childNum, std::map<OctIndex, Neighbor> & childNeighbors, std::map<OctIndex, Decision> & childUncleDecisions) {
+inline void MeshBlock::setNbrStateUponCoarsening(int dir, int childNum, std::map<OctIndex, Neighbor> & childNeighbors, std::map<OctIndex, Decision> & childUncleDecisions) {
   OctIndex QIParent = thisIndex.getNeighbor(dir);
   OctIndex QIChild = thisIndex.getChild(childNum).getNeighbor(dir);
 
@@ -1528,7 +1528,7 @@ inline void Advection::setNbrStateUponCoarsening(int dir, int childNum, std::map
   }
 }
 
-void Advection::interpolate(float *u, std::vector<float>& refined_u, int xstart, int xend, int ystart, int yend, int zstart, int zend){
+void MeshBlock::interpolate(float *u, std::vector<float>& refined_u, int xstart, int xend, int ystart, int yend, int zstart, int zend){
   float sx_l, sx_r, sy_u, sy_d, sz_b, sz_f;
   for(int i=xstart, m=1; i<=xend; i++, m++){
     for(int j=ystart, n=1; j<=yend; j++, n++){
@@ -1555,7 +1555,7 @@ void Advection::interpolate(float *u, std::vector<float>& refined_u, int xstart,
   }
 }
 
-void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float x_min, float y_min, float z_min) {
+void MeshBlock::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float x_min, float y_min, float z_min) {
   OctIndex child = thisIndex.getChild(sChild);
 
   std::vector<float> refined_u;
@@ -1571,7 +1571,7 @@ void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iterations, refined_u, neighbors);
 }
 
-void Advection::refine(){
+void MeshBlock::refine(){
 
   for (unsigned c = 0; c < NUM_CHILDREN; ++c) {
     int cx_min, cx_max, cy_min, cy_max, cz_min, cz_max;
@@ -1591,14 +1591,14 @@ void Advection::refine(){
   mem_deallocate_all();
 }
 
-bool Advection::isGrandParent() {
+bool MeshBlock::isGrandParent() {
   bool ret = false;
   for (int i = 0; i < NUM_CHILDREN; ++i) ret = ret || child_isRefined[i];
   return ret;
 }
 
 // Constructor used to create children chares on refinement
-Advection::Advection(float dx, float dy, float dz,
+MeshBlock::MeshBlock(float dx, float dy, float dz,
                      float myt, float mydt, float x_min, float y_min, float z_min,
                      int meshGenIterations, int iterations, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
 {
@@ -1683,7 +1683,7 @@ Advection::Advection(float dx, float dy, float dz,
   iterate();
 }
 
-void Advection::startLdb(){
+void MeshBlock::startLdb(){
   UserSetLBLoad();
   /*if(isRoot()){ 
     ckout << "at sync" << endl;
@@ -1701,7 +1701,7 @@ void Advection::startLdb(){
   }
 }
 
-void Advection::ResumeFromSync() {
+void MeshBlock::ResumeFromSync() {
   if(isRoot()) ckout << "ldb end time: " << CmiWallTimer() << endl;
   VB(logfile << "resuming from load balancing" << std::endl;);
   //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
@@ -1710,11 +1710,11 @@ void Advection::ResumeFromSync() {
   startPhase2(meshGenIterations);
 }
 
-bool Advection::isRoot(){
+bool MeshBlock::isRoot(){
   return thisIndex.nbits == min_depth * numDims && thisIndex.bitVector == 0;
 }
 
-void Advection::printData() {
+void MeshBlock::printData() {
   int cntr=0;
   for(int xIndex = 1; xIndex <= block_width; xIndex++){
     for(int yIndex = 1; yIndex <= block_height; yIndex++) {

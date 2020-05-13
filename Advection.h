@@ -64,8 +64,8 @@ public:
   }
 };
 
-class Advection : public CBase_Advection {
-  Advection_SDAG_CODE
+class MeshBlock : public CBase_MeshBlock {
+  MeshBlock_SDAG_CODE
 public:
   MeshManager* mesh_manager_local;
 
@@ -146,18 +146,18 @@ public:
   double compute_start_time;
   double decision_start_time;
 
-  ~Advection();
+  ~MeshBlock();
 
   /* Constructors */
-  Advection() { usesAtSync = true; usesAutoMeasure = false; }
-  Advection(CkMigrateMessage* m) : CBase_Advection(m){ 
+  MeshBlock() { usesAtSync = true; usesAutoMeasure = false; }
+  MeshBlock(CkMigrateMessage* m) : CBase_MeshBlock(m){ 
     usesAutoMeasure = false;
     usesAtSync = true;
     VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str(), std::ofstream::app););
     VB(logfile << "migrated to a new processor" << std::endl;)
   }
-  Advection(float, float, float, float, float, float);
-  Advection(float dx, float dy, float dz,
+  MeshBlock(float, float, float, float, float, float);
+  MeshBlock(float dx, float dy, float dz,
             float myt, float mydt,
             float x_min, float y_min, float z_min,
             int meshGenIterations_, int iterations_,

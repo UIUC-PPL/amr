@@ -2,7 +2,7 @@
 #include <assert.h>
 
 /* readonly */ CProxy_Main mainProxy;
-/* readonly */ CProxy_Advection qtree;
+/* readonly */ CProxy_MeshBlock mesh;
 
 /* readonly */ int array_height, array_width, array_depth;
 /* readonly */ int block_height, block_width, block_depth;
@@ -157,15 +157,15 @@ Main::Main(CkArgMsg* m) {
   CProxy_AdvMap map = CProxy_AdvMap::ckNew();
   CkArrayOptions opts;
   opts.setMap(map);
-  qtree = CProxy_Advection::ckNew(opts);
+  mesh = CProxy_MeshBlock::ckNew(opts);
   for (int i = 0; i < num_chare_rows; ++i) {
     for (int j = 0; j < num_chare_cols; ++j) {
       for (int k = 0; k < num_chare_Zs; ++k) {
-        qtree[OctIndex(i, j, k, min_depth)].insert(x_min, x_max, y_min, y_max, z_min, z_max);
+        mesh[OctIndex(i, j, k, min_depth)].insert(x_min, x_max, y_min, y_max, z_min, z_max);
       }
     }
   }
-  qtree.doneInserting();
+  mesh.doneInserting();
 
   // Begin simulation
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
@@ -174,7 +174,7 @@ Main::Main(CkArgMsg* m) {
 
 void Main::startMeshGeneration() {
   start_time = CkWallTimer();
-  qtree.iterate();
+  mesh.iterate();
 }
 
 void Main::terminate() {

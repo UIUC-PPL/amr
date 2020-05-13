@@ -1,6 +1,6 @@
 mainmodule Main {
   readonly CProxy_Main mainProxy;
-  readonly CProxy_Advection qtree;
+  readonly CProxy_MeshBlock mesh;
 
   readonly int block_height;
   readonly int block_width;
@@ -115,11 +115,11 @@ module Advection {
     };
   };
 
-  array [OctIndex] Advection {
-    entry Advection();
-    entry Advection(float, float, float, float, float, float);
+  array [OctIndex] MeshBlock {
+    entry MeshBlock();
+    entry MeshBlock(float, float, float, float, float, float);
     // This constructor is used when a new chare is constructed upon refinement
-    entry Advection(float, float, float, float, float, float, float, float,
+    entry MeshBlock(float, float, float, float, float, float, float, float,
                     int, int, std::vector<float>, std::map<OctIndex, Neighbor> neighbors);
 
     // For exchanging boundary layers
@@ -176,10 +176,10 @@ module Advection {
           makeGranularityDecisionAndCommunicate();
           if (isRoot()) {
             if (iterations % lb_freq == 0 && iterations >= 1) {
-              CkStartQD(CkCallback(CkIndex_Advection::startLdb(), thisProxy));
+              CkStartQD(CkCallback(CkIndex_MeshBlock::startLdb(), thisProxy));
             }
             else {
-              CkStartQD(CkCallback(CkIndex_Advection::phase1Finish(), thisProxy[thisIndex]));
+              CkStartQD(CkCallback(CkIndex_MeshBlock::phase1Finish(), thisProxy[thisIndex]));
             }
           }
         }
@@ -321,7 +321,7 @@ module Advection {
       else {
         for (amr3d_i = 0; amr3d_i < NUM_CHILDREN; amr3d_i++) {
           atomic {
-            qtree(thisIndex.getChild(amr3d_i)).printSelf();
+            mesh(thisIndex.getChild(amr3d_i)).printSelf();
           }
           when donePrinting() {}
         }

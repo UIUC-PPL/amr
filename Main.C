@@ -1,9 +1,6 @@
 #include "Headers.h"
 #include <assert.h>
 
-using std::max;
-using std::min;
-
 /* readonly */ CProxy_Main mainProxy;
 /* readonly */ CProxy_Advection qtree;
 
@@ -124,12 +121,12 @@ Main::Main(CkArgMsg* m) {
 
   vx = 0.0; vy = 0.0; vz = 0.1;
 
-  apx = max(vx, (float)0.0);
-  anx = min(vx, (float)0.0);
-  apy = max(vy, (float)0.0);
-  any = min(vy, (float)0.0);
-  apz = max(vz, (float)0.0);
-  anz = min(vz, (float)0.0);
+  apx = std::max(vx, (float)0.0);
+  anx = std::min(vx, (float)0.0);
+  apy = std::max(vy, (float)0.0);
+  any = std::min(vy, (float)0.0);
+  apz = std::max(vz, (float)0.0);
+  anz = std::min(vz, (float)0.0);
 
   x_ctr = 0.5; y_ctr = 0.5; z_ctr = 0.5;
   radius = 0.2;

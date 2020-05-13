@@ -23,7 +23,7 @@ extern float tmax, t, dt, cfl;
 float refine_filter = 0.01;
 float refine_cutoff= 0.2, derefine_cutoff = 0.05;
 
-CProxy_AdvectionGroup ppc;
+CProxy_MeshManager mesh_manager;
 
 #ifdef USE_GPU
 extern void memHostAlloc(void** ptr, size_t size);
@@ -160,7 +160,7 @@ inline static bool getOctantRange(int octant, int& x_min, int& x_max, int& y_min
   else                  z_max = block_depth/2;
 }
 
-AdvectionGroup::AdvectionGroup() : workUnitCount(0), compute_time_sum(0.0),
+MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
   compute_time_cnt(0), decision_time_sum(0.0), decision_time_cnt(0)
 {
   // delu and delua are 4D arrays
@@ -186,7 +186,7 @@ AdvectionGroup::AdvectionGroup() : workUnitCount(0), compute_time_sum(0.0),
   }
 }
 
-AdvectionGroup::AdvectionGroup(CkMigrateMessage* m) : CBase_AdvectionGroup(m)
+MeshManager::MeshManager(CkMigrateMessage* m) : CBase_MeshManager(m)
 {
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
@@ -210,7 +210,7 @@ AdvectionGroup::AdvectionGroup(CkMigrateMessage* m) : CBase_AdvectionGroup(m)
   }
 }
 
-AdvectionGroup::~AdvectionGroup()
+MeshManager::~MeshManager()
 {
 #ifdef USE_GPU
   memDeviceFree(d_delu);
@@ -218,7 +218,7 @@ AdvectionGroup::~AdvectionGroup()
 #endif
 }
 
-void AdvectionGroup::incrementWorkUnitCount(int iterations)
+void MeshManager::incrementWorkUnitCount(int iterations)
 {
   workUnitCount++;
   workUnits[iterations]++;
@@ -231,13 +231,13 @@ void AdvectionGroup::incrementWorkUnitCount(int iterations)
   }
 }
 
-void AdvectionGroup::reduceWorkUnits()
+void MeshManager::reduceWorkUnits()
 {
   CkCallback cb(CkReductionTarget(Main,totalWorkUnits), mainProxy);
   contribute(sizeof(int), &workUnitCount, CkReduction::sum_int, cb);
 }
 
-void AdvectionGroup::processQdTimes(std::map<int, pair<float, float>> peQdtimes,
+void MeshManager::processQdTimes(std::map<int, pair<float, float>> peQdtimes,
                                     std::map<int, pair<float, float>> peRemeshtimes,
                                     std::map<int, int> peWorkunits, std::map<int, int> peminLoad,
                                     std::map<int, int> pemaxLoad, std::map<int, float> peavgLoad)
@@ -270,7 +270,7 @@ void AdvectionGroup::processQdTimes(std::map<int, pair<float, float>> peQdtimes,
   }
 }
 
-void AdvectionGroup::printLogs()
+void MeshManager::printLogs()
 {
   ckout << "Compute function average time: " << compute_time_sum/compute_time_cnt << endl;
   ckout << "Refinement decision average time: " << decision_time_sum/decision_time_cnt << endl;
@@ -307,7 +307,7 @@ void AdvectionGroup::printLogs()
   CkExit();
 }
 
-void AdvectionGroup::meshGenerationPhaseIsOver() {}
+void MeshManager::meshGenerationPhaseIsOver() {}
 
 void Advection::prepareData4Exchange(){
   imsg=0;
@@ -426,6 +426,8 @@ void Advection::mem_deallocate_all(){
 Advection::Advection(float x_min, float x_max, float y_min, float y_max,
                      float z_min, float z_max)
 {
+  mesh_manager_local = mesh_manager.ckLocalBranch();
+
   thisIndex.getCoordinates(xc, yc, zc);
   dx = (x_max - x_min)/float(array_width);
   dy = (y_max - y_min)/float(array_height);
@@ -917,8 +919,7 @@ void Advection::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
 void Advection::computeDone() {
 #if defined(USE_GPU) && defined(USE_HAPI)
   double time_dur = CkWallTimer() - compute_start_time;
-  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
-  ppcGrp->addComputeTime(time_dur);
+  mesh_manager_local->addComputeTime(time_dur);
 
   iterate();
 #endif
@@ -1015,8 +1016,7 @@ void Advection::compute(){
 
 #ifndef USE_HAPI
   double compute_time = CkWallTimer() - compute_start_time;
-  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
-  ppcGrp->addComputeTime(compute_time);
+  mesh_manager_local->addComputeTime(compute_time);
 #endif
 
 #ifndef USE_HAPI
@@ -1027,8 +1027,7 @@ void Advection::compute(){
 void Advection::gotErrorFromGPU() {
 #if defined(USE_GPU) && defined(USE_HAPI)
   double decision_time = CkWallTimer() - decision_start_time;
-  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
-  ppcGrp->addDecisionTime(decision_time);
+  mesh_manager_local->addDecisionTime(decision_time);
 
   float error = sqrt(*h_error);
 
@@ -1055,8 +1054,6 @@ Decision Advection::getGranularityDecision(){
   float delz = 0.5/dz;
   float error=0;
 
-  AdvectionGroup *ppcGrp = ppc.ckLocalBranch();
-
   decision_start_time = CkWallTimer();
 
 //#ifndef USE_GPU
@@ -1066,16 +1063,16 @@ Decision Advection::getGranularityDecision(){
     for(int j=1; j<=block_height; j++){
       for(int k=1; k<=block_depth; k++){
         // d/dx
-        ppcGrp->delu[0][i][j][k] = (u[index(i+1, j, k)] - u[index(i-1, j, k)])*delx;
-        ppcGrp->delua[0][i][j][k] = abs(u[index(i+1, j, k)]) + abs(u[index(i-1, j, k)])*delx;
+        mesh_manager_local->delu[0][i][j][k] = (u[index(i+1, j, k)] - u[index(i-1, j, k)])*delx;
+        mesh_manager_local->delua[0][i][j][k] = abs(u[index(i+1, j, k)]) + abs(u[index(i-1, j, k)])*delx;
 
         // d/dy
-        ppcGrp->delu[1][i][j][k] = (u[index(i, j+1, k)] - u[index(i, j-1, k)])*dely;
-        ppcGrp->delua[1][i][j][k] = (abs(u[index(i, j+1, k)]) + abs(u[index(i, j-1, k)]))*dely;
+        mesh_manager_local->delu[1][i][j][k] = (u[index(i, j+1, k)] - u[index(i, j-1, k)])*dely;
+        mesh_manager_local->delua[1][i][j][k] = (abs(u[index(i, j+1, k)]) + abs(u[index(i, j-1, k)]))*dely;
 
         // d/dz
-        ppcGrp->delu[2][i][j][k] = (u[index(i, j, k+1)] - u[index(i, j, k-1)])*delz;
-        ppcGrp->delua[2][i][j][k] = (abs(u[index(i, j, k+1)]) + abs(u[index(i, j, k-1)]))*delz;
+        mesh_manager_local->delu[2][i][j][k] = (u[index(i, j, k+1)] - u[index(i, j, k-1)])*delz;
+        mesh_manager_local->delua[2][i][j][k] = (abs(u[index(i, j, k+1)]) + abs(u[index(i, j, k-1)]))*delz;
       }
     }
   }
@@ -1087,17 +1084,17 @@ Decision Advection::getGranularityDecision(){
     for (int j=jstart;j<=jend;j++){
       for (int k=kstart;k<=kend;k++){
         for (int d = 0; d < numDims; ++d) {
-          ppcGrp->delu2[3*d+0] = (ppcGrp->delu[d][i+1][j][k] - ppcGrp->delu[d][i-1][j][k])*delx;
-          ppcGrp->delu3[3*d+0] = (abs(ppcGrp->delu[d][i+1][j][k]) + abs(ppcGrp->delu[d][i-1][j][k]))*delx;
-          ppcGrp->delu4[3*d+0] = (ppcGrp->delua[d][i+1][j][k] + ppcGrp->delua[d][i-1][j][k])*delx;
+          mesh_manager_local->delu2[3*d+0] = (mesh_manager_local->delu[d][i+1][j][k] - mesh_manager_local->delu[d][i-1][j][k])*delx;
+          mesh_manager_local->delu3[3*d+0] = (abs(mesh_manager_local->delu[d][i+1][j][k]) + abs(mesh_manager_local->delu[d][i-1][j][k]))*delx;
+          mesh_manager_local->delu4[3*d+0] = (mesh_manager_local->delua[d][i+1][j][k] + mesh_manager_local->delua[d][i-1][j][k])*delx;
 
-          ppcGrp->delu2[3*d+1] = (ppcGrp->delu[d][i][j+1][k] - ppcGrp->delu[d][i][j-1][k])*dely;
-          ppcGrp->delu3[3*d+1] = (abs(ppcGrp->delu[d][i][j+1][k]) + abs(ppcGrp->delu[d][i][j-1][k]))*dely;
-          ppcGrp->delu4[3*d+1] = (ppcGrp->delua[d][i][j+1][k] + ppcGrp->delua[d][i][j-1][k])*dely;
+          mesh_manager_local->delu2[3*d+1] = (mesh_manager_local->delu[d][i][j+1][k] - mesh_manager_local->delu[d][i][j-1][k])*dely;
+          mesh_manager_local->delu3[3*d+1] = (abs(mesh_manager_local->delu[d][i][j+1][k]) + abs(mesh_manager_local->delu[d][i][j-1][k]))*dely;
+          mesh_manager_local->delu4[3*d+1] = (mesh_manager_local->delua[d][i][j+1][k] + mesh_manager_local->delua[d][i][j-1][k])*dely;
 
-          ppcGrp->delu2[3*d+2] = (ppcGrp->delu[d][i][j][k+1] - ppcGrp->delu[d][i][j][k-1])*delz;
-          ppcGrp->delu3[3*d+2] = (abs(ppcGrp->delu[d][i][j][k+1]) + abs(ppcGrp->delu[d][i][j][k-1]))*delz;
-          ppcGrp->delu4[3*d+2] = (ppcGrp->delua[d][i][j][k+1] + ppcGrp->delua[d][i][j][k-1])*delz;
+          mesh_manager_local->delu2[3*d+2] = (mesh_manager_local->delu[d][i][j][k+1] - mesh_manager_local->delu[d][i][j][k-1])*delz;
+          mesh_manager_local->delu3[3*d+2] = (abs(mesh_manager_local->delu[d][i][j][k+1]) + abs(mesh_manager_local->delu[d][i][j][k-1]))*delz;
+          mesh_manager_local->delu4[3*d+2] = (mesh_manager_local->delua[d][i][j][k+1] + mesh_manager_local->delua[d][i][j][k-1])*delz;
         }
 
         // compute the error
@@ -1105,8 +1102,8 @@ Decision Advection::getGranularityDecision(){
         float denom = 0.;
 
         for (int kk = 0; kk < numDims2; kk++){  // kk= 1, 2, 3, 4, 5, ... 9
-          num = num + pow(ppcGrp->delu2[kk],2.);
-          denom = denom + pow(ppcGrp->delu3[kk], 2.) + (refine_filter*ppcGrp->delu4[kk])*2;
+          num = num + pow(mesh_manager_local->delu2[kk],2.);
+          denom = denom + pow(mesh_manager_local->delu3[kk], 2.) + (refine_filter*mesh_manager_local->delu4[kk])*2;
         }
         // compare the square of the error
         if (denom == 0. && num != 0.){
@@ -1119,7 +1116,7 @@ Decision Advection::getGranularityDecision(){
   }
 
   double decision_time = CkWallTimer() - decision_start_time;
-  ppcGrp->addDecisionTime(decision_time);
+  mesh_manager_local->addDecisionTime(decision_time);
 
   error = sqrt(error);
   //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
@@ -1131,10 +1128,10 @@ Decision Advection::getGranularityDecision(){
 //#ifndef USE_HAPI
 #if 1 // FIXME Don't use HAPI version because it sometimes results in different refinement decisions
   // execute GPU kernel
-  float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
+  float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
 
   double decision_time = CkWallTimer() - decision_start_time;
-  ppcGrp->addDecisionTime(decision_time);
+  mesh_manager_local->addDecisionTime(decision_time);
 
   error = sqrt(error_gpu);
   //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
@@ -1147,7 +1144,7 @@ Decision Advection::getGranularityDecision(){
   CkCallback *cb = new CkCallback(CkIndex_Advection::gotErrorFromGPU(), myIndex, thisProxy);
 
   // offload
-  invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, ppcGrp->d_delu, ppcGrp->d_delua, refine_filter, dx, dy, dz, block_width, cb);
+  invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_width, cb);
 
   return STAY; // return dummy value
 #endif // USE_HAPI
@@ -1605,6 +1602,8 @@ Advection::Advection(float dx, float dy, float dz,
                      float myt, float mydt, float x_min, float y_min, float z_min,
                      int meshGenIterations, int iterations, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
 {
+  mesh_manager_local = mesh_manager.ckLocalBranch();
+
   this->dx = dx;
   this->dy = dy;
   this->dz = dz;
@@ -1707,7 +1706,7 @@ void Advection::ResumeFromSync() {
   VB(logfile << "resuming from load balancing" << std::endl;);
   //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
   if(isLeaf)
-    ppc.ckLocalBranch()->incrementWorkUnitCount(iterations);
+    mesh_manager_local->incrementWorkUnitCount(iterations);
   startPhase2(meshGenIterations);
 }
 

@@ -67,6 +67,8 @@ public:
 class Advection : public CBase_Advection {
   Advection_SDAG_CODE
 public:
+  MeshManager* mesh_manager_local;
+
   // Tree information
   bool isRefined;
   int depth;
@@ -215,7 +217,7 @@ public:
   void printData();
 };
 
-class AdvectionGroup : public CBase_AdvectionGroup {
+class MeshManager : public CBase_MeshManager {
   int workUnitCount;
   std::map<int, std::pair<float, float> > qdtimes;
   std::map<int, std::pair<float, float> > remeshtimes;
@@ -237,10 +239,10 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   float* d_delua;
 #endif
 
-  AdvectionGroup_SDAG_CODE
-  AdvectionGroup();
-  AdvectionGroup(CkMigrateMessage *m);
-  ~AdvectionGroup();
+  MeshManager_SDAG_CODE
+  MeshManager();
+  MeshManager(CkMigrateMessage *m);
+  ~MeshManager();
   void pup(PUP::er &p){}
   void incrementWorkUnitCount(int);
   void recordQdTime(int iter, float a, float b){
@@ -274,6 +276,6 @@ class AdvectionGroup : public CBase_AdvectionGroup {
   }
 };
 
-extern CProxy_AdvectionGroup ppc;
+extern CProxy_MeshManager mesh_manager;
 
 #endif // ADVECTION_H_

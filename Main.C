@@ -169,7 +169,7 @@ Main::Main(CkArgMsg* m) {
 
   // Begin simulation
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
-  ppc = CProxy_AdvectionGroup::ckNew();
+  mesh_manager = CProxy_MeshManager::ckNew();
 }
 
 void Main::startMeshGeneration() {
@@ -179,12 +179,12 @@ void Main::startMeshGeneration() {
 
 void Main::terminate() {
   ckout << "\nSimulation time: " << CkWallTimer() - start_time << " s" << endl;
-  ppc.reduceWorkUnits();
+  mesh_manager.reduceWorkUnits();
 }
 
 void Main::totalWorkUnits(int total) {
   CkPrintf("Total work units: %d\n", total);
-  ppc.reduceQdTimes();
+  mesh_manager.reduceQdTimes();
 }
 
 // Map chares to PEs

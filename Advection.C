@@ -1,7 +1,6 @@
 #include "Headers.h"
 #include <assert.h>
 
-using std::vector;
 using std::ofstream;
 using std::max;
 using std::min;
@@ -777,10 +776,10 @@ void Advection::sendReadyData(){
       std::vector<OctIndex> children;
       getChildrenInDir(thisIndex, N.getDir(), children);
 
-      vector<OctIndex> allNeighbors;
+      std::vector<OctIndex> allNeighbors;
       for (std::vector<OctIndex>::iterator I = children.begin(),
            E = children.end(); I != E; ++I) {
-        vector<OctIndex> neighbors = I->getNeighbors();
+        std::vector<OctIndex> neighbors = I->getNeighbors();
         allNeighbors.insert(allNeighbors.end(),
                             neighbors.begin(), neighbors.end());
       }
@@ -1324,7 +1323,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
 void Advection::doPhase2(){
   VB(logfile << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
   if(decision == COARSEN){//send data to the parent
-    vector<float> child_u;
+    std::vector<float> child_u;
     if(!inInitialMeshGenerationPhase){
       child_u.resize((block_height*block_width*block_depth)/8);
       for(int i=1; i<= block_width; i+=2)
@@ -1422,8 +1421,8 @@ void Advection::updateMeshState(){
   iterate();
 }
 
-void Advection::recvChildData(int childNum, float myt, float mydt, 
-                              int meshGenIterations, int iterations, vector<float> child_u, 
+void Advection::recvChildData(int childNum, float myt, float mydt,
+                              int meshGenIterations, int iterations, std::vector<float> child_u,
                               map<OctIndex, Neighbor> childNeighbors,
                               map<OctIndex, Decision> childUncleDecisions){
   VB(logfile << "recvd data from child: " << childNum << std::endl;);
@@ -1537,7 +1536,7 @@ inline void Advection::setNbrStateUponCoarsening(int dir, int childNum, std::map
   }
 }
 
-void Advection::interpolate(float *u, vector<float>& refined_u, int xstart, int xend, int ystart, int yend, int zstart, int zend){
+void Advection::interpolate(float *u, std::vector<float>& refined_u, int xstart, int xend, int ystart, int yend, int zstart, int zend){
   float sx_l, sx_r, sy_u, sy_d, sz_b, sz_f;
   for(int i=xstart, m=1; i<=xend; i++, m++){
     for(int j=ystart, n=1; j<=yend; j++, n++){
@@ -1567,7 +1566,7 @@ void Advection::interpolate(float *u, vector<float>& refined_u, int xstart, int 
 void Advection::refineChild(unsigned int sChild, int xstart, int xend, int ystart, int yend, int zstart, int zend, float x_min, float y_min, float z_min) {
   OctIndex child = thisIndex.getChild(sChild);
 
-  vector<float> refined_u;
+  std::vector<float> refined_u;
   if(!inInitialMeshGenerationPhase){
     refined_u.resize(block_width*block_height*block_depth);
     interpolate(u, refined_u, xstart, xend, ystart, yend, zstart, zend);
@@ -1609,7 +1608,7 @@ bool Advection::isGrandParent() {
 // Constructor used to create children chares on refinement
 Advection::Advection(float dx, float dy, float dz,
                      float myt, float mydt, float x_min, float y_min, float z_min,
-                     int meshGenIterations, int iterations, vector<float> refined_u, map<OctIndex, Neighbor> parentNeighbors)
+                     int meshGenIterations, int iterations, std::vector<float> refined_u, map<OctIndex, Neighbor> parentNeighbors)
 {
   this->dx = dx;
   this->dy = dy;

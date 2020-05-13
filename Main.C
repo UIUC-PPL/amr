@@ -3,8 +3,8 @@
 
 /* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_MeshBlock mesh;
-/* readonly */ int grid_height, grid_width, grid_depth;
-/* readonly */ int block_height, block_width, block_depth;
+/* readonly */ int grid_y, grid_x, grid_z;
+/* readonly */ int block_y, block_x, block_z;
 /* readonly */ int n_chares_x, n_chares_y, n_chares_z;
 /* readonly */ int min_depth, max_depth;
 /* readonly */ int max_iters, refine_freq, lb_freq;
@@ -19,8 +19,8 @@ Main::Main(CkArgMsg* m) {
   main_proxy = thisProxy;
 
   // Set default parameters
-  grid_height = grid_width = grid_depth = 128;
-  block_height = block_width = block_depth = 32;
+  grid_x = grid_y = grid_z = 128;
+  block_x = block_y = block_z = 32;
   max_depth = 3;
   max_iters = 30;
   refine_freq = 3;
@@ -29,13 +29,13 @@ Main::Main(CkArgMsg* m) {
 
   // Process command line arguments
   int c;
-  while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:vh")) != -1) {
+  while ((c = getopt(m->argc, m->argv, "a:b:d:i:r:l:v")) != -1) {
     switch (c) {
       case 'a':
-        grid_height = grid_width = grid_depth = atoi(optarg);
+        grid_x = grid_y = grid_z = atoi(optarg);
         break;
       case 'b':
-        block_height = block_width = block_depth = atoi(optarg);
+        block_x = block_y = block_z = atoi(optarg);
         break;
       case 'd':
         max_depth = atoi(optarg);
@@ -55,62 +55,50 @@ Main::Main(CkArgMsg* m) {
       case 'v':
         verbose = true;
         break;
-      case 'h':
-        ckout << "\n[AMR Advection Mini-App Options]\n\n"
-              << "\t-a\ttotal 3D array size\n"
-              << "\t-b\tblock size per chare\n"
-              << "\t-d\tmaximum depth of refinement\n"
-              << "\t-i\tnumber of iterations\n"
-              << "\t-r\trefinement frequency\n"
-              << "\t-l\tload balancing frequency\n"
-              << endl;
-        CkExit();
       default:
         CkExit();
     }
   }
 
-  for (int i = optind; i < m->argc; i++)
-    printf("Non-option argument %s\n", m->argv[i]);
+  for (int i = optind; i < m->argc; i++) {
+    CkPrintf("Non-option argument %s\n", m->argv[i]);
+  }
 
-  // Check if array size is divisible by block size
-  if (grid_width < block_width || grid_width % block_width != 0) {
-    ckout << "Array size (" << grid_width << ") should be divisible by block size ("
-          << block_width << ")" << endl;
-    CkExit();
+  // Check if grid size is divisible by block size
+  if ((grid_x % block_x) || (grid_y % block_y) || (grid_z % block_z)) {
+    CkAbort("Grid size is not divisible by block size");
   }
 
   // Check if load balancing frequency is a multiple of refine frequency
-  if (lb_freq < refine_freq || lb_freq % refine_freq != 0) {
-    ckerr << "Load balancing frequency (" << lb_freq << ") should be a multiple of"
-          << "refine frequency (" << refine_freq << ")" << endl;
-    CkExit();
+  if (lb_freq % refine_freq) {
+    CkAbort("LB frequency (%d) should be a multiple of refine requency (%d)",
+        lb_freq, refine_freq);
   }
 
   // Set number of chares per dimension
-  n_chares_x = n_chares_y = n_chares_z = grid_width / block_width;
+  n_chares_x = grid_x / block_x;
+  n_chares_y = grid_y / block_y;
+  n_chares_z = grid_z / block_z;
   int n_chares = n_chares_x * n_chares_y * n_chares_z;
 
   // Set minimum depth
+  // Only round it up if it is very close to the rounded up integer, otherwise
+  // round it down
   float fdepth = log(n_chares) / log(NUM_CHILDREN);
   min_depth = (fabs(fdepth - ceil(fdepth)) < 0.000001) ? ceil(fdepth) : floor(fdepth);
   if (min_depth > max_depth) {
-    ckerr << "Minimum depth > maximum depth: try increasing maximum depth" << endl;
-    CkExit();
+    CkAbort("Minimum depth > maximum depth: try increasing maximum depth");
   }
-  if (min_depth == 0) {
-    ckerr << "Minimum depth is 0, 1 or more chares are required to run the simulation" << endl;
-    CkExit();
-  }
+  CkAssert(min_depth > 0);
 
   // Initialize constants
   x_min = 0; x_max = 1;
   y_min = 0; y_max = 1;
   z_min = 0; z_max = 1;
 
-  dx = (x_max - x_min) / float(grid_width);
-  dy = (y_max - y_min) / float(grid_height);
-  dz = (z_max - z_min) / float(grid_depth);
+  dx = (x_max - x_min) / float(grid_x);
+  dy = (y_max - y_min) / float(grid_y);
+  dz = (z_max - z_min) / float(grid_z);
 
   vx = 0.0; vy = 0.0; vz = 0.1;
 
@@ -141,8 +129,8 @@ Main::Main(CkArgMsg* m) {
            "* Number of iterations: %d\n"
            "* Refinement frequency: %d\n"
            "* Load balancing frequency: %d\n\n",
-           grid_width, grid_height, grid_depth,
-           block_width, block_height, block_depth,
+           grid_x, grid_y, grid_z,
+           block_x, block_y, block_z,
            n_chares_x, n_chares_y, n_chares_z,
            min_depth, max_depth, max_iters, refine_freq, lb_freq);
 

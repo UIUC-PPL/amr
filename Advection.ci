@@ -1,12 +1,12 @@
 mainmodule Main {
   readonly CProxy_Main main_proxy;
   readonly CProxy_MeshBlock mesh;
-  readonly int grid_height;
-  readonly int grid_width;
-  readonly int grid_depth;
-  readonly int block_height;
-  readonly int block_width;
-  readonly int block_depth;
+  readonly int grid_x;
+  readonly int grid_y;
+  readonly int grid_z;
+  readonly int block_x;
+  readonly int block_y;
+  readonly int block_z;
   readonly int n_chares_x;
   readonly int n_chares_y;
   readonly int n_chares_z;

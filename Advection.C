@@ -5,8 +5,8 @@
 
 extern CProxy_Main main_proxy;
 extern CProxy_MeshBlock mesh;
-extern int grid_height, grid_width, grid_depth;
-extern int block_width, block_height, block_depth;
+extern int grid_y, grid_x, grid_z;
+extern int block_x, block_y, block_z;
 extern int n_chares_x, n_chares_y, n_chares_z;
 extern int min_depth, max_depth;
 extern int max_iters, refine_freq, lb_freq;
@@ -96,13 +96,13 @@ enum {
 inline static void populateRanges(int dir, int octant, int &x_min, int &x_max,
                            int& y_min, int& y_max, int& z_min, int& z_max)
 {
-  x_min = 0; x_max = block_width-1;
-  y_min = 0; y_max = block_height-1;
-  z_min = 0; z_max = block_depth-1;
+  x_min = 0; x_max = block_x-1;
+  y_min = 0; y_max = block_y-1;
+  z_min = 0; z_max = block_z-1;
 
   switch (dir) {
     case UP:
-      y_min = y_max = block_height+1;
+      y_min = y_max = block_y+1;
       if (octant >= 0) {
         populateQuadrant(octant & X_MASK, octant & Z_MASK, x_min, x_max, z_min, z_max);
       }
@@ -120,13 +120,13 @@ inline static void populateRanges(int dir, int octant, int &x_min, int &x_max,
       }
       break;
     case RIGHT:
-      x_min = x_max = block_width+1;
+      x_min = x_max = block_x+1;
       if (octant >= 0) {
         populateQuadrant(octant & Y_MASK, octant & Z_MASK, y_min, y_max, z_min, z_max);
       }
       break;
     case FORWARD:
-      z_min = z_max = block_depth+1;
+      z_min = z_max = block_z+1;
       if (octant >= 0) {
         populateQuadrant(octant & X_MASK, octant & Y_MASK, x_min, x_max, y_min, y_max);
       }
@@ -143,16 +143,16 @@ inline static void populateRanges(int dir, int octant, int &x_min, int &x_max,
 inline static bool getOctantRange(int octant, int& x_min, int& x_max, int& y_min, int& y_max,
                            int& z_min, int& z_max)
 {
-  x_min = 1; x_max = block_width;
-  y_min = 1; y_max = block_height;
-  z_min = 1; z_max = block_depth;
+  x_min = 1; x_max = block_x;
+  y_min = 1; y_max = block_y;
+  z_min = 1; z_max = block_z;
 
-  if (octant & X_MASK)  x_min = block_width/2+1;
-  else                  x_max = block_width/2;
-  if (octant & Y_MASK)  y_min = block_height/2+1;
-  else                  y_max = block_height/2;
-  if (octant & Z_MASK)  z_min = block_depth/2+1;
-  else                  z_max = block_depth/2;
+  if (octant & X_MASK)  x_min = block_x/2+1;
+  else                  x_max = block_x/2;
+  if (octant & Y_MASK)  y_min = block_y/2+1;
+  else                  y_max = block_y/2;
+  if (octant & Z_MASK)  z_min = block_z/2+1;
+  else                  z_max = block_z/2;
 }
 
 MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
@@ -160,7 +160,7 @@ MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
 {
   // delu and delua are 4D arrays
 #ifdef USE_GPU
-  size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
+  size_t delu_size = sizeof(float)*numDims*(block_x+2)*(block_y+2)*(block_z+2);
   memDeviceAlloc((void**)&d_delu, delu_size);
   memDeviceAlloc((void**)&d_delua, delu_size);
 #endif
@@ -168,14 +168,14 @@ MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
   delua = new float***[numDims];
 
   for (int d = 0; d < numDims; ++d) {
-    delu[d] = new float**[block_width+2];
-    delua[d] = new float**[block_width+2];
-    for (int i = 0; i < block_width+2; ++i) {
-      delu[d][i] = new float*[block_height+2];
-      delua[d][i] = new float*[block_height+2];
-      for (int j = 0; j < block_height+2; ++j) {
-        delu[d][i][j] = new float[block_depth+2];
-        delua[d][i][j] = new float[block_depth+2];
+    delu[d] = new float**[block_x+2];
+    delua[d] = new float**[block_x+2];
+    for (int i = 0; i < block_x+2; ++i) {
+      delu[d][i] = new float*[block_y+2];
+      delua[d][i] = new float*[block_y+2];
+      for (int j = 0; j < block_y+2; ++j) {
+        delu[d][i][j] = new float[block_z+2];
+        delua[d][i][j] = new float[block_z+2];
       }
     }
   }
@@ -184,7 +184,7 @@ MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
 MeshManager::MeshManager(CkMigrateMessage* m) : CBase_MeshManager(m)
 {
 #ifdef USE_GPU
-  size_t delu_size = sizeof(float)*numDims*(block_width+2)*(block_height+2)*(block_depth+2);
+  size_t delu_size = sizeof(float)*numDims*(block_x+2)*(block_y+2)*(block_z+2);
   memDeviceAlloc((void**)&d_delu, delu_size);
   memDeviceAlloc((void**)&d_delua, delu_size);
 #endif
@@ -192,14 +192,14 @@ MeshManager::MeshManager(CkMigrateMessage* m) : CBase_MeshManager(m)
   delua = new float***[numDims];
 
   for (int d = 0; d < numDims; ++d) {
-    delu[d] = new float**[block_width+2];
-    delua[d] = new float**[block_width+2];
-    for (int i = 0; i < block_width+2; ++i) {
-      delu[d][i] = new float*[block_height+2];
-      delua[d][i] = new float*[block_height+2];
-      for (int j = 0; j < block_height+2; ++j) {
-        delu[d][i][j] = new float[block_depth+2];
-        delua[d][i][j] = new float[block_depth+2];
+    delu[d] = new float**[block_x+2];
+    delua[d] = new float**[block_x+2];
+    for (int i = 0; i < block_x+2; ++i) {
+      delu[d][i] = new float*[block_y+2];
+      delua[d][i] = new float*[block_y+2];
+      for (int j = 0; j < block_y+2; ++j) {
+        delu[d][i][j] = new float[block_z+2];
+        delua[d][i][j] = new float[block_z+2];
       }
     }
   }
@@ -316,23 +316,23 @@ void MeshBlock::prepareData4Exchange(){
   // Cache boundary data in contiguous blocks
 
   // YZ surfaces
-  for(int j=1; j <= block_height; ++j)
-    for(int k=1; k <= block_depth; ++k) {
+  for(int j=1; j <= block_y; ++j)
+    for(int k=1; k <= block_z; ++k) {
       left_surface[index_yz(j-1,k-1)] = u[index(1,j,k)];
-      right_surface[index_yz(j-1,k-1)] = u[index(block_width,j,k)];
+      right_surface[index_yz(j-1,k-1)] = u[index(block_x,j,k)];
     }
 
   // XZ Surfaces
-  for(int i=1; i <= block_width; ++i)
-    for(int k=1; k <= block_depth; ++k) {
-      top_surface[index_xz(i-1,k-1)] = u[index(i, block_height, k)];
+  for(int i=1; i <= block_x; ++i)
+    for(int k=1; k <= block_z; ++k) {
+      top_surface[index_xz(i-1,k-1)] = u[index(i, block_y, k)];
       bottom_surface[index_xz(i-1,k-1)] = u[index(i, 1, k)];
     }
 
   // XY surfaces
-  for(int i=1; i <= block_width; ++i)
-    for(int j=1; j <= block_height; ++j) {
-      forward_surface[index_xy(i-1,j-1)] = u[index(i, j, block_depth)];
+  for(int i=1; i <= block_x; ++i)
+    for(int j=1; j <= block_y; ++j) {
+      forward_surface[index_xy(i-1,j-1)] = u[index(i, j, block_z)];
       backward_surface[index_xy(i-1,j-1)] = u[index(i, j, 1)];
     }
 }
@@ -340,9 +340,9 @@ void MeshBlock::prepareData4Exchange(){
 void MeshBlock::applyInitialCondition(){
   VB(logfile << "applying initial condition" << std::endl;);
   float rcub;
-  for(int i=0; i<block_width+2; i++)
-    for(int j=0; j<block_height+2; j++)
-      for(int k=0; k<block_depth+2; k++){
+  for(int i=0; i<block_x+2; i++)
+    for(int j=0; j<block_y+2; j++)
+      for(int k=0; k<block_z+2; k++){
         rcub = (x[i] - x_ctr)*(x[i]-x_ctr) +
                (y[j] - y_ctr)*(y[j]-y_ctr) +
                (z[k] - z_ctr)*(z[k]-z_ctr);
@@ -357,33 +357,33 @@ void MeshBlock::mem_allocate(float* &p, int size){
 
 void MeshBlock::mem_allocate_all(){
 #ifdef USE_GPU
-  memHostAlloc((void**)&u, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
-  memHostAlloc((void**)&u2, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
-  memHostAlloc((void**)&u3, (block_width+2)*(block_height+2)*(block_depth+2)*sizeof(float));
+  memHostAlloc((void**)&u, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
+  memHostAlloc((void**)&u2, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
+  memHostAlloc((void**)&u3, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
   memHostAlloc((void**)&h_error, sizeof(float));
-  memDeviceAlloc((void**)&d_u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  memDeviceAlloc((void**)&d_u2, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  memDeviceAlloc((void**)&d_u3, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  memDeviceAlloc((void**)&d_u, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  memDeviceAlloc((void**)&d_u2, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  memDeviceAlloc((void**)&d_u3, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
   memDeviceAlloc((void**)&d_error, sizeof(float));
 
   createStream(&computeStream);
   createStream(&decisionStream);
 #else
-  mem_allocate(u, (block_width+2)*(block_height+2)*(block_depth+2));
-  mem_allocate(u2, (block_width+2)*(block_height+2)*(block_depth+2));
-  mem_allocate(u3, (block_width+2)*(block_height+2)*(block_depth+2));
+  mem_allocate(u, (block_x+2)*(block_y+2)*(block_z+2));
+  mem_allocate(u2, (block_x+2)*(block_y+2)*(block_z+2));
+  mem_allocate(u3, (block_x+2)*(block_y+2)*(block_z+2));
 #endif
 
-  mem_allocate(x, block_width+2);
-  mem_allocate(y, block_height+2);
-  mem_allocate(z, block_depth+2);
+  mem_allocate(x, block_x+2);
+  mem_allocate(y, block_y+2);
+  mem_allocate(z, block_z+2);
 
-  mem_allocate(left_surface, block_height*block_depth);
-  mem_allocate(right_surface, block_height*block_depth);
-  mem_allocate(top_surface, block_width*block_depth);
-  mem_allocate(bottom_surface, block_width*block_depth);
-  mem_allocate(forward_surface, block_width*block_height);
-  mem_allocate(backward_surface, block_width*block_height);
+  mem_allocate(left_surface, block_y*block_z);
+  mem_allocate(right_surface, block_y*block_z);
+  mem_allocate(top_surface, block_x*block_z);
+  mem_allocate(bottom_surface, block_x*block_z);
+  mem_allocate(forward_surface, block_x*block_y);
+  mem_allocate(backward_surface, block_x*block_y);
 }
 
 void MeshBlock::mem_deallocate_all(){
@@ -424,13 +424,13 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
   thisIndex.getCoordinates(xc, yc, zc);
-  dx = (x_max - x_min) / float(grid_width);
-  dy = (y_max - y_min) / float(grid_height);
-  dz = (z_max - z_min) / float(grid_depth);
+  dx = (x_max - x_min) / float(grid_x);
+  dy = (y_max - y_min) / float(grid_y);
+  dz = (z_max - z_min) / float(grid_z);
 
-  nx = grid_width / n_chares_x;
-  ny = grid_height / n_chares_y;
-  nz = grid_depth / n_chares_z;
+  nx = grid_x / n_chares_x;
+  ny = grid_y / n_chares_y;
+  nz = grid_z / n_chares_z;
 
   myt = t;
   mydt = dt;
@@ -454,14 +454,14 @@ void MeshBlock::initializeRestofTheData(){
   remeshStartTime = 0;
   VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str()););
   if(inInitialMeshGenerationPhase){
-    for(int i=0; i<block_width+2; i++)
+    for(int i=0; i<block_x+2; i++)
       x[i] = x_min + float(i)*dx - 0.5*dx;
 
 
-    for(int i=0; i<block_height+2; i++)
+    for(int i=0; i<block_y+2; i++)
       y[i] = y_min + float(i)*dy - 0.5*dy;
 
-    for(int i=0; i<block_depth+2; i++)
+    for(int i=0; i<block_z+2; i++)
       z[i] = z_min + float(i)*dz - 0.5*dz;
 
     applyInitialCondition();
@@ -514,10 +514,10 @@ void MeshBlock::pup(PUP::er &p){
     //resetMeshRestructureData();
   }
 
-  PUParray(p, u, (block_width+2)*(block_height+2)*(block_depth+2));
-  PUParray(p, x, block_width+2);
-  PUParray(p, y, block_height+2);
-  PUParray(p, z, block_depth+2);
+  PUParray(p, u, (block_x+2)*(block_y+2)*(block_z+2));
+  PUParray(p, x, block_x+2);
+  PUParray(p, y, block_y+2);
+  PUParray(p, z, block_z+2);
 
   p|iterations;
   p|meshGenIterations;
@@ -649,9 +649,9 @@ float* MeshBlock::getGhostBuffer(int dir) {
 
 int MeshBlock::getGhostCount(int dir) {
   switch (dir) {
-  case UP:    case DOWN: return block_width*block_depth;
-  case RIGHT: case LEFT: return block_height*block_depth;
-  case FORWARD: case BACKWARD: return block_height*block_width;
+  case UP:    case DOWN: return block_x*block_z;
+  case RIGHT: case LEFT: return block_y*block_z;
+  case FORWARD: case BACKWARD: return block_y*block_x;
   //default: CkAbort("Asking for an unknown boundary's size");
   }
 }
@@ -681,15 +681,15 @@ void MeshBlock::sendGhost(int dir){
     int dz = (z_min == z_max) ? 0 : 2;
     if(x_min!=x_max)x_min++;
     else if(x_min==0) x_min = x_max = 1;
-    else if(x_min==block_width+1) x_min = x_max = block_width-1;
+    else if(x_min==block_x+1) x_min = x_max = block_x-1;
 
     if(y_min!=y_max)y_min++;
     else if(y_min==0) y_min = y_max = 1;
-    else if(y_min==block_width+1) y_min = y_max = block_height-1;
+    else if(y_min==block_x+1) y_min = y_max = block_y-1;
 
     if(z_min!=z_max)z_min++;
     else if(z_min==0) z_min = z_max = 1;
-    else if(z_min==block_width+1) z_min = z_max = block_depth-1;
+    else if(z_min==block_x+1) z_min = z_max = block_z-1;
 
     surface_iterator iter(u, x_min, x_max, dx,
                              y_min, y_max, dy,
@@ -842,14 +842,14 @@ void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
     a = sy;
     b = sz;
     c = (x_max == 0) ? &sx_l : &sx_r;
-    columncount = block_height;
+    columncount = block_y;
     dx = 0;
     y_min++; y_max++;
     z_min++; z_max++;
     if(x_min==0){
         x_min = x_max = 1;
     }else{
-        x_min = x_max = block_width;
+        x_min = x_max = block_x;
     }
 
   }
@@ -857,28 +857,28 @@ void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
     a = sx;
     b = sz;
     c = (y_max == 0) ? &sy_d : &sy_u;
-    columncount = block_width;
+    columncount = block_x;
     dy = 0;
     x_min++; x_max++;
     z_min++; z_max++;
     if(y_min==0){
         y_min = y_max = 1;
     }else{
-        y_min = y_max = block_height;
+        y_min = y_max = block_y;
     }
   }
   if (z_min == z_max) {
     a = sx;
     b = sy;
     c = (z_max == 0) ? &sz_b : &sz_f;
-    columncount = block_width;
+    columncount = block_x;
     dz = 0;
     x_min++; x_max++;
     y_min++; y_max++;
     if(z_min==0){
         z_min = z_max = 1;
     }else{
-        z_min = z_max = block_depth;
+        z_min = z_max = block_z;
     }
   }
 
@@ -931,7 +931,7 @@ void MeshBlock::compute(){
     //logfile << "Zone I = 16, J = 16, K = 16, F = POINT\n";
     printData();
     logfile.close();
-    /*int dims[] = {block_height+1, block_width+1, block_depth+1};
+    /*int dims[] = {block_y+1, block_x+1, block_z+1};
     int vardims[] = {1};
     int centering[] = {0};
     const char *varnames[]  = {"viscosity"};
@@ -939,25 +939,25 @@ void MeshBlock::compute(){
     //varnames[0] = "viscosity";
     
     float *vars[1];
-    vars[0] = new float[block_width*block_height*block_depth];
-    for(int i=0; i<block_width; i++)
-        for(int j=0; j<block_height; j++)
-            for(int k=0; k<block_depth; k++){
-                vars[0][(k*block_height+j)*block_width+i] = u[index(i+1,j+1,k+1)];
+    vars[0] = new float[block_x*block_y*block_z];
+    for(int i=0; i<block_x; i++)
+        for(int j=0; j<block_y; j++)
+            for(int k=0; k<block_z; k++){
+                vars[0][(k*block_y+j)*block_x+i] = u[index(i+1,j+1,k+1)];
                 //ckout << x[i+1] << " " << y[j+1] << " " << z[k+1] << " " << u[index(i+1,j+1,k+1)] << endl;
             }
-    float *xn = new float[block_width+1];
-    float *yn = new float[block_height+1];
-    float *zn = new float[block_depth+1];
-    for(int i=0; i<block_width+1; i++) {xn[i]=x_min+dx*i;}
-    for(int i=0; i<block_height+1; i++){yn[i]=y_min+dy*i;}
-    for(int i=0; i<block_depth+1; i++) {zn[i]=z_min+dz*i;}
+    float *xn = new float[block_x+1];
+    float *yn = new float[block_y+1];
+    float *zn = new float[block_z+1];
+    for(int i=0; i<block_x+1; i++) {xn[i]=x_min+dx*i;}
+    for(int i=0; i<block_y+1; i++){yn[i]=y_min+dy*i;}
+    for(int i=0; i<block_z+1; i++) {zn[i]=z_min+dz*i;}
     //float *vars[] = {u};
     write_rectilinear_mesh(logfilename, 0, dims, xn, yn, zn, 1, vardims, centering, varnames, vars);
     delete [] vars[0]; delete [] xn; delete [] yn; delete [] zn;
-    for(int k=0; k<=block_depth+1; k++){
-        for(int j=0; j<=block_height+1; j++){
-            for(int i=0; i<=block_width+1; i++){
+    for(int k=0; k<=block_z+1; k++){
+        for(int j=0; j<=block_y+1; j++){
+            for(int i=0; i<=block_x+1; i++){
                 if(y[j]==0.484375)
                     logfile << std::setw(10) << u[index(i,j,k)] << " ";
             }
@@ -971,8 +971,8 @@ void MeshBlock::compute(){
 
 #ifndef USE_GPU
   /********** CPU CODE **********/
-  memcpy(u2, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
-  memcpy(u3, u, sizeof(float)*(block_width+2)*(block_height+2)*(block_depth+2));
+  memcpy(u2, u, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  memcpy(u3, u, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
   FOR_EACH_ZONE
       up_x = (u[index(i+1,j,k)] - u[index(i,j,k)])/dx;
       un_x = (u[index(i,j,k)] - u[index(i-1,j,k)])/dx;
@@ -999,13 +999,13 @@ void MeshBlock::compute(){
 #else
   /********** GPU CODE **********/
 #ifndef USE_HAPI
-  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_width, NULL);
+  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_x, NULL);
 #else
   // create callback
   CkArrayIndexOctIndex myIndex = CkArrayIndexOctIndex(thisIndex);
   CkCallback *cb = new CkCallback(CkIndex_MeshBlock::computeDone(), myIndex, thisProxy);
 
-  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_width, cb);
+  invokeComputeKernel(computeStream, u, d_u, d_u2, d_u3, dx, dy, dz, dt, apx, apy, apz, anx, any, anz, block_x, cb);
 #endif // USE_HAPI
 #endif // USE_GPU
 
@@ -1054,9 +1054,9 @@ Decision MeshBlock::getGranularityDecision(){
 //#ifndef USE_GPU
 #if 1 // FIXME Do not use the GPU kernels for now, the error values are slightly different
   /********** CPU CODE **********/
-  for(int i=1; i <= block_width; i++){
-    for(int j=1; j<=block_height; j++){
-      for(int k=1; k<=block_depth; k++){
+  for(int i=1; i <= block_x; i++){
+    for(int j=1; j<=block_y; j++){
+      for(int k=1; k<=block_z; k++){
         // d/dx
         mesh_manager_local->delu[0][i][j][k] = (u[index(i+1, j, k)] - u[index(i-1, j, k)])*delx;
         mesh_manager_local->delua[0][i][j][k] = abs(u[index(i+1, j, k)]) + abs(u[index(i-1, j, k)])*delx;
@@ -1072,9 +1072,9 @@ Decision MeshBlock::getGranularityDecision(){
     }
   }
 
-  int istart=2, iend=block_width-1,
-      jstart=2, jend=block_height-1,
-      kstart=2, kend=block_depth-1;
+  int istart=2, iend=block_x-1,
+      jstart=2, jend=block_y-1,
+      kstart=2, kend=block_z-1;
   for (int i=istart;i<=iend;i++){
     for (int j=jstart;j<=jend;j++){
       for (int k=kstart;k<=kend;k++){
@@ -1123,7 +1123,7 @@ Decision MeshBlock::getGranularityDecision(){
 //#ifndef USE_HAPI
 #if 1 // FIXME Don't use HAPI version because it sometimes results in different refinement decisions
   // execute GPU kernel
-  float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_width, NULL);
+  float error_gpu = invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_x, NULL);
 
   double decision_time = CkWallTimer() - decision_start_time;
   mesh_manager_local->addDecisionTime(decision_time);
@@ -1139,7 +1139,7 @@ Decision MeshBlock::getGranularityDecision(){
   CkCallback *cb = new CkCallback(CkIndex_MeshBlock::gotErrorFromGPU(), myIndex, thisProxy);
 
   // offload
-  invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_width, cb);
+  invokeDecisionKernel(decisionStream, u, h_error, d_error, d_u, mesh_manager_local->d_delu, mesh_manager_local->d_delua, refine_filter, dx, dy, dz, block_x, cb);
 
   return STAY; // return dummy value
 #endif // USE_HAPI
@@ -1312,10 +1312,10 @@ void MeshBlock::doPhase2(){
   if(decision == COARSEN){//send data to the parent
     std::vector<float> child_u;
     if(!inInitialMeshGenerationPhase){
-      child_u.resize((block_height*block_width*block_depth)/8);
-      for(int i=1; i<= block_width; i+=2)
-        for(int j=1; j<=block_height; j+=2)
-          for(int k=1; k<=block_depth; k+=2)
+      child_u.resize((block_y*block_x*block_z)/8);
+      for(int i=1; i<= block_x; i+=2)
+        for(int j=1; j<=block_y; j+=2)
+          for(int k=1; k<=block_z; k+=2)
             child_u[index_c(i/2, j/2, k/2)] = downSample(u, i, j, k);
     }
     //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] coarsening\n", iterations, thisIndex.getDepth(), xc, yc, zc);
@@ -1555,7 +1555,7 @@ void MeshBlock::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 
   std::vector<float> refined_u;
   if(!inInitialMeshGenerationPhase){
-    refined_u.resize(block_width*block_height*block_depth);
+    refined_u.resize(block_x*block_y*block_z);
     interpolate(u, refined_u, xstart, xend, ystart, yend, zstart, zend);
   }
   VB(logfile << thisIndex.getIndexString().c_str() << " isRefined = " << isRefined << std::endl; 
@@ -1573,11 +1573,11 @@ void MeshBlock::refine(){
     getOctantRange(c, cx_min, cx_max, cy_min, cy_max, cz_min, cz_max);
 
     float cxx = x_min, cyy = y_min, czz = z_min;
-    if (cx_max == block_width)
+    if (cx_max == block_x)
       cxx += (nx*dx)/2;
-    if (cy_max == block_height)
+    if (cy_max == block_y)
       cyy += (ny*dy)/2;
-    if (cz_max == block_depth)
+    if (cz_max == block_z)
       czz += (nz*dz)/2;
 
     refineChild(c, cx_min, cx_max, cy_min, cy_max, cz_min, cz_max, cxx, cyy, czz);
@@ -1610,9 +1610,9 @@ MeshBlock::MeshBlock(float dx, float dy, float dz,
   this->y_min = y_min;
   this->z_min = z_min;
 
-  nx = grid_width / n_chares_x;
-  ny = grid_height / n_chares_y;
-  nz = grid_depth / n_chares_z;
+  nx = grid_x / n_chares_x;
+  ny = grid_y / n_chares_y;
+  nz = grid_z / n_chares_z;
 
   thisIndex.getCoordinates(xc, yc, zc);
   this->meshGenIterations = meshGenIterations;
@@ -1670,9 +1670,9 @@ MeshBlock::MeshBlock(float dx, float dy, float dz,
 
   if(!inInitialMeshGenerationPhase){
     int ctr=0;
-    for(int k=1; k<=block_depth; k++)
-      for(int j=1; j<=block_height; j++)
-        for(int i=1; i<=block_width; i++)
+    for(int k=1; k<=block_z; k++)
+      for(int j=1; j<=block_y; j++)
+        for(int i=1; i<=block_x; i++)
           u[index(i,j,k)]=refined_u[ctr++];
   }
   iterate();
@@ -1711,9 +1711,9 @@ bool MeshBlock::isRoot(){
 
 void MeshBlock::printData() {
   int cntr=0;
-  for(int xIndex = 1; xIndex <= block_width; xIndex++){
-    for(int yIndex = 1; yIndex <= block_height; yIndex++) {
-      for(int zIndex = 1; zIndex <= block_depth; zIndex++) {
+  for(int xIndex = 1; xIndex <= block_x; xIndex++){
+    for(int yIndex = 1; yIndex <= block_y; yIndex++) {
+      for(int zIndex = 1; zIndex <= block_z; zIndex++) {
         logfile << x[xIndex] << " " << y[yIndex] << " " << z[zIndex] << " " << u[index(xIndex,yIndex,zIndex)] << " " << cntr++ << std::endl;
       }
     }

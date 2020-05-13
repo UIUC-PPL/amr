@@ -1,5 +1,5 @@
 # Charm++ compilation settings
-CHARM_DIR ?= ../charm
+CHARM_DIR ?= $(HOME)/charm
 CHARMC ?= $(CHARM_DIR)/bin/charmc -I. $(CHARMC_INC)
 CHARMC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/include
 CXX = $(CHARMC)
@@ -7,10 +7,11 @@ OPTS ?= --std=c++11 -O3
 CXXFLAGS += $(OPTS)
 
 # CUDA settings
-CUDATOOLKIT_HOME ?= /usr/local/cuda
+CUDATOOLKIT_HOME ?= $(CUDA_HOME)
+CUB_DIR = $(HOME)/cub-1.8.0
 NVCC ?= $(CUDATOOLKIT_HOME)/bin/nvcc
 NVCC_FLAGS = -c --std=c++11 -O3
-NVCC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/src/arch/cuda/hybridAPI -I./lib/cub
+NVCC_INC = -I$(CUDATOOLKIT_HOME)/include -I$(CHARM_DIR)/src/arch/cuda/hybridAPI -I$(CUB_DIR)
 CUDA_LD_LIBS = -L$(CUDATOOLKIT_HOME)/lib64 -lcudart
 
 # Object files

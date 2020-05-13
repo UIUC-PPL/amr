@@ -1,6 +1,4 @@
 #include <cub/cub.cuh>
-#include <math_constants.h>
-#include <math_functions.h>
 #include <stdio.h>
 #include <cfloat>
 

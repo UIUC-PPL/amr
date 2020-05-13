@@ -33,8 +33,8 @@ gpu: $(GPU_OBJS)
 hapi: $(HAPI_OBJS)
 	$(CHARMC) $(CXXFLAGS) -language charm++ -o $(TARGET)-$@ $^ $(LD_LIBS) $(CUDA_LD_LIBS) -module CommonLBs
 
-Advection.decl.h Main.decl.h: advection.ci.stamp
-advection.ci.stamp: advection.ci
+Advection.decl.h Main.decl.h: Advection.ci.stamp
+Advection.ci.stamp: Advection.ci
 	$(CHARMC) $<
 	touch $@
 
@@ -67,4 +67,4 @@ test-hapi: hapi
 	./charmrun +p8 ./$(TARGET)-$< -a 128 -b 64 -d 2 -i 30 -l 9 +balancer DistributedLB ++ppn 8 ++local
 
 clean:
-	rm -f *.decl.h *.def.h conv-host *.o $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi charmrun advection.ci.stamp
+	rm -f *.decl.h *.def.h conv-host *.o $(TARGET)-cpu $(TARGET)-gpu $(TARGET)-hapi charmrun Advection.ci.stamp

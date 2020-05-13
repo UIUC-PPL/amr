@@ -2,8 +2,6 @@
 #include <assert.h>
 
 using std::ofstream;
-using std::max;
-using std::min;
 using std::map;
 
 extern CProxy_Main mainProxy;
@@ -252,16 +250,16 @@ void AdvectionGroup::processQdTimes(map<int, pair<float, float>> peQdtimes,
       qdtimes[it->first] = std::pair<float, float>(std::numeric_limits<float>::min(),
                                                    std::numeric_limits<float>::max());
     }
-    qdtimes[it->first].first = max(qdtimes[it->first].first, it->second.first);
-    qdtimes[it->first].second = min(qdtimes[it->first].second, it->second.second);
+    qdtimes[it->first].first = std::max(qdtimes[it->first].first, it->second.first);
+    qdtimes[it->first].second = std::min(qdtimes[it->first].second, it->second.second);
   }
 
   for (auto it = peRemeshtimes.begin(); it != peRemeshtimes.end(); it++) {
     if (remeshtimes.find(it->first) == remeshtimes.end()) {
       remeshtimes[it->first] = std::pair<float, float>(0, std::numeric_limits<float>::max());
     }
-    remeshtimes[it->first].first = max(remeshtimes[it->first].first, it->second.first);
-    remeshtimes[it->first].second = min(remeshtimes[it->first].second, it->second.second);
+    remeshtimes[it->first].first = std::max(remeshtimes[it->first].first, it->second.first);
+    remeshtimes[it->first].second = std::min(remeshtimes[it->first].second, it->second.second);
   }
 
   for (auto it = peWorkunits.begin(); it != peWorkunits.end(); it++) {
@@ -1048,7 +1046,7 @@ void Advection::gotErrorFromGPU() {
     newDecision = STAY;
   }
 
-  newDecision = (decision != REFINE) ? max(decision, newDecision) : decision;
+  newDecision = (decision != REFINE) ? std::max(decision, newDecision) : decision;
   VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
   updateDecisionState(1, newDecision);
 #endif
@@ -1179,7 +1177,7 @@ void Advection::makeGranularityDecisionAndCommunicate(){
   if(isLeaf) {//run this on leaf nodes
 //#ifndef USE_HAPI
 #if 1 // TODO Don't use HAPI version because it sometimes results in different refinement decisions
-    Decision newDecision = (decision!=REFINE)?max(decision, getGranularityDecision()):decision;
+    Decision newDecision = (decision != REFINE) ? std::max(decision, getGranularityDecision()) : decision;
     VB(logfile << thisIndex.getIndexString().c_str() << " decision = " << newDecision << std::endl;);
     updateDecisionState(1, newDecision);
 #else
@@ -1292,7 +1290,7 @@ void Advection::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
     VB(logfile << "received message from uncle" << std::endl;);
     OctIndex uncleIndex = QI.getParent();
     if (uncleDecisions.count(uncleIndex)) {
-      uncleDecisions[uncleIndex] = max(uncleDecisions[uncleIndex], remoteDecision);
+      uncleDecisions[uncleIndex] = std::max(uncleDecisions[uncleIndex], remoteDecision);
     } else {
       uncleDecisions[uncleIndex] = remoteDecision;
     }

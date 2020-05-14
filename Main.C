@@ -9,7 +9,6 @@
 /* readonly */ int min_depth, max_depth;
 /* readonly */ int max_iters, refine_freq, lb_freq;
 /* readonly */ bool verbose;
-/* readonly */ float x_min, x_max, y_min, y_max, z_min, z_max;
 /* readonly */ float dx, dy, dz, vx, vy, vz;
 /* readonly */ float apx, anx, apy, any, apz, anz;
 /* readonly */ float x_ctr, y_ctr, z_ctr, radius;
@@ -92,9 +91,9 @@ Main::Main(CkArgMsg* m) {
   CkAssert(min_depth > 0);
 
   // Initialize constants
-  x_min = 0; x_max = 1;
-  y_min = 0; y_max = 1;
-  z_min = 0; z_max = 1;
+  float x_min = 0; float x_max = 1;
+  float y_min = 0; float y_max = 1;
+  float z_min = 0; float z_max = 1;
 
   dx = (x_max - x_min) / float(grid_x);
   dy = (y_max - y_min) / float(grid_y);

@@ -21,12 +21,12 @@ float refine_cutoff= 0.2, derefine_cutoff = 0.05;
 CProxy_MeshManager mesh_manager;
 
 #ifdef USE_GPU
-extern void memHostAlloc(void** ptr, size_t size);
-extern void memHostFree(void* ptr);
-extern void memDeviceAlloc(void** ptr, size_t size);
-extern void memDeviceFree(void* ptr);
-extern void createStream(cudaStream_t* stream_ptr);
-extern void destroyStream(cudaStream_t stream);
+extern void gpuHostAlloc(void** ptr, size_t size);
+extern void gpuHostFree(void* ptr);
+extern void gpuDeviceAlloc(void** ptr, size_t size);
+extern void gpuDeviceFree(void* ptr);
+extern void gpuStreamCreate(cudaStream_t* stream_ptr);
+extern void gpuStreamDestroy(cudaStream_t stream);
 
 extern float invokeDecisionKernel(cudaStream_t, float*, float*, float*, float*,
     float*, float*, float, float, float, float, int, void*);
@@ -164,8 +164,8 @@ MeshManager::MeshManager() : workUnitCount(0), compute_time_sum(0.0),
   // delu and delua are 4D arrays
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_x+2)*(block_y+2)*(block_z+2);
-  memDeviceAlloc((void**)&d_delu, delu_size);
-  memDeviceAlloc((void**)&d_delua, delu_size);
+  gpuDeviceAlloc((void**)&d_delu, delu_size);
+  gpuDeviceAlloc((void**)&d_delua, delu_size);
 #endif
   delu = new float***[numDims];
   delua = new float***[numDims];
@@ -188,8 +188,8 @@ MeshManager::MeshManager(CkMigrateMessage* m) : CBase_MeshManager(m)
 {
 #ifdef USE_GPU
   size_t delu_size = sizeof(float)*numDims*(block_x+2)*(block_y+2)*(block_z+2);
-  memDeviceAlloc((void**)&d_delu, delu_size);
-  memDeviceAlloc((void**)&d_delua, delu_size);
+  gpuDeviceAlloc((void**)&d_delu, delu_size);
+  gpuDeviceAlloc((void**)&d_delua, delu_size);
 #endif
   delu = new float***[numDims];
   delua = new float***[numDims];
@@ -211,8 +211,8 @@ MeshManager::MeshManager(CkMigrateMessage* m) : CBase_MeshManager(m)
 MeshManager::~MeshManager()
 {
 #ifdef USE_GPU
-  memDeviceFree(d_delu);
-  memDeviceFree(d_delua);
+  gpuDeviceFree(d_delu);
+  gpuDeviceFree(d_delua);
 #endif
 }
 
@@ -353,76 +353,80 @@ void MeshBlock::applyInitialCondition(){
       }
 }
 
-void MeshBlock::mem_allocate(float* &p, int size){
+inline void MeshBlock::hostAlloc(float* &p, int size){
   p = new float[size];
 }
 
-void MeshBlock::mem_allocate_all(){
-#ifdef USE_GPU
-  memHostAlloc((void**)&u, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
-  memHostAlloc((void**)&u2, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
-  memHostAlloc((void**)&u3, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
-  memHostAlloc((void**)&h_error, sizeof(float));
-  memDeviceAlloc((void**)&d_u, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
-  memDeviceAlloc((void**)&d_u2, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
-  memDeviceAlloc((void**)&d_u3, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
-  memDeviceAlloc((void**)&d_error, sizeof(float));
-
-  createStream(&computeStream);
-  createStream(&decisionStream);
-#else
-  mem_allocate(u, (block_x+2)*(block_y+2)*(block_z+2));
-  mem_allocate(u2, (block_x+2)*(block_y+2)*(block_z+2));
-  mem_allocate(u3, (block_x+2)*(block_y+2)*(block_z+2));
-#endif
-
-  mem_allocate(x, block_x+2);
-  mem_allocate(y, block_y+2);
-  mem_allocate(z, block_z+2);
-
-  mem_allocate(left_surface, block_y*block_z);
-  mem_allocate(right_surface, block_y*block_z);
-  mem_allocate(top_surface, block_x*block_z);
-  mem_allocate(bottom_surface, block_x*block_z);
-  mem_allocate(forward_surface, block_x*block_y);
-  mem_allocate(backward_surface, block_x*block_y);
+inline void MeshBlock::hostFree(float* p) {
+  delete [] p;
 }
 
-void MeshBlock::mem_deallocate_all(){
+void MeshBlock::allAlloc(){
 #ifdef USE_GPU
-  memHostFree(u);
-  memHostFree(u2);
-  memHostFree(u3);
-  memHostFree(h_error);
-  memDeviceFree(d_u);
-  memDeviceFree(d_u2);
-  memDeviceFree(d_u3);
-  memDeviceFree(d_error);
+  gpuHostAlloc((void**)&u, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
+  gpuHostAlloc((void**)&u2, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
+  gpuHostAlloc((void**)&u3, (block_x+2)*(block_y+2)*(block_z+2)*sizeof(float));
+  gpuHostAlloc((void**)&h_error, sizeof(float));
+  gpuDeviceAlloc((void**)&d_u, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  gpuDeviceAlloc((void**)&d_u2, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  gpuDeviceAlloc((void**)&d_u3, sizeof(float)*(block_x+2)*(block_y+2)*(block_z+2));
+  gpuDeviceAlloc((void**)&d_error, sizeof(float));
 
-  destroyStream(computeStream);
-  destroyStream(decisionStream);
+  gpuStreamCreate(&computeStream);
+  gpuStreamCreate(&decisionStream);
 #else
-  delete [] u;
-  delete [] u2;
-  delete [] u3;
+  hostAlloc(u, (block_x+2)*(block_y+2)*(block_z+2));
+  hostAlloc(u2, (block_x+2)*(block_y+2)*(block_z+2));
+  hostAlloc(u3, (block_x+2)*(block_y+2)*(block_z+2));
 #endif
 
-  delete [] x;
-  delete [] y;
-  delete [] z;
+  hostAlloc(x, block_x+2);
+  hostAlloc(y, block_y+2);
+  hostAlloc(z, block_z+2);
 
-  delete [] left_surface;
-  delete [] right_surface;
-  delete [] top_surface;
-  delete [] bottom_surface;
-  delete [] forward_surface;
-  delete [] backward_surface;
+  hostAlloc(left_surface, block_y*block_z);
+  hostAlloc(right_surface, block_y*block_z);
+  hostAlloc(top_surface, block_x*block_z);
+  hostAlloc(bottom_surface, block_x*block_z);
+  hostAlloc(forward_surface, block_x*block_y);
+  hostAlloc(backward_surface, block_x*block_y);
+}
+
+void MeshBlock::allFree(){
+#ifdef USE_GPU
+  gpuHostFree(u);
+  gpuHostFree(u2);
+  gpuHostFree(u3);
+  gpuHostFree(h_error);
+  gpuDeviceFree(d_u);
+  gpuDeviceFree(d_u2);
+  gpuDeviceFree(d_u3);
+  gpuDeviceFree(d_error);
+
+  gpuStreamDestroy(computeStream);
+  gpuStreamDestroy(decisionStream);
+#else
+  hostFree(u);
+  hostFree(u2);
+  hostFree(u3);
+#endif
+
+  hostFree(x);
+  hostFree(y);
+  hostFree(z);
+
+  hostFree(left_surface);
+  hostFree(right_surface);
+  hostFree(top_surface);
+  hostFree(bottom_surface);
+  hostFree(forward_surface);
+  hostFree(backward_surface);
 }
 
 void MeshBlock::init() {
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
-  mem_allocate_all();
+  allAlloc();
 
   usesAutoMeasure = false;
   usesAtSync = true;
@@ -596,7 +600,7 @@ void MeshBlock::pup(PUP::er &p) {
   p|phase1Over;
 
   if(p.isUnpacking()){
-    mem_allocate_all(); // Needed as there is no migration constructor
+    allAlloc(); // Needed as there is no migration constructor
     //resetMeshRestructureData();
   }
 
@@ -636,7 +640,7 @@ void MeshBlock::pup(PUP::er &p) {
 
 MeshBlock::~MeshBlock(){
   if (isLeaf) {
-    mem_deallocate_all(); // FIXME: Shouldn't this be called for ALL chares?
+    allFree(); // FIXME: Shouldn't this be called for ALL chares?
   }
 }
 
@@ -1664,7 +1668,7 @@ void MeshBlock::refine(){
     refineChild(c, cx_min, cx_max, cy_min, cy_max, cz_min, cz_max, cxx, cyy, czz);
     //thisProxy.doneInserting();
   }
-  mem_deallocate_all();
+  allFree();
 }
 
 bool MeshBlock::isGrandParent() {

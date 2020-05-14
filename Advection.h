@@ -127,9 +127,10 @@ public:
   float itBeginTime;
   float lastBusyTime, lastIdleTime;
   float remeshStartTime, remeshEndTime;
-  void mem_allocate(float* &p, int size);
-  void mem_allocate_all();
-  void mem_deallocate_all();
+  inline void hostAlloc(float* &p, int size);
+  inline void hostFree(float* p);
+  void allAlloc();
+  void allFree();
   OctIndex getRefinedNeighbor(int NBR);
   inline float* getGhostBuffer(int dir);
   inline int getGhostSize(int dir);

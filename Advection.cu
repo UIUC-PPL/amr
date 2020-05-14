@@ -23,12 +23,12 @@ inline void gpuPrintError(cudaError_t err, const char *file, int line) {
     fprintf(stderr,"CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), file, line);
 }
 
-void memHostAlloc(void** ptr, size_t size) { gpuSafe(cudaMallocHost(ptr, size)); }
-void memHostFree(void* ptr) { gpuSafe(cudaFreeHost(ptr)); }
-void memDeviceAlloc(void** ptr, size_t size) { gpuSafe(cudaMalloc(ptr, size)); }
-void memDeviceFree(void* ptr) { gpuSafe(cudaFree(ptr)); }
-void createStream(cudaStream_t* stream_ptr) { gpuSafe(cudaStreamCreate(stream_ptr)); }
-void destroyStream(cudaStream_t stream) { gpuSafe(cudaStreamDestroy(stream)); }
+void gpuHostAlloc(void** ptr, size_t size) { gpuSafe(cudaMallocHost(ptr, size)); }
+void gpuHostFree(void* ptr) { gpuSafe(cudaFreeHost(ptr)); }
+void gpuDeviceAlloc(void** ptr, size_t size) { gpuSafe(cudaMalloc(ptr, size)); }
+void gpuDeviceFree(void* ptr) { gpuSafe(cudaFree(ptr)); }
+void gpuStreamCreate(cudaStream_t* stream_ptr) { gpuSafe(cudaStreamCreate(stream_ptr)); }
+void gpuStreamDestroy(cudaStream_t stream) { gpuSafe(cudaStreamDestroy(stream)); }
 
 __device__ static float atomicMax(float* address, float val)
 {

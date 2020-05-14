@@ -348,7 +348,7 @@ module Advection {
 
     entry void wait4ChildData() {
       serial {
-        mem_allocate_all();
+        allAlloc();
       }
 
       for (ichild = 0; ichild < NUM_CHILDREN; ichild++) {

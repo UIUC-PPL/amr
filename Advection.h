@@ -138,7 +138,6 @@ public:
   std::ofstream logfile;
 
   bool finishedPhase1;
-  int nChildDataRecvd;
   bool phase1Over;
 
   double compute_start_time;

@@ -4,7 +4,7 @@
 #include "Main.decl.h"
 
 class Main : public CBase_Main {
-  double start_time, end_time;
+  double start_time;
 
 public:
   Main(CkArgMsg* m);

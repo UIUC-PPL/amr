@@ -147,9 +147,11 @@ Main::Main(CkArgMsg* m) {
   }
   mesh.doneInserting();
 
+  // Create per-PE mesh manager
+  mesh_manager = CProxy_MeshManager::ckNew();
+
   // Begin simulation
   CkStartQD(CkCallback(CkIndex_Main::startMeshGeneration(), thisProxy));
-  mesh_manager = CProxy_MeshManager::ckNew();
 }
 
 void Main::startMeshGeneration() {
@@ -158,7 +160,7 @@ void Main::startMeshGeneration() {
 }
 
 void Main::terminate() {
-  ckout << "\nSimulation time: " << CkWallTimer() - start_time << " s" << endl;
+  CkPrintf("\nSimulation time: %lf s\n", CkWallTimer() - start_time);
   mesh_manager.reduceWorkUnits();
 }
 

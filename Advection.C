@@ -35,6 +35,7 @@ extern void invokeComputeKernel(cudaStream_t, float*, float*, float*, float*,
 #endif
 
 enum BitsToUse { LOW, HIGH, BOTH };
+
 static void populateIndices(BitsToUse x, BitsToUse y, BitsToUse z, std::vector<int>& ids)
 {
   BitsToUse dims[3] = {z, y, x};
@@ -58,9 +59,10 @@ static void populateIndices(BitsToUse x, BitsToUse y, BitsToUse z, std::vector<i
 }
 
 // Given an index, return the children that share the surface in the given direction
-inline static void getChildrenInDir(OctIndex myIndex, int dir, std::vector<OctIndex>& children)
+inline static void getChildrenInDir(OctIndex my_index, int dir, std::vector<OctIndex>& children)
 {
   std::vector<int> ids;
+
   switch (dir) {
     case LEFT:     populateIndices(LOW,  BOTH, BOTH, ids); break;
     case RIGHT:    populateIndices(HIGH, BOTH, BOTH, ids); break;
@@ -70,9 +72,10 @@ inline static void getChildrenInDir(OctIndex myIndex, int dir, std::vector<OctIn
     case BACKWARD: populateIndices(BOTH, BOTH, LOW,  ids); break;
   }
 
-  for (std::vector<int>::iterator iter = ids.begin(), end = ids.end(); iter != end; ++iter)
-    children.push_back(myIndex.getChild(*iter));
-  assert(children.size() == 4);
+  for (auto iter = ids.begin(), end = ids.end(); iter != end; ++iter) {
+    children.push_back(my_index.getChild(*iter));
+  }
+  CkAssert(children.size() == 4);
 }
 
 inline static void setFirstHalf(int& min, int& max) { max /= 2; }
@@ -80,11 +83,11 @@ inline static void setSecondHalf(int& min, int& max) { min = (max / 2) + 1; }
 
 inline static void populateQuadrant(bool bit1, bool bit2, int& min1, int& max1, int& min2, int& max2)
 {
-  if (bit1)  setSecondHalf(min1, max1);
-  else       setFirstHalf(min1, max1);
+  if (bit1) setSecondHalf(min1, max1);
+  else      setFirstHalf(min1, max1);
 
-  if (bit2)  setSecondHalf(min2, max2);
-  else       setFirstHalf(min2, max2);
+  if (bit2) setSecondHalf(min2, max2);
+  else      setFirstHalf(min2, max2);
 }
 
 enum {
@@ -213,16 +216,16 @@ MeshManager::~MeshManager()
 #endif
 }
 
-void MeshManager::incrementWorkUnitCount(int iterations)
+void MeshManager::incrementWorkUnitCount(int iter)
 {
   workUnitCount++;
-  workUnits[iterations]++;
+  workUnits[iter]++;
 
-  if (iterations % lb_freq == 0 || iterations % lb_freq == lb_freq-1) {
+  if (iter % lb_freq == 0 || iter % lb_freq == lb_freq-1) {
     // This is either a load balancing iteration or the one right before it
-    minLoad[iterations] += 1;
-    maxLoad[iterations] += 1;
-    avgLoad[iterations] += 1;
+    minLoad[iter] += 1;
+    maxLoad[iter] += 1;
+    avgLoad[iter] += 1;
   }
 }
 
@@ -304,37 +307,36 @@ void MeshManager::printLogs()
 
 void MeshManager::meshGenerationPhaseIsOver() {}
 
-void MeshBlock::prepareData4Exchange(){
-  imsg=0;
-  ghostReceived.clear();
+void MeshBlock::packGhosts(){
+  recv_count = 0;
+  recv_ghosts.clear();
 
-  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
-       iend = neighbors.end(); it != iend; ++it) {
-      it->second.setDataSent(false);
+  for (auto it = neighbors.begin(), iend = neighbors.end(); it != iend; ++it) {
+    it->second.setDataSent(false);
   }
 
-  // Cache boundary data in contiguous blocks
-
+  // Pack ghosts into contiguous blocks
   // YZ surfaces
-  for(int j=1; j <= block_y; ++j)
-    for(int k=1; k <= block_z; ++k) {
+  for (int j = 1; j <= block_y; ++j) {
+    for (int k = 1; k <= block_z; ++k) {
       left_surface[index_yz(j-1,k-1)] = u[index(1,j,k)];
       right_surface[index_yz(j-1,k-1)] = u[index(block_x,j,k)];
     }
-
+  }
   // XZ Surfaces
-  for(int i=1; i <= block_x; ++i)
-    for(int k=1; k <= block_z; ++k) {
+  for (int i = 1; i <= block_x; ++i) {
+    for (int k = 1; k <= block_z; ++k) {
       top_surface[index_xz(i-1,k-1)] = u[index(i, block_y, k)];
       bottom_surface[index_xz(i-1,k-1)] = u[index(i, 1, k)];
     }
-
+  }
   // XY surfaces
-  for(int i=1; i <= block_x; ++i)
-    for(int j=1; j <= block_y; ++j) {
+  for (int i = 1; i <= block_x; ++i) {
+    for (int j = 1; j <= block_y; ++j) {
       forward_surface[index_xy(i-1,j-1)] = u[index(i, j, block_z)];
       backward_surface[index_xy(i-1,j-1)] = u[index(i, j, 1)];
     }
+  }
 }
 
 void MeshBlock::applyInitialCondition(){
@@ -439,7 +441,7 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   this->y_min = yc*ny*dy;
   this->z_min = zc*nz*dz;
 
-  iterations=0;
+  iter=0;
   meshGenIterations=0;
 
   // Allocate all necessary buffers
@@ -490,7 +492,7 @@ void MeshBlock::pup(PUP::er &p){
 
   PUParray(p, child_isRefined, NUM_CHILDREN);
 
-  p|ghostReceived;
+  p|recv_ghosts;
 
   p|decision;
   PUParray(p, child_decision, NUM_CHILDREN);
@@ -505,7 +507,7 @@ void MeshBlock::pup(PUP::er &p){
   p|xc;
   p|yc;
   p|zc;
-  p|imsg;
+  p|recv_count;
   p|nChildDataRecvd;
   p|phase1Over;
 
@@ -519,7 +521,7 @@ void MeshBlock::pup(PUP::er &p){
   PUParray(p, y, block_y+2);
   PUParray(p, z, block_z+2);
 
-  p|iterations;
+  p|iter;
   p|meshGenIterations;
   p|up_x;
   p|un_x;
@@ -557,13 +559,13 @@ MeshBlock::~MeshBlock(){
 
 inline float downSample(float* u, int x, int y, int z) {
   return (
-    u[index(x, y, z)]   + u[index(x+1, y, z)] +
+    u[index(x, y, z)] + u[index(x+1, y, z)] +
     u[index(x, y+1, z)] + u[index(x+1, y+1, z)] +
-    u[index(x, y, z+1)]   + u[index(x+1, y, z+1)] +
+    u[index(x, y, z+1)] + u[index(x+1, y, z+1)] +
     u[index(x, y+1, z+1)] + u[index(x+1, y+1, z+1)]) / 8.0;
 }
 
-class surface_iterator {
+class SurfaceIterator {
   float *u;
   int minx, maxx;
   int miny, maxy;
@@ -596,7 +598,7 @@ class surface_iterator {
   }
 
 public:
-  surface_iterator(float *u,
+  SurfaceIterator(float *u,
                    int minx, int maxx, int dx,
                    int miny, int maxy, int dy,
                    int minz, int maxz, int dz)
@@ -614,7 +616,7 @@ public:
   int getY() { assert(!done); return cury; }
   int getZ() { assert(!done); return curz; }
 
-  inline surface_iterator& operator++() {
+  inline SurfaceIterator& operator++() {
     assert(!done);
     incX();
     return *this;
@@ -626,6 +628,7 @@ public:
   inline float down()     { assert(!done); return u[index(curx, cury-1, curz)];  }
   inline float forward()  { assert(!done); return u[index(curx, cury, curz+1)];  }
   inline float backward() { assert(!done); return u[index(curx, cury, curz-1)];  }
+
   inline float& operator*() {
     assert(!done);
     return u[index(curx, cury, curz)];
@@ -636,42 +639,56 @@ public:
   }
 };
 
-float* MeshBlock::getGhostBuffer(int dir) {
+inline float* MeshBlock::getGhostBuffer(int dir) {
   switch (dir) {
-    case UP:    return top_surface;
-    case DOWN:  return bottom_surface;
-    case LEFT:  return left_surface;
-    case RIGHT: return right_surface;
-    case FORWARD: return forward_surface;
+    case UP:       return top_surface;
+    case DOWN:     return bottom_surface;
+    case LEFT:     return left_surface;
+    case RIGHT:    return right_surface;
+    case FORWARD:  return forward_surface;
     case BACKWARD: return backward_surface;
   }
 }
 
-int MeshBlock::getGhostCount(int dir) {
+inline int MeshBlock::getGhostSize(int dir) {
   switch (dir) {
-  case UP:    case DOWN: return block_x*block_z;
-  case RIGHT: case LEFT: return block_y*block_z;
-  case FORWARD: case BACKWARD: return block_y*block_x;
-  //default: CkAbort("Asking for an unknown boundary's size");
+    case UP:
+    case DOWN:
+      return block_x * block_z;
+    case RIGHT:
+    case LEFT:
+      return block_y * block_z;
+    case FORWARD:
+    case BACKWARD:
+      return block_x * block_y;
+  }
+}
+
+inline int MeshBlock::getSourceDirection(int dir) {
+  switch (dir) {
+    case UP:       return DOWN;
+    case DOWN:     return UP;
+    case LEFT:     return RIGHT;
+    case RIGHT:    return LEFT;
+    case FORWARD:  return BACKWARD;
+    case BACKWARD: return FORWARD;
   }
 }
 
 void MeshBlock::sendGhost(int dir){
-  int count = getGhostCount(dir);
-  VB(logfile << "ghost count in direction " << dir << " = " << count << std::endl;);
-  float* boundary;
+  int ghost_size = getGhostSize(dir);
+  float* ghost_data = NULL;
 
-  OctIndex QI = thisIndex.getNeighbor(dir);
-  std::map<OctIndex, Neighbor>::iterator I = neighbors.find(QI);
+  OctIndex neighbor_idx = thisIndex.getNeighbor(dir);
+  auto it = neighbors.find(neighbor_idx);
 
-  if (I == neighbors.end()) {
-    VB(logfile << "neighbor is an uncle" << std::endl;);
+  if (it == neighbors.end()) {
     // Uncle case, neighbor doesn't exist in this direction (at this level)
-    OctIndex receiver = QI.getParent();
+    OctIndex receiver = neighbor_idx.getParent();
 
     // TODO: Remove use of subdirections
-    boundary = getGhostBuffer(dir);
-    count /= 4;
+    ghost_data = getGhostBuffer(dir);
+    ghost_size /= 4;
 
     int x_min, x_max, y_min, y_max, z_min, z_max;
     populateRanges(dir, -1, x_min, x_max, y_min, y_max, z_min, z_max);
@@ -679,54 +696,57 @@ void MeshBlock::sendGhost(int dir){
     int dx = (x_min == x_max) ? 0 : 2;
     int dy = (y_min == y_max) ? 0 : 2;
     int dz = (z_min == z_max) ? 0 : 2;
-    if(x_min!=x_max)x_min++;
-    else if(x_min==0) x_min = x_max = 1;
-    else if(x_min==block_x+1) x_min = x_max = block_x-1;
 
-    if(y_min!=y_max)y_min++;
-    else if(y_min==0) y_min = y_max = 1;
-    else if(y_min==block_x+1) y_min = y_max = block_y-1;
+    if (x_min != x_max) x_min++;
+    else if (x_min == 0) x_min = x_max = 1;
+    else if (x_min == block_x+1) x_min = x_max = block_x-1;
 
-    if(z_min!=z_max)z_min++;
-    else if(z_min==0) z_min = z_max = 1;
-    else if(z_min==block_x+1) z_min = z_max = block_z-1;
+    if (y_min != y_max) y_min++;
+    else if (y_min == 0) y_min = y_max = 1;
+    else if (y_min == block_y+1) y_min = y_max = block_y-1;
 
-    surface_iterator iter(u, x_min, x_max, dx,
-                             y_min, y_max, dy,
-                             z_min, z_max, dz);
-    int k;
-    for (k = 0; !iter.isDone(); ++iter, ++k)
-      boundary[k] = downSample(u, iter.getX(), iter.getY(), iter.getZ());
-    assert(k == count);
+    if (z_min != z_max) z_min++;
+    else if (z_min == 0) z_min = z_max = 1;
+    else if (z_min == block_z+1) z_min = z_max = block_z-1;
 
-    thisProxy(receiver).receiveGhosts(iterations, getSourceDirection(dir), thisIndex.getOctant(), count, boundary);
-  } else if (!I->second.isRefined()) {
-    // Friend
-    VB(logfile << "neighbor " << QI.getIndexString() << " is a friend" << std::endl;);
-    boundary = getGhostBuffer(dir);
-    thisProxy(QI).receiveGhosts(iterations, getSourceDirection(dir), -1, count, boundary);
+    // Iterate the original surface and downsample to fill in the ghost surface
+    SurfaceIterator surface_it(u, x_min, x_max, dx,
+                               y_min, y_max, dy,
+                               z_min, z_max, dz);
+    int elem;
+    for (elem = 0; !surface_it.isDone(); ++it, ++elem) {
+      ghost_data[elem] = downSample(u, surface_it.getX(), surface_it.getY(),
+                                    surface_it.getZ());
+    }
+    CkAssert(elem == ghost_size);
+
+    // Send the downsampled ghost data
+    thisProxy(receiver).receiveGhost(iter, getSourceDirection(dir),
+                                      thisIndex.getOctant(), ghost_size,
+                                      ghost_data);
+  } else if (!it->second.isRefined()) {
+    // Friend at same level
+    ghost_data = getGhostBuffer(dir);
+    thisProxy(neighbor_idx).receiveGhost(iter, getSourceDirection(dir), -1,
+                                          ghost_size, ghost_data);
   }
 }
 
-void MeshBlock::process(int iteration, int dir, int quadrant, int size, float gh[]){
-  VB(logfile << "received ghost from direction " << dir << ", octant " << quadrant << std::endl;);
-  bool fromNephew = (quadrant >= 0);
+void MeshBlock::processGhost(int iter, int dir, int quadrant, int size, float gh[]) {
+  bool from_nephew = (quadrant >= 0);
 
-  OctIndex QI = thisIndex.getNeighbor(dir);
-  if (fromNephew) QI = QI.getChild(quadrant);
-  //assert(!ghostReceived.count(QI));
-  ghostReceived.insert(QI);
-
-  imsg += (fromNephew) ? 0.25:1;
+  OctIndex neighbor_idx = thisIndex.getNeighbor(dir);
+  if (from_nephew) neighbor_idx = neighbor_idx.getChild(quadrant);
+  recv_ghosts.insert(neighbor_idx);
+  recv_count += (from_nephew) ? 0.25 : 1;
 
   int x_min, x_max, y_min, y_max, z_min, z_max;
   populateRanges(dir, quadrant, x_min, x_max, y_min, y_max, z_min, z_max);
-  VB(logfile << "after populate ranges " << " (iteration : " << iteration << ") " << dir << " " << quadrant << " " \
-             << x_min << " " << x_max << " " << y_min << " " << y_max << " " \
-             << z_min << " " << z_max << std::endl;);
+
   int dx = (x_min == x_max) ? 0 : 1;
   int dy = (y_min == y_max) ? 0 : 1;
   int dz = (z_min == z_max) ? 0 : 1;
+
   if (x_max != x_min) {
     x_min++;
     x_max++;
@@ -740,72 +760,54 @@ void MeshBlock::process(int iteration, int dir, int quadrant, int size, float gh
     z_max++;
   }
 
-  surface_iterator iter(u, x_min, x_max, dx,
-                           y_min, y_max, dy,
-                           z_min, z_max, dz);
-
-  for(int i=0; i<size; ++i, ++iter){
-      VB(
-        if(y[iter.getY()]==0.46875) 
-            //logfile << std::setw(5) << gh[i] << " ";
-            logfile << "setting " << x[iter.getX()] << ", " << y[iter.getY()] << ", " << z[iter.getZ()] << " = " << gh[i] << std::endl;
-       ); 
-      *iter = gh[i];
+  // Iterate the received ghost surface and fill in the original surface
+  SurfaceIterator surface_it(u, x_min, x_max, dx,
+                             y_min, y_max, dy,
+                             z_min, z_max, dz);
+  for (int i = 0; i < size; ++i, ++surface_it) {
+    *surface_it = gh[i];
   }
-  VB(logfile << std::endl;);
-  assert(iter.isDone());
+  CkAssert(surface_it.isDone());
 }
 
 void MeshBlock::sendReadyData(){
-  //check if data can be sent to any of the refined neighbors
-  //If the neighbors are at the same level or do not exist at all 
-  //data will be sent in begin_iteration function and need 
-  //not be sent here
-  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
-       iend = neighbors.end(); it != iend; ++it) {
-    Neighbor &N = it->second;
-    if(N.isRefined() && !N.isDataSent()) {
+  // Check if data can be sent to any of the refined neighbors.
+  // If the neighbors are at the same level or do not exist at all,
+  // data will be sent in begin_iteration and need not be sent here.
+  for (auto it = neighbors.begin(); it != neighbors.end(); ++it) {
+    Neighbor& neighbor = it->second;
+    if (neighbor.isRefined() && !neighbor.isDataSent()) {
+      // Find neighboring children
       std::vector<OctIndex> children;
-      getChildrenInDir(thisIndex, N.getDir(), children);
+      getChildrenInDir(thisIndex, neighbor.getDir(), children);
 
-      std::vector<OctIndex> allNeighbors;
-      for (std::vector<OctIndex>::iterator I = children.begin(),
-           E = children.end(); I != E; ++I) {
-        std::vector<OctIndex> neighbors = I->getNeighbors();
-        allNeighbors.insert(allNeighbors.end(),
-                            neighbors.begin(), neighbors.end());
+      std::vector<OctIndex> all_neighbors;
+      for (auto child_it = children.begin(); child_it != children.end(); ++child_it) {
+        std::vector<OctIndex> child_neighbors = child_it->getNeighbors();
+        all_neighbors.insert(all_neighbors.end(),
+                             child_neighbors.begin(), child_neighbors.end());
       }
 
-      // TODO: change to iterator
-      bool receivedAll = true;
-      for(int i = 0; i < allNeighbors.size(); i++) {
-        if(allNeighbors[i].getParent() != thisIndex) { // external neighbor
-          if(!ghostReceived.count(allNeighbors[i]) && !ghostReceived.count(allNeighbors[i].getParent())) {
-            receivedAll = false;
+      bool received_all = true;
+      for (auto ait = all_neighbors.begin(); ait != all_neighbors.end(); ++ait) {
+        OctIndex& neighbor_idx = *ait;
+        OctIndex neighbor_parent = neighbor_idx.getParent();
+        if (neighbor_parent != thisIndex) { // External neighbor
+          if (!recv_ghosts.count(neighbor_idx) && !recv_ghosts.count(neighbor_parent)) {
+            received_all = false;
             break;
           }
         }
       }
 
-      if(receivedAll) {
-        interpolateAndSend(N.getDir());
-        N.setDataSent(true);
+      if (received_all) {
+        interpolateAndSend(neighbor.getDir());
+        neighbor.setDataSent(true);
       }
     }
   }
 }
 
-int MeshBlock::getSourceDirection(int NBR) {
-  switch (NBR) {
-  case UP:    return DOWN;
-  case DOWN:  return UP;
-  case LEFT:  return RIGHT;
-  case RIGHT: return LEFT;
-  case FORWARD: return BACKWARD;
-  case BACKWARD: return FORWARD;
-  }
-}
-    
 void MeshBlock::interpolateAndSend(int dir) {
   int uncledir = getSourceDirection(dir);
   std::vector<OctIndex> children;
@@ -817,7 +819,7 @@ void MeshBlock::interpolateAndSend(int dir) {
 
 void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
   float *boundary;
-  int count = getGhostCount(uncledir);
+  int count = getGhostSize(uncledir);
 
   // TODO: Better generalize this code!
   int p = 1, m = -1;
@@ -882,7 +884,7 @@ void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
     }
   }
 
-  surface_iterator in(u, x_min, x_max, dx,
+  SurfaceIterator in(u, x_min, x_max, dx,
                          y_min, y_max, dy,
                          z_min, z_max, dz);
 
@@ -908,7 +910,7 @@ void MeshBlock::interpolateAndSendToNephew(int uncledir, OctIndex QI) {
   }
   assert(counter == count/(1 << (numDims-1)));
 
-  thisProxy(QI).receiveGhosts(iterations, uncledir, -2, count, boundary);
+  thisProxy(QI).receiveGhost(iter, uncledir, -2, count, boundary);
 }
 
 void MeshBlock::computeDone() {
@@ -921,10 +923,10 @@ void MeshBlock::computeDone() {
 }
 
 void MeshBlock::compute(){
-  //if(iterations==1){
+  //if(iter==1){
 #ifdef LOGGER
     char logfilename[100];
-    sprintf(logfilename, "out/snap_%s_%d.vtk", thisIndex.getIndexString().c_str(), iterations);
+    sprintf(logfilename, "out/snap_%s_%d.vtk", thisIndex.getIndexString().c_str(), iter);
     logfile.open(logfilename);
     logfile.precision(8);
     //logfile << "Variables=\"X\",\"Y\",\"Z\",\"radius\",\"nodeid\"\n";
@@ -1114,7 +1116,7 @@ Decision MeshBlock::getGranularityDecision(){
   mesh_manager_local->addDecisionTime(decision_time);
 
   error = sqrt(error);
-  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
+  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iter, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
@@ -1129,7 +1131,7 @@ Decision MeshBlock::getGranularityDecision(){
   mesh_manager_local->addDecisionTime(decision_time);
 
   error = sqrt(error_gpu);
-  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iterations, xc, yc, zc, error);
+  //CkPrintf("[Iter %d, Chare %d-%d-%d] error: %f\n", iter, xc, yc, zc, error);
   if(error < derefine_cutoff && thisIndex.getDepth() > min_depth) return COARSEN;
   else if(error > refine_cutoff && thisIndex.getDepth() < max_depth) return REFINE;
   else return STAY;
@@ -1308,7 +1310,7 @@ void MeshBlock::processPhase1Msg(int dir, int quadrant, Decision remoteDecision,
 
 /**** PHASE2 FUNCTIONS ****/
 void MeshBlock::doPhase2(){
-  VB(logfile << "in doPhase2, iteration = " << iterations << " decision = " << decision << std::endl;);
+  VB(logfile << "in doPhase2, iteration = " << iter << " decision = " << decision << std::endl;);
   if(decision == COARSEN){//send data to the parent
     std::vector<float> child_u;
     if(!inInitialMeshGenerationPhase){
@@ -1318,9 +1320,9 @@ void MeshBlock::doPhase2(){
           for(int k=1; k<=block_z; k+=2)
             child_u[index_c(i/2, j/2, k/2)] = downSample(u, i, j, k);
     }
-    //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] coarsening\n", iterations, thisIndex.getDepth(), xc, yc, zc);
+    //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] coarsening\n", iter, thisIndex.getDepth(), xc, yc, zc);
     VB(logfile << "coarsening .. sending data to parent " << meshGenIterations << std::endl;);
-    thisProxy(parent).recvChildData(meshGenIterations, thisIndex.getOctant(), myt, mydt, meshGenIterations, iterations, child_u, neighbors, uncleDecisions);
+    thisProxy(parent).recvChildData(meshGenIterations, thisIndex.getOctant(), myt, mydt, meshGenIterations, iter, child_u, neighbors, uncleDecisions);
     thisProxy[thisIndex].ckDestroy();
     //thisProxy.doneInserting();
     return;
@@ -1409,13 +1411,13 @@ void MeshBlock::updateMeshState(){
 }
 
 void MeshBlock::recvChildData(int childNum, float myt, float mydt,
-                              int meshGenIterations, int iterations, std::vector<float> child_u,
+                              int meshGenIterations, int iter, std::vector<float> child_u,
                               std::map<OctIndex, Neighbor> childNeighbors,
                               std::map<OctIndex, Decision> childUncleDecisions){
   VB(logfile << "recvd data from child: " << childNum << std::endl;);
   this->myt = myt;
   this->mydt = mydt;
-  this->iterations = iterations;
+  this->iter = iter;
   this->meshGenIterations = meshGenIterations;
 
   int st_i, end_i, st_j, end_j, st_k, end_k;
@@ -1450,7 +1452,7 @@ void MeshBlock::recvChildData(int childNum, float myt, float mydt,
     case 7: c1=RIGHT; c2=UP;   c3=FORWARD;  break;
   }
 
-  this->iterations  = iterations;
+  this->iter  = iter;
   this->myt         = myt;
   this->mydt        = mydt;
   setNbrStateUponCoarsening(c1, childNum, childNeighbors, childUncleDecisions);
@@ -1562,8 +1564,8 @@ void MeshBlock::refineChild(unsigned int sChild, int xstart, int xend, int ystar
   logfile << thisIndex.getIndexString().c_str() << " inserting " << child.getIndexString().c_str() << std::endl;);
 
   // Creation of new chares due to refinement
-  //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] refining\n", iterations, thisIndex.getDepth(), xc, yc, zc);
-  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iterations, refined_u, neighbors);
+  //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] refining\n", iter, thisIndex.getDepth(), xc, yc, zc);
+  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iter, refined_u, neighbors);
 }
 
 void MeshBlock::refine(){
@@ -1595,7 +1597,7 @@ bool MeshBlock::isGrandParent() {
 // Constructor used to create children chares on refinement
 MeshBlock::MeshBlock(float dx, float dy, float dz,
                      float myt, float mydt, float x_min, float y_min, float z_min,
-                     int meshGenIterations, int iterations, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
+                     int meshGenIterations, int iter, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
 {
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
@@ -1616,7 +1618,7 @@ MeshBlock::MeshBlock(float dx, float dy, float dz,
 
   thisIndex.getCoordinates(xc, yc, zc);
   this->meshGenIterations = meshGenIterations;
-  this->iterations = iterations;
+  this->iter = iter;
 
   // Allocate all necessary buffers
   mem_allocate_all();
@@ -1701,11 +1703,11 @@ void MeshBlock::ResumeFromSync() {
   VB(logfile << "resuming from load balancing" << std::endl;);
   //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
   if(isLeaf)
-    mesh_manager_local->incrementWorkUnitCount(iterations);
+    mesh_manager_local->incrementWorkUnitCount(iter);
   startPhase2(meshGenIterations);
 }
 
-bool MeshBlock::isRoot(){
+bool MeshBlock::isRoot() {
   return thisIndex.nbits == min_depth * numDims && thisIndex.bitVector == 0;
 }
 

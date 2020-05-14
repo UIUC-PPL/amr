@@ -75,7 +75,8 @@ public:
   bool child_isRefined[NUM_CHILDREN];
   bool isGrandParent();
 
-  std::set<OctIndex> ghostReceived;
+  std::set<OctIndex> recv_ghosts;
+  float recv_count;
 
   // Phase 1 data structures
   Decision decision;
@@ -88,9 +89,6 @@ public:
   std::map<OctIndex, Neighbor> neighbors;
   std::map<OctIndex, Decision> uncleDecisions;
   int xc, yc, zc;
-
-  //data
-  float imsg;
 
   float* u;
   float* u2;
@@ -117,7 +115,7 @@ public:
   float *forward_surface;
   float *backward_surface;
 
-  int iterations;
+  int iter;
   int meshGenIterations;
 
   float up_x, up_y, up_z;
@@ -133,9 +131,9 @@ public:
   void mem_allocate_all();
   void mem_deallocate_all();
   OctIndex getRefinedNeighbor(int NBR);
-  int getSourceDirection(int NBR);
-  float* getGhostBuffer(int dir);
-  int getGhostCount(int dir);
+  inline float* getGhostBuffer(int dir);
+  inline int getGhostSize(int dir);
+  inline int getSourceDirection(int dir);
   float lastIdleTimeQD;
   std::ofstream logfile;
 
@@ -160,7 +158,7 @@ public:
   MeshBlock(float dx, float dy, float dz,
             float myt, float mydt,
             float x_min, float y_min, float z_min,
-            int meshGenIterations_, int iterations_,
+            int meshGenIterations_, int iter_,
             std::vector<float> refined_u,
             std::map<OctIndex, Neighbor> neighbors);
 
@@ -170,7 +168,7 @@ public:
 
   /* initial mesh generation*/
   void applyInitialCondition();
-  void process(int, int, int, int, float*);
+  void processGhost(int, int, int, int, float*);
   void compute();
   void computeDone(); // GPU - HAPI
 
@@ -180,7 +178,7 @@ public:
   void gotErrorFromGPU(); // GPU - HAPI
 
   void resetMeshRestructureData();
-  void prepareData4Exchange();
+  void packGhosts();
   void processPhase1Msg(int, int, Decision, int);
 
   void updateDecisionState(int cascade_length, Decision newDecision);

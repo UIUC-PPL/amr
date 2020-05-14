@@ -114,7 +114,7 @@ module Advection {
                     int, int, std::vector<float>, std::map<OctIndex, Neighbor> neighbors);
 
     // For exchanging boundary layers
-    entry void receiveGhosts(int iter, int dir, int quadrant, int width, float u[width]);
+    entry void receiveGhost(int iter, int dir, int quadrant, int width, float u[width]);
     entry void signalExchangeGhostsCompletion();
 
     // Remeshing phase 1
@@ -138,19 +138,55 @@ module Advection {
       }
     };
 
+    // In the initial mesh generation phase, the mesh keeps on remeshing itself
+    // until it has reached a stable state based on the error estimate for the
+    // initial conditions. After this phase is over, remeshing occurs after a certain
+    // number of iterations (defined by refine_freq).
+    entry void iterate() {
+      serial {
+        if (/*inInitialMeshGenerationPhase*/ meshGenIterations++ < max_depth) {
+          thisProxy[thisIndex].doRemeshing();
+        } else {
+          if (isRoot()) {
+            mesh_manager.meshGenerationPhaseIsOver();
+          }
+          if (iter % refine_freq == 0) { // last one was a remeshing phase
+            remeshEndTime = CmiWallTimer();
+            mesh_manager_local->recordRemeshTime(iter, remeshStartTime, remeshEndTime);
+          }
+          iter++;
+          myt = myt + mydt;
+          if (iter > max_iters || myt >= tmax) {
+            if (isRoot()) {
+              CkStartQD(CkCallback(CkIndex_Main::terminate(), main_proxy));
+            }
+            return;
+          }
+          mydt = min(dx, min(dy, dz)) / sqrt(vx * vx + vy * vy + vz * vz) * cfl;
+          if ((myt + mydt) >= tmax) {
+            mydt = tmax - myt;
+          }
+
+          if (iter % refine_freq == 0) {
+            thisProxy[thisIndex].doRemeshing(); // time to do remeshing
+          }
+          else {
+            thisProxy[thisIndex].doComputationStep();
+          }
+        }
+      }
+    };
+
     // Specifies control flow of the remeshing phase
     entry void doRemeshing() {
       serial {
         remeshStartTime = CmiWallTimer();
         if (isRoot()) {
-          ckout << "Remeshing now... iteration: " << iterations
-            << ", meshGenIterations: " << meshGenIterations << endl;
+          CkPrintf("Remeshing... iter %d, mesh gen iter %d\n", iter, meshGenIterations);
         }
-        logfile << "Remeshing, meshGenIterations: " << meshGenIterations << std::endl;
         if (/*!inInitialMeshGenerationPhase*/ meshGenIterations > max_depth && isLeaf) {
           thisProxy[thisIndex].exchangeGhosts();
-        }
-        else {
+        } else {
           signalExchangeGhostsCompletion();
         }
       }
@@ -163,10 +199,9 @@ module Advection {
       // come to a consensus about their granularity decisions.
       when signalExchangeGhostsCompletion() {
         serial {
-          VB(logfile << "Registering QD, isLeaf: " << isLeaf << std::endl;);
           makeGranularityDecisionAndCommunicate();
           if (isRoot()) {
-            if (iterations % lb_freq == 0 && iterations >= 1) {
+            if (iter % lb_freq == 0 && iter >= 1) {
               CkStartQD(CkCallback(CkIndex_MeshBlock::startLdb(), thisProxy));
             }
             else {
@@ -184,17 +219,17 @@ module Advection {
           VB(logfile << "In while loop, meshGenIterations: " << meshGenIterations << std::endl;);
         }
         case {
-          when exchangePhase1Msg[meshGenIterations](int iterations, int dir,
+          when exchangePhase1Msg[meshGenIterations](int iter, int dir,
                                                     int quad, Decision dec, int length) {
             serial {
-              VB(logfile << "Iteration: " << iterations << std::endl;);
+              VB(logfile << "Iteration: " << iter << std::endl;);
               processPhase1Msg(dir, quad, dec, length);
               VB(logfile << "Out of processPhase1Msg" << std::endl;);
               lastBusyTime = CmiWallTimer();
             }
           }
 
-          when recvParentDecision[meshGenIterations](int iterations, int length) {
+          when recvParentDecision[meshGenIterations](int iter, int length) {
             serial {
               VB(logfile << "recvd message from parent" << std::endl;);
               processParentDecision(length);
@@ -202,10 +237,10 @@ module Advection {
             }
           }
 
-          when informParent[meshGenIterations](int iterations, int cnum, Decision dec, int length) {
+          when informParent[meshGenIterations](int iter, int cnum, Decision dec, int length) {
             serial {
               VB(logfile << "recvd message from child " << thisIndex.getChild(cnum).getIndexString()
-                 << ", iterations " << meshGenIterations << std::endl;);
+                 << ", iter " << meshGenIterations << std::endl;);
               processChildDecision(cnum, dec, length);
               lastBusyTime = CmiWallTimer();
             }
@@ -232,13 +267,40 @@ module Advection {
       }
     };
 
+    entry void exchangeGhosts() {
+      serial {
+        packGhosts();
+
+        // Send boundaries to neighbors which are on the same level as you,
+        // and to your uncles. For the neighbors which are your nephews,
+        // wait until they send their boundaries, then interpolate and send
+        // back the interpolated boundaries.
+        for (int i = 0; i < NUM_NEIGHBORS; i++) {
+          sendGhost(i);
+        }
+      }
+
+      while (recv_count < 6) {
+        when receiveGhost[iter](int iter, int dir, int quadrant, int width, float u1[width]) {
+          serial {
+            processGhost(iter, dir, quadrant, width, u1);
+            sendReadyData(); // send interpolated data to nephews
+          }
+        }
+      }
+
+      serial {
+        thisProxy[thisIndex].signalExchangeGhostsCompletion();
+      }
+    };
+
     entry void doComputationStep() {
       serial {
         if (isLeaf) {
-          mesh_manager_local->incrementWorkUnitCount(iterations);
+          mesh_manager_local->incrementWorkUnitCount(iter);
         }
         if (isRoot()) {
-          ckout << "Starting iteration " << iterations << " at root, time: " << CmiWallTimer() << endl;
+          ckout << "Starting iteration " << iter << " at root, time: " << CmiWallTimer() << endl;
         }
         // Only the leaf chares participate in boundary exchange,
         // others just indicate boundary exchange completion
@@ -263,46 +325,6 @@ module Advection {
 
     entry void computeDone();
 
-    // In the initial mesh generation phase, the mesh keeps on remeshing itself
-    // until it has reached a stable state based on the error estimate for the
-    // initial conditions. After this phase is over, remeshing occurs after a certain
-    // number of iterations (defined by refine_freq).
-    entry void iterate() {
-      serial {
-        if (/*inInitialMeshGenerationPhase*/ meshGenIterations++ < max_depth) {
-          thisProxy[thisIndex].doRemeshing();
-        }
-        else {
-          if (isRoot()) {
-            mesh_manager.meshGenerationPhaseIsOver();
-          }
-          if (iterations % refine_freq == 0) { // last one was a remeshing phase
-            remeshEndTime = CmiWallTimer();
-            mesh_manager_local->recordRemeshTime(iterations, remeshStartTime, remeshEndTime);
-          }
-          iterations++;
-          myt = myt + mydt;
-          if (iterations > max_iters || myt >= tmax) {
-            if (isRoot()) {
-              CkStartQD(CkCallback(CkIndex_Main::terminate(), main_proxy));
-            }
-            return;
-          }
-          mydt = min(dx, min(dy, dz)) / sqrt(vx * vx + vy * vy + vz * vz) * cfl;
-          if ((myt + mydt) >= tmax) {
-            mydt = tmax - myt;
-          }
-
-          if (iterations % refine_freq == 0) {
-            thisProxy[thisIndex].doRemeshing(); // time to do remeshing
-          }
-          else {
-            thisProxy[thisIndex].doComputationStep();
-          }
-        }
-      }
-    };
-
     entry void printSelf() {
       if (isLeaf) {
         atomic {
@@ -320,32 +342,6 @@ module Advection {
     };
 
     entry void donePrinting();
-
-    entry void exchangeGhosts() {
-      serial {
-        prepareData4Exchange();
-
-        // Send boundaries to neighbors which are on the same level as you, and to your
-        // uncles. For the neighbors which are your nephews, wait until they send their
-        // boundaries, then interpolate and send back the interpolated boundaries.
-        for (int i = 0; i < NUM_NEIGHBORS; i++) {
-          sendGhost(i);
-        }
-      }
-
-      while (imsg < 6) {
-        when receiveGhosts[iterations](int iter, int dir, int quadrant, int width, float u1[width]) {
-          serial {
-            process(iter, dir, quadrant, width, u1);
-            sendReadyData(); // send interpolated data to nephews
-          }
-        }
-      }
-
-      serial {
-        thisProxy[thisIndex].signalExchangeGhostsCompletion();
-      }
-    };
 
     entry void wait4ChildData() {
       serial {

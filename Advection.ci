@@ -108,10 +108,13 @@ module Advection {
 
   array [OctIndex] MeshBlock {
     entry MeshBlock();
-    entry MeshBlock(float, float, float, float, float, float);
+    entry MeshBlock(float x_min, float x_max, float y_min, float y_max,
+                    float z_min, float z_max);
     // This constructor is used when a new chare is constructed upon refinement
-    entry MeshBlock(float, float, float, float, float, float, float, float,
-                    int, int, std::vector<float>, std::map<OctIndex, Neighbor> neighbors);
+    entry MeshBlock(float dx, float dy, float dz, float myt, float mydt,
+                    float x_min, float y_min, float z_min,
+                    int gen_iter, int iter, std::vector<float> refined_u,
+                    std::map<OctIndex, Neighbor> parent_neighbors);
 
     // For exchanging boundary layers
     entry void receiveGhost(int iter, int dir, int quadrant, int width, float u[width]);

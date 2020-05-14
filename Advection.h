@@ -159,8 +159,7 @@ public:
             int gen_iter_, int iter_,
             std::vector<float> refined_u,
             std::map<OctIndex, Neighbor> neighbors);
-
-  void initializeRestofTheData(); // common function initialization for
+  void init(); // Common initialization code
   
   void pup(PUP::er &p);
 

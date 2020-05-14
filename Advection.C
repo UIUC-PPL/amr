@@ -426,6 +426,7 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
   thisIndex.getCoordinates(xc, yc, zc);
+
   dx = (x_max - x_min) / float(grid_x);
   dy = (y_max - y_min) / float(grid_y);
   dz = (z_max - z_min) / float(grid_z);
@@ -437,9 +438,9 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   myt = t;
   mydt = dt;
 
-  this->x_min = xc*nx*dx;
-  this->y_min = yc*ny*dy;
-  this->z_min = zc*nz*dz;
+  this->x_min = xc * nx * dx;
+  this->y_min = yc * ny * dy;
+  this->z_min = zc * nz * dz;
 
   iter=0;
   gen_iter=0;
@@ -447,10 +448,10 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   // Allocate all necessary buffers
   mem_allocate_all();
 
-  initializeRestofTheData();
+  init();
 }
 
-void MeshBlock::initializeRestofTheData(){
+void MeshBlock::init() {
   usesAutoMeasure = false;
   usesAtSync = true;
   remeshStartTime = 0;
@@ -475,7 +476,6 @@ void MeshBlock::initializeRestofTheData(){
   this->isRefined = false;
 
   FOR_EACH_NEIGHBOR
-    VB(logfile << "neighbor in dir " << i << " is " << thisIndex.getNeighbor(i).getIndexString().c_str() << std::endl;);
     neighbors[thisIndex.getNeighbor(i)] = Neighbor(i);
   END_FOR
 
@@ -483,6 +483,93 @@ void MeshBlock::initializeRestofTheData(){
   resetMeshRestructureData();
   nChildDataRecvd = 0;
   phase1Over = false;
+}
+
+// Constructor used to create children chares on refinement
+MeshBlock::MeshBlock(float dx, float dy, float dz, float myt, float mydt,
+                     float x_min, float y_min, float z_min,
+                     int gen_iter, int iter, std::vector<float> refined_u,
+                     std::map<OctIndex, Neighbor> parent_neighbors)
+{
+  mesh_manager_local = mesh_manager.ckLocalBranch();
+
+  this->dx = dx;
+  this->dy = dy;
+  this->dz = dz;
+
+  this->myt = myt;
+  this->mydt = mydt;
+
+  this->x_min = x_min;
+  this->y_min = y_min;
+  this->z_min = z_min;
+
+  nx = grid_x / n_chares_x;
+  ny = grid_y / n_chares_y;
+  nz = grid_z / n_chares_z;
+
+  thisIndex.getCoordinates(xc, yc, zc);
+  this->gen_iter = gen_iter;
+  this->iter = iter;
+
+  // Allocate all necessary buffers
+  mem_allocate_all();
+
+  init();
+
+  nChildDataRecvd=0;
+  std::map<OctIndex, Neighbor>::iterator it, iend;
+  for (it = neighbors.begin(), iend = neighbors.end(); it != iend; ) {
+    const OctIndex &neighborOctIndex = it->first;
+    Neighbor &neighbor = it->second;
+    bool shouldDelete = false;
+    if (neighborOctIndex.getParent() != thisIndex.getParent()) {
+      std::map<OctIndex, Neighbor>::iterator parentIt = parent_neighbors.find(neighborOctIndex.getParent());
+      if (parentIt == parent_neighbors.end()) {
+        shouldDelete = true;
+      } else {
+        Neighbor parent_neighbor = parentIt->second;
+        if (parent_neighbor.isRefined()) {
+          switch (parent_neighbor.getDecision(neighborOctIndex.getOctant())) {
+            case COARSEN: shouldDelete = true; break;
+            //case STAY: break;
+            case REFINE: neighbor.setRefined(true); break;
+          }
+        } else {
+          switch (parent_neighbor.getDecision()) {
+            //case REFINE: break;
+            case STAY: shouldDelete = true; break;
+            case COARSEN: CkAbort("this neighbor cannot derefine");
+          }
+        }
+      }
+    }
+
+    // Advance iterator, removing this quadindex/neighbor pair if requested.
+    if (shouldDelete)
+      neighbors.erase(it++);
+    else
+      ++it;
+  }
+
+  assert(neighbors.size() >= numDims);
+  unsigned sameParent = 0;
+  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
+       iend = neighbors.end(); it != iend; ++it) {
+    if (it->first.getParent() == thisIndex.getParent())
+      ++sameParent;
+  }
+  assert(sameParent == 3);
+
+  if(!inInitialMeshGenerationPhase){
+    int ctr=0;
+    for(int k=1; k<=block_z; k++)
+      for(int j=1; j<=block_y; j++)
+        for(int i=1; i<=block_x; i++)
+          u[index(i,j,k)]=refined_u[ctr++];
+  }
+
+  thisProxy[thisIndex].iterate();
 }
 
 //added for array migration - see how 2D arrays can be packed
@@ -1594,91 +1681,6 @@ bool MeshBlock::isGrandParent() {
   return ret;
 }
 
-// Constructor used to create children chares on refinement
-MeshBlock::MeshBlock(float dx, float dy, float dz, float myt, float mydt,
-                     float x_min, float y_min, float z_min,
-                     int gen_iter, int iter, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
-{
-  mesh_manager_local = mesh_manager.ckLocalBranch();
-
-  this->dx = dx;
-  this->dy = dy;
-  this->dz = dz;
-
-  this->myt = myt;
-  this->mydt = mydt;
-
-  this->x_min = x_min;
-  this->y_min = y_min;
-  this->z_min = z_min;
-
-  nx = grid_x / n_chares_x;
-  ny = grid_y / n_chares_y;
-  nz = grid_z / n_chares_z;
-
-  thisIndex.getCoordinates(xc, yc, zc);
-  this->gen_iter = gen_iter;
-  this->iter = iter;
-
-  // Allocate all necessary buffers
-  mem_allocate_all();
-
-  initializeRestofTheData();
-
-  nChildDataRecvd=0;
-  std::map<OctIndex, Neighbor>::iterator it, iend;
-  for (it = neighbors.begin(), iend = neighbors.end(); it != iend; ) {
-    const OctIndex &neighborOctIndex = it->first;
-    Neighbor &neighbor = it->second;
-    bool shouldDelete = false;
-    if (neighborOctIndex.getParent() != thisIndex.getParent()) {
-      std::map<OctIndex, Neighbor>::iterator parentIt = parentNeighbors.find(neighborOctIndex.getParent());
-      if (parentIt == parentNeighbors.end()) {
-        shouldDelete = true;
-      } else {
-        Neighbor parentNeighbor = parentIt->second;
-        if (parentNeighbor.isRefined()) {
-          switch (parentNeighbor.getDecision(neighborOctIndex.getOctant())) {
-            case COARSEN: shouldDelete = true; break;
-            //case STAY: break;
-            case REFINE: neighbor.setRefined(true); break;
-          }
-        } else {
-          switch (parentNeighbor.getDecision()) {
-            //case REFINE: break;
-            case STAY: shouldDelete = true; break;
-            case COARSEN: VB(logfile << "this neighbor cannot derefine" << std::endl;); 
-                        CkAbort("this neighbor cannot derefine");
-          }
-        }
-      }
-    }
-
-    // Advance iterator, removing this quadindex/neighbor pair if requested.
-    if (shouldDelete)
-      neighbors.erase(it++);
-    else
-      ++it;
-  }
-
-  assert(neighbors.size() >= numDims);
-  unsigned sameParent = 0;
-  for (std::map<OctIndex, Neighbor>::iterator it = neighbors.begin(),
-       iend = neighbors.end(); it != iend; ++it) {
-    if (it->first.getParent() == thisIndex.getParent())
-      ++sameParent;
-  }
-  assert(sameParent == 3);
-
-  if(!inInitialMeshGenerationPhase){
-    int ctr=0;
-    for(int k=1; k<=block_z; k++)
-      for(int j=1; j<=block_y; j++)
-        for(int i=1; i<=block_x; i++)
-          u[index(i,j,k)]=refined_u[ctr++];
-  }
-  iterate();
-}
 
 void MeshBlock::startLdb(){
   UserSetLBLoad();

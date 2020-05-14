@@ -134,7 +134,7 @@ module Advection {
     entry void phase1Finish() {
       serial {
         // Inform everybody that phase 1 is over
-        thisProxy.startPhase2(meshGenIterations);
+        thisProxy.startPhase2(gen_iter);
       }
     };
 
@@ -144,7 +144,7 @@ module Advection {
     // number of iterations (defined by refine_freq).
     entry void iterate() {
       serial {
-        if (/*inInitialMeshGenerationPhase*/ meshGenIterations++ < max_depth) {
+        if (/*inInitialMeshGenerationPhase*/ gen_iter++ < max_depth) {
           thisProxy[thisIndex].doRemeshing();
         } else {
           if (isRoot()) {
@@ -182,9 +182,9 @@ module Advection {
       serial {
         remeshStartTime = CmiWallTimer();
         if (isRoot()) {
-          CkPrintf("Remeshing... iter %d, mesh gen iter %d\n", iter, meshGenIterations);
+          CkPrintf("Remeshing... iter %d, mesh gen iter %d\n", iter, gen_iter);
         }
-        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations > max_depth && isLeaf) {
+        if (/*!inInitialMeshGenerationPhase*/ gen_iter > max_depth && isLeaf) {
           thisProxy[thisIndex].exchangeGhosts();
         } else {
           signalExchangeGhostsCompletion();
@@ -216,10 +216,10 @@ module Advection {
       while (!phase1Over) {
         serial {
           lastBusyTime = CmiWallTimer();
-          VB(logfile << "In while loop, meshGenIterations: " << meshGenIterations << std::endl;);
+          VB(logfile << "In while loop, gen_iter: " << gen_iter << std::endl;);
         }
         case {
-          when exchangePhase1Msg[meshGenIterations](int iter, int dir,
+          when exchangePhase1Msg[gen_iter](int iter, int dir,
                                                     int quad, Decision dec, int length) {
             serial {
               VB(logfile << "Iteration: " << iter << std::endl;);
@@ -229,7 +229,7 @@ module Advection {
             }
           }
 
-          when recvParentDecision[meshGenIterations](int iter, int length) {
+          when recvParentDecision[gen_iter](int iter, int length) {
             serial {
               VB(logfile << "recvd message from parent" << std::endl;);
               processParentDecision(length);
@@ -237,22 +237,22 @@ module Advection {
             }
           }
 
-          when informParent[meshGenIterations](int iter, int cnum, Decision dec, int length) {
+          when informParent[gen_iter](int iter, int cnum, Decision dec, int length) {
             serial {
               VB(logfile << "recvd message from child " << thisIndex.getChild(cnum).getIndexString()
-                 << ", iter " << meshGenIterations << std::endl;);
+                 << ", iter " << gen_iter << std::endl;);
               processChildDecision(cnum, dec, length);
               lastBusyTime = CmiWallTimer();
             }
           }
 
-          when startPhase2[meshGenIterations](int meshgeniter) {
+          when startPhase2[gen_iter](int meshgeniter) {
             serial {
               lastIdleTime = CmiWallTimer();
-              mesh_manager_local->recordQdTime(meshGenIterations, lastBusyTime, lastIdleTime);
+              mesh_manager_local->recordQdTime(gen_iter, lastBusyTime, lastIdleTime);
               if (isRoot()) {
-                ckout << "Starting phase 2, iteration: " << meshgeniter << ", meshGenIterations: "
-                  << meshGenIterations << endl;
+                ckout << "Starting phase 2, iteration: " << meshgeniter << ", gen_iter: "
+                  << gen_iter << endl;
               }
               VB(logfile << "QD detected: phase 1 over" << std::endl;
                  logfile << "Decision: " << decision << std::endl;);
@@ -350,9 +350,9 @@ module Advection {
 
       for (ichild = 0; ichild < NUM_CHILDREN; ichild++) {
         serial {
-          VB(logfile << "Waiting for child data, meshGenIterations: " << meshGenIterations << std::endl;);
+          VB(logfile << "Waiting for child data, gen_iter: " << gen_iter << std::endl;);
         }
-        when recvChildData[meshGenIterations](int iter, int a, float b, float c, int d, int e,
+        when recvChildData[gen_iter](int iter, int a, float b, float c, int d, int e,
                                               std::vector<float> f, std::map<OctIndex, Neighbor> g,
                                               std::map<OctIndex, Decision> h) {
           serial {

@@ -116,7 +116,7 @@ public:
   float *backward_surface;
 
   int iter;
-  int meshGenIterations;
+  int gen_iter;
 
   float up_x, up_y, up_z;
   float un_x, un_y, un_z;
@@ -148,17 +148,15 @@ public:
 
   /* Constructors */
   MeshBlock() { usesAtSync = true; usesAutoMeasure = false; }
-  MeshBlock(CkMigrateMessage* m) : CBase_MeshBlock(m){ 
+  MeshBlock(CkMigrateMessage* m) : CBase_MeshBlock(m) {
     usesAutoMeasure = false;
     usesAtSync = true;
-    VB(logfile.open(string("log/"+thisIndex.getIndexString()+"log").c_str(), std::ofstream::app););
-    VB(logfile << "migrated to a new processor" << std::endl;)
   }
-  MeshBlock(float, float, float, float, float, float);
-  MeshBlock(float dx, float dy, float dz,
-            float myt, float mydt,
+  MeshBlock(float x_min, float x_max, float y_min, float y_max,
+            float z_min, float z_max);
+  MeshBlock(float dx, float dy, float dz, float myt, float mydt,
             float x_min, float y_min, float z_min,
-            int meshGenIterations_, int iter_,
+            int gen_iter_, int iter_,
             std::vector<float> refined_u,
             std::map<OctIndex, Neighbor> neighbors);
 

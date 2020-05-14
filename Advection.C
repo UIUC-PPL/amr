@@ -1,7 +1,7 @@
 #include "Headers.h"
 #include <assert.h>
 
-#define inInitialMeshGenerationPhase (meshGenIterations <= max_depth)
+#define inInitialMeshGenerationPhase (gen_iter <= max_depth)
 
 extern CProxy_Main main_proxy;
 extern CProxy_MeshBlock mesh;
@@ -442,7 +442,7 @@ MeshBlock::MeshBlock(float x_min, float x_max, float y_min, float y_max,
   this->z_min = zc*nz*dz;
 
   iter=0;
-  meshGenIterations=0;
+  gen_iter=0;
 
   // Allocate all necessary buffers
   mem_allocate_all();
@@ -522,7 +522,7 @@ void MeshBlock::pup(PUP::er &p){
   PUParray(p, z, block_z+2);
 
   p|iter;
-  p|meshGenIterations;
+  p|gen_iter;
   p|up_x;
   p|un_x;
   p|up_y;
@@ -1176,7 +1176,7 @@ void MeshBlock::makeGranularityDecisionAndCommunicate(){
     getGranularityDecision();
 #endif
   }
-  else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(meshGenIterations,-1, INV, 1);
+  else if(isGrandParent() && !parentHasAlreadyMadeDecision) informParent(gen_iter,-1, INV, 1);
 }
 
 /***** PHASE1 FUNCTIONS****/
@@ -1200,7 +1200,7 @@ void MeshBlock::updateDecisionState(int cascade_length, Decision newDecision) {
       if (!N.isRefined()) {
         // isFriend
         VB(logfile << "sending exchangePhase1Msg, decision = " << decision << ", receiver = " << QI.getIndexString() << std::endl;);
-        thisProxy(QI).exchangePhase1Msg(meshGenIterations, getSourceDirection(i), -1, decision, cascade_length);
+        thisProxy(QI).exchangePhase1Msg(gen_iter, getSourceDirection(i), -1, decision, cascade_length);
       } else {
         // isNephew
         //Get Corresponding Children of the neighbor
@@ -1210,19 +1210,19 @@ void MeshBlock::updateDecisionState(int cascade_length, Decision newDecision) {
         for (std::vector<OctIndex>::iterator I = children.begin(),
              E = children.end(); I != E; ++I){
         VB(logfile << "sending exchangePhase1Msg, decision = " << decision << ", receiver = " << I->getIndexString() << std::endl;);
-        thisProxy(*I).exchangePhase1Msg(meshGenIterations, getSourceDirection(i), -2, decision, cascade_length);
+        thisProxy(*I).exchangePhase1Msg(gen_iter, getSourceDirection(i), -2, decision, cascade_length);
         }
       }
     } else {
       // Does not exist, talk to uncle
       VB(logfile << "sending exchangePhase1Msg, decision = " << decision << ", receiver = " << QI.getParent().getIndexString() << std::endl;);
-      thisProxy(QI.getParent()).exchangePhase1Msg(meshGenIterations, getSourceDirection(i), thisIndex.getOctant(), decision, cascade_length);
+      thisProxy(QI.getParent()).exchangePhase1Msg(gen_iter, getSourceDirection(i), thisIndex.getOctant(), decision, cascade_length);
     }
   }
 
   if(parent != thisIndex){
     VB(logfile << "sending informParent, decision = " << decision << std::endl;);
-    thisProxy(parent).informParent(meshGenIterations, thisIndex.getOctant(), decision, cascade_length);
+    thisProxy(parent).informParent(gen_iter, thisIndex.getOctant(), decision, cascade_length);
   }
 }
 
@@ -1239,12 +1239,12 @@ void MeshBlock::processChildDecision(int childNum, Decision dec, int cascade_len
     parentHasAlreadyMadeDecision = true;
     FOR_EACH_CHILD
       if(i!=childNum && !child_isRefined[i]){
-        VB(logfile << "sending message to child " << thisIndex.getChild(i).getIndexString().c_str() << ", miterattions " << meshGenIterations << std::endl;);
-        thisProxy(thisIndex.getChild(i)).recvParentDecision(meshGenIterations, cascade_length);
+        VB(logfile << "sending message to child " << thisIndex.getChild(i).getIndexString().c_str() << ", miterattions " << gen_iter << std::endl;);
+        thisProxy(thisIndex.getChild(i)).recvParentDecision(gen_iter, cascade_length);
       }
     END_FOR
     if(parent!=thisIndex)
-      thisProxy(parent).informParent(meshGenIterations, thisIndex.getOctant(), STAY, cascade_length);
+      thisProxy(parent).informParent(gen_iter, thisIndex.getOctant(), STAY, cascade_length);
   }
 }
 
@@ -1321,8 +1321,8 @@ void MeshBlock::doPhase2(){
             child_u[index_c(i/2, j/2, k/2)] = downSample(u, i, j, k);
     }
     //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] coarsening\n", iter, thisIndex.getDepth(), xc, yc, zc);
-    VB(logfile << "coarsening .. sending data to parent " << meshGenIterations << std::endl;);
-    thisProxy(parent).recvChildData(meshGenIterations, thisIndex.getOctant(), myt, mydt, meshGenIterations, iter, child_u, neighbors, uncleDecisions);
+    VB(logfile << "coarsening .. sending data to parent " << gen_iter << std::endl;);
+    thisProxy(parent).recvChildData(gen_iter, thisIndex.getOctant(), myt, mydt, gen_iter, iter, child_u, neighbors, uncleDecisions);
     thisProxy[thisIndex].ckDestroy();
     //thisProxy.doneInserting();
     return;
@@ -1411,14 +1411,14 @@ void MeshBlock::updateMeshState(){
 }
 
 void MeshBlock::recvChildData(int childNum, float myt, float mydt,
-                              int meshGenIterations, int iter, std::vector<float> child_u,
+                              int gen_iter, int iter, std::vector<float> child_u,
                               std::map<OctIndex, Neighbor> childNeighbors,
                               std::map<OctIndex, Decision> childUncleDecisions){
   VB(logfile << "recvd data from child: " << childNum << std::endl;);
   this->myt = myt;
   this->mydt = mydt;
   this->iter = iter;
-  this->meshGenIterations = meshGenIterations;
+  this->gen_iter = gen_iter;
 
   int st_i, end_i, st_j, end_j, st_k, end_k;
   getOctantRange(childNum, st_i, end_i, st_j, end_j, st_k, end_k);
@@ -1565,7 +1565,7 @@ void MeshBlock::refineChild(unsigned int sChild, int xstart, int xend, int ystar
 
   // Creation of new chares due to refinement
   //CkPrintf("[Iter %d, Depth %d, Chare %d-%d-%d] refining\n", iter, thisIndex.getDepth(), xc, yc, zc);
-  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, meshGenIterations, iter, refined_u, neighbors);
+  thisProxy(child).insert(dx/2, dy/2, dz/2, myt, mydt, x_min, y_min, z_min, gen_iter, iter, refined_u, neighbors);
 }
 
 void MeshBlock::refine(){
@@ -1595,9 +1595,9 @@ bool MeshBlock::isGrandParent() {
 }
 
 // Constructor used to create children chares on refinement
-MeshBlock::MeshBlock(float dx, float dy, float dz,
-                     float myt, float mydt, float x_min, float y_min, float z_min,
-                     int meshGenIterations, int iter, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
+MeshBlock::MeshBlock(float dx, float dy, float dz, float myt, float mydt,
+                     float x_min, float y_min, float z_min,
+                     int gen_iter, int iter, std::vector<float> refined_u, std::map<OctIndex, Neighbor> parentNeighbors)
 {
   mesh_manager_local = mesh_manager.ckLocalBranch();
 
@@ -1617,7 +1617,7 @@ MeshBlock::MeshBlock(float dx, float dy, float dz,
   nz = grid_z / n_chares_z;
 
   thisIndex.getCoordinates(xc, yc, zc);
-  this->meshGenIterations = meshGenIterations;
+  this->gen_iter = gen_iter;
   this->iter = iter;
 
   // Allocate all necessary buffers
@@ -1704,7 +1704,7 @@ void MeshBlock::ResumeFromSync() {
   //ckout <<  thisIndex.getIndexString().c_str() << " " << isLeaf << endl;
   if(isLeaf)
     mesh_manager_local->incrementWorkUnitCount(iter);
-  startPhase2(meshGenIterations);
+  startPhase2(gen_iter);
 }
 
 bool MeshBlock::isRoot() {

@@ -157,8 +157,8 @@ module Advection{
         remeshStartTime = CmiWallTimer();
         if(isRoot()) ckout << "doing remeshing now.. iterations = " << iterations << ", meshGenIterations = " << meshGenIterations << endl;
         logfile << "begin remeshing, miterations " << meshGenIterations << std::endl;
-        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) exchangeGhosts();
-        else signalExchangeGhostsCompletion();
+        if (/*!inInitialMeshGenerationPhase*/ meshGenIterations>max_depth && isLeaf) thisProxy[thisIndex].exchangeGhosts();
+        else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
       //Remshing takes place in two phases:
       //in phase 1, each chare makes a granularity 
@@ -244,7 +244,7 @@ module Advection{
             ckout  << "starting iteration " << iterations << " at root, time = " << CmiWallTimer() << endl;
         //only the leaf chares participate in boundary exchange,
         //others just indicate boundary exchange completion
-        if(isLeaf) exchangeGhosts();
+        if(isLeaf) thisProxy[thisIndex].exchangeGhosts();
         else thisProxy[thisIndex].signalExchangeGhostsCompletion();
       }
       when signalExchangeGhostsCompletion() serial {
@@ -282,8 +282,8 @@ module Advection{
         if ((myt + mydt) >= tmax )
           mydt = tmax - myt;
 
-        if(iterations % refine_frequency == 0) doRemeshing();//time to do remeshing
-        else doComputationStep();
+        if(iterations % refine_frequency == 0) thisProxy[thisIndex].doRemeshing();//time to do remeshing
+        else thisProxy[thisIndex].doComputationStep();
       }
      }
     };
